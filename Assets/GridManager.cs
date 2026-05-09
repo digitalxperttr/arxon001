@@ -563,26 +563,31 @@ private void UpdatePreviewVisuals()
             previewVisuals.Add(previewBlock.gameObject);
         }
     }
-    public void SpawnRowFromData(int y)
+public void SpawnRowFromData(int y)
     {
-        // Önizlemedeki verileri alıp GERÇEK, kanlı canlı bloklara dönüştürür
         foreach (BlockData data in nextRowData)
         {
-            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y, 0);
+            // 1. DEĞİŞİKLİK: Görsel olarak doğrudan Y=0'da değil, Y-1'de (yerin altında) doğuruyoruz.
+            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y - 1f, 0); 
+            
             Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
             
             newBlock.width = data.width;
             newBlock.x = data.x;
-            newBlock.y = y;
-            newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
+            newBlock.y = y; // Mantıksal olarak hedefi hala 0. satır
             
+            newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
             newBlock.SetBlockColor(data.color);
 
             activeBlocks.Add(newBlock);
+
+            // 2. DEĞİŞİKLİK: Yeni doğan bloğa da "hedefine doğru hareket et" emri veriyoruz.
+            // Böylece üstteki bloklar 0'dan 1'e giderken, bu da -1'den 0'a onlarla beraber gidecek.
+            newBlock.MoveTo(newBlock.x, newBlock.y);
         }
         RebuildGridMemory();
     }
-
+    
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 
