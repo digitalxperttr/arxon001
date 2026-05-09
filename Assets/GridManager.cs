@@ -28,6 +28,23 @@ public class GridManager : MonoBehaviour
 
     public bool isGameOver = false;
     public GameObject gameOverPanel; // Unity'den atayacağımız panel
+
+    [Header("Önizleme (Preview) Ayarları")]
+    public float previewYPosition = -1.2f; // Gridin hemen altında duracağı Y koordinatı
+    public float previewAlpha = 0.5f;      // Yarı şeffaflık oranı
+    
+    // Gelecek satırın "taslağını" tutacak veri yapısı
+    [System.Serializable]
+    public struct BlockData
+    {
+        public int x;
+        public int width;
+        public Color color;
+    }
+
+    public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
+    private System.Collections.Generic.List<GameObject> previewVisuals = new System.Collections.Generic.List<GameObject>();
+    //ÖN İZLEME HEADER BİTİMİ
   
     void Awake()
     {
@@ -64,11 +81,16 @@ void Start()
 
     // 4. Sistemi coroutine ile dürt
     StartCoroutine(InitialGravityCheck());
+    
+    GenerateNextRowData();
+    
     // Skor tabelasını da hemen dürtelim
     if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
 }
 
-// Kontrol fonksiyonu
+
+
+// -----------Kontrol fonksiyonu
 void CheckGameOver()
 {
     // En üst satırı (height - 1) kontrol et
@@ -230,8 +252,11 @@ public IEnumerator PushBoardUpRoutine()
     // Hafızayı güncelle
     RebuildGridMemory();
 
-    // HİÇ BEKLEMEDEN yeni satırı doğur (Böylece alt satır anında dolar)
-    SpawnRandomRow(0); 
+    // HİÇ BEKLEMEDEN: Rastgele satır doğurma! Onun yerine önizlemedeki satırı oyuna al.
+    SpawnRowFromData(0); 
+
+    // HEMEN ARDINDAN: Bir sonraki hamle için yeni bir önizleme (taslak) oluştur.
+    GenerateNextRowData(); 
 
     // 2. ŞİMDİ OYUNCUYA SÜRE TANI (Hızı buradan kontrol et)
     // "Hızlı gibi" dediğin yer burası, bu süreyi artırabilirsin.
@@ -441,6 +466,128 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
     b.y = newY;
     RebuildGridMemory(); // Hafızayı baştan kur!
 }
+
+//---------------------ÖN İZLEME FONKSİYONLARI-----------------------
+
+public void GenerateNextRowData()
+    {
+        nextRowData.Clear();
+        int currentX = 0;
+        int blockCountInRow = 0;
+
+        while (currentX < width)
+        {
+            // Senin güncellediğin 4-5 hücreli zar atma mantığı:
+            float gapChance = (blockCountInRow > 2) ? 0.7f : 0.4f; 
+            if (Random.value < gapChance) 
+            {
+                currentX++;
+                continue;
+            }
+
+            int bWidth = 1;
+            float widthRoll = Random.value;
+            if (widthRoll > 0.98f) bWidth = 5;      
+            else if (widthRoll > 0.94f) bWidth = 4; 
+            else if (widthRoll > 0.85f) bWidth = 3; 
+            else if (widthRoll > 0.60f) bWidth = 2; 
+            else bWidth = 1;                       
+
+            if (currentX + bWidth > width) bWidth = width - currentX;
+
+            // Bloğu OLUŞTURMA, sadece VERİSİNİ kaydet
+            BlockData newData = new BlockData();
+            newData.x = currentX;
+            newData.width = bWidth;
+            newData.color = blockColors[Random.Range(0, blockColors.Length)];
+            nextRowData.Add(newData);
+
+            currentX += bWidth;
+            blockCountInRow++;
+        }
+        
+        // Güvenlik: Satır boş kalamaz
+        if (blockCountInRow == 0)
+        {
+            BlockData newData = new BlockData();
+            newData.x = Random.Range(0, width);
+            newData.width = 1;
+            newData.color = blockColors[Random.Range(0, blockColors.Length)];
+            nextRowData.Add(newData);
+        }
+
+        // Veri hesaplandı, şimdi görselleri çiz!
+        UpdatePreviewVisuals();
+    }
+
+private void UpdatePreviewVisuals()
+    {
+        // 1. Eski önizleme görsellerini yok et
+        foreach (GameObject obj in previewVisuals) { Destroy(obj); }
+        previewVisuals.Clear();
+
+        // 2. Yeni önizlemeleri oluştur
+        foreach (BlockData data in nextRowData)
+        {
+            // Pozisyon: -1.0f yaparak tam gridin (0. satırın) altına "yapıştırıyoruz"
+            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, -1.0f, 0);
+            
+            Block previewBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+            previewBlock.gameObject.name = "PreviewBlock";
+            
+            // Fizik ve hareketleri kapat
+            previewBlock.enabled = false; 
+            if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) 
+                col.enabled = false;
+
+            // GÖRSEL DÜZENLEME 1: İlham oyunundaki gibi altta "basık / yarım" görünsün
+            // Normalde Y scale 0.9f idi, bunu 0.5f yaparak yarısını gizlenmiş gibi gösteriyoruz.
+            // Ayrıca pozisyonunu hafifçe aşağı kaydırarak tam hizalıyoruz
+            previewBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.5f, 1);
+            previewBlock.transform.position -= new Vector3(0, 0.25f, 0); 
+
+            // GÖRSEL DÜZENLEME 2: Alpha yerine URP Emission'ı "boğmak" için rengi koyulaştır (Gölgeli)
+            // RGB değerlerini %30'una (0.3f) düşürüyoruz. Bu neon parlamayı söndürür.
+            Color shadowColor = new Color(
+                data.color.r * 0.3f, 
+                data.color.g * 0.3f, 
+                data.color.b * 0.3f, 
+                1f
+            );
+            previewBlock.SetBlockColor(shadowColor);
+
+            // GÖRSEL DÜZENLEME 3: Gridin/Efektlerin Arkasında Dursun
+            SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
+            sr.sortingOrder = -5; // Alttan/derinden geliyormuş hissi için
+
+            previewVisuals.Add(previewBlock.gameObject);
+        }
+    }
+    public void SpawnRowFromData(int y)
+    {
+        // Önizlemedeki verileri alıp GERÇEK, kanlı canlı bloklara dönüştürür
+        foreach (BlockData data in nextRowData)
+        {
+            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y, 0);
+            Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+            
+            newBlock.width = data.width;
+            newBlock.x = data.x;
+            newBlock.y = y;
+            newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
+            
+            newBlock.SetBlockColor(data.color);
+
+            activeBlocks.Add(newBlock);
+        }
+        RebuildGridMemory();
+    }
+
+//---------------------ÖN İZLEME FONKSİYONLARI-----------------------
+
+
+
+
 }
 
 
