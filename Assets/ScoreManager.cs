@@ -66,7 +66,7 @@ public class ScoreManager : MonoBehaviour
         string translation = "Puan"; // Varsayılan değer
         if (LocalizationManager.Instance != null)
         {
-            translation = LocalizationManager.Instance.GetTranslation("score_label");
+            translation = LocalizationManager.Instance.GetTranslation("score");
             if (string.IsNullOrEmpty(translation) || translation.Contains("KEY_NOT_FOUND"))
             {
                 translation = "Puan"; 
