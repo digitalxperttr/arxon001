@@ -88,21 +88,33 @@ public class ScoreManager : MonoBehaviour
     }
 
     // Herhangi bir sahne yüklendiğinde bu fonksiyon otomatik olarak çalışır
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Yeni yüklenen sahnede "ScoreText" etiketine sahip UI elemanını bul
-        // ve scoreText değişkenine ata.
-        GameObject scoreTextObject = GameObject.FindWithTag("ScoreText");
-        if (scoreTextObject != null)
+        // YENİ KONTROL: Sadece oyun sahnemizde Puan yazısını ara!
+        if (scene.name == "GameScene")
         {
-            scoreText = scoreTextObject.GetComponent<TextMeshProUGUI>();
+            GameObject scoreTextObject = GameObject.FindWithTag("ScoreText");
+            if (scoreTextObject != null)
+            {
+                scoreText = scoreTextObject.GetComponent<TextMeshProUGUI>();
+            }
+            else 
+            {
+                // Hata mesajını daha spesifik hale getirelim
+                Debug.LogError("'GameScene' yüklendi ama 'ScoreText' etiketli UI objesi bulunamadı!");
+            }
+        }
+        else
+        {
+            // Diğer sahnelerde (MainMenu gibi) referansı null yapalım ki eski sahneden kalmasın
+            scoreText = null;
         }
         
         // Yeni oyuna başlarken skoru sıfırla ve UI'ı güncelle
         currentScore = 0;
         UpdateScoreUI();
     }
-
+    
     public void UpdateScoreUI() 
     {
         if (scoreText == null) 
