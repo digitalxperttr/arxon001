@@ -40,6 +40,7 @@ public class GridManager : MonoBehaviour
         public int x;
         public int width;
         public Color color;
+        public bool isFrozen;
     }
 
     public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
@@ -338,7 +339,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
             {
                 ClearRow(y);
                 clearedRowCount++; 
-                y--; 
+                //y--; 
             }
         }
 
@@ -374,7 +375,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
             ChangeState(GameState.IDLE); 
         }
     }
-        
+
 bool IsRowFull(int y)
 {
     for (int x = 0; x < width; x++)
@@ -386,37 +387,48 @@ bool IsRowFull(int y)
 }
 
 void ClearRow(int y)
-{
-    // Önce bu satırdaki benzersiz blokları bul
-    System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
-    for (int x = 0; x < width; x++) {
-        Block b = gridArray[x, y];
-        if (b != null && !blocksToDestroy.Contains(b)) {
-            blocksToDestroy.Add(b);
+    {
+        System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
+        System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
+
+        // 1. Satırdaki blokları ayır (Buzlu mu, değil mi?)
+        for (int x = 0; x < width; x++) {
+            Block b = gridArray[x, y];
+            if (b != null) {
+                if (b.isFrozen && !blocksToUnfreeze.Contains(b)) {
+                    blocksToUnfreeze.Add(b); // Buzluysa sadece buzu kırılacak listesine al
+                } 
+                else if (!b.isFrozen && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
+                    blocksToDestroy.Add(b); // Buzlu değilse yok edilecek listesine al
+                }
+            }
         }
-    }
 
-    // Sonra onları yok et ve listeden çıkar
-    foreach (Block b in blocksToDestroy) {
-        if (explosionPrefab != null) {
-            GameObject effect = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
-            var main = effect.GetComponent<ParticleSystem>().main;
-
-            // sr.color artık beyaz değil, SetBlockColor'dan gelen gerçek renk!
-            Color finalColor = b.GetComponent<SpriteRenderer>().color;
-            finalColor.a = 1.0f; 
-            
-            // MinMaxGradient hatayı engeller ve rengi sisteme paketler
-            main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
-
-            Destroy(effect, 1f);
+        // 2. Buzlu blokların sadece buzunu kır (Oyunda kalmaya devam ederler)
+        foreach (Block b in blocksToUnfreeze) {
+            b.SetFrozen(false);
         }
-        activeBlocks.Remove(b);
-        Destroy(b.gameObject);
-    }
-    RebuildGridMemory(); // Hafızayı baştan kur!
-}
 
+        // 3. Normal blokları patlat ve yok et
+        foreach (Block b in blocksToDestroy) {
+            if (explosionPrefab != null) {
+                GameObject effect = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
+                var main = effect.GetComponent<ParticleSystem>().main;
+                
+                // ESKİ KOD: Color finalColor = b.GetComponent<SpriteRenderer>().color;
+                // YENİ KOD: Artık GPU'dan değil, doğrudan bloğun kendi hafızasından okuyoruz!
+                Color finalColor = b.blockColor; 
+                
+                finalColor.a = 1.0f; 
+                main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
+                Destroy(effect, 1f);
+            }
+            activeBlocks.Remove(b);
+            Destroy(b.gameObject);
+        }
+        
+        RebuildGridMemory(); // Hafızayı baştan kur!
+    }
 public void SpawnBlock(int x, int y, int bWidth)
     {
         Vector3 spawnPos = new Vector3(x + (bWidth - 1) * 0.5f, y, 0);
@@ -486,19 +498,17 @@ while (currentX < width)
             int bWidth = 1;
             float widthRoll = Random.value;
             
-            // YENİ: DİNAMİK BLOK İHTİMALİ (Tavan Eşikleri)
-            // Seviye arttıkça eşikler aşağı iner, yani BÜYÜK blok gelme şansı DRASTİK olarak artar!
-            float t5 = Mathf.Lerp(0.98f, 0.85f, diffFactor); // 5'li şansı: %2 -> %15
-            float t4 = Mathf.Lerp(0.94f, 0.70f, diffFactor); // 4'lü şansı: %4 -> %15
-            float t3 = Mathf.Lerp(0.85f, 0.50f, diffFactor); // 3'lü şansı: %9 -> %20
-            float t2 = Mathf.Lerp(0.60f, 0.20f, diffFactor); // 2'li şansı: %25 -> %30
-                                                             // 1'li şansı: Geriye kalanlar azalır.
+            // YENİDEN DÜZENLENDİ: Maksimum 4'lü blok! 
+            // 5'li blok tamamen kaldırıldı, oranlar 4'lüye göre tekrar dengelendi.
+            float t4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); // 4'lü şansı: %4 -> %30 (Seviye arttıkça)
+            float t3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); // 3'lü şansı: %11 -> %30
+            float t2 = Mathf.Lerp(0.60f, 0.15f, diffFactor); // 2'li şansı: %25 -> %25
+                                                             // 1'li şansı: Geriye kalanlar
 
-            if (widthRoll > t5) bWidth = 5;      
-            else if (widthRoll > t4) bWidth = 4; 
+            if (widthRoll > t4) bWidth = 4; 
             else if (widthRoll > t3) bWidth = 3; 
             else if (widthRoll > t2) bWidth = 2; 
-            else bWidth = 1;                       
+            else bWidth = 1;                               
 
             if (currentX + bWidth > width) bWidth = width - currentX;
 
@@ -507,6 +517,12 @@ while (currentX < width)
             newData.x = currentX;
             newData.width = bWidth;
             newData.color = blockColors[Random.Range(0, blockColors.Length)];
+            
+            // YENİ: BUZLU BLOK İHTİMALİ (Seviye 3'ten sonra başlar, %30'a kadar çıkar)
+            //int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+            float freezeChance = level >= 3 ? Mathf.Clamp01((level - 2) / 12f) * 0.6f : 0f;
+            newData.isFrozen = (Random.value < freezeChance);
+            
             nextRowData.Add(newData);
 
             currentX += bWidth;
@@ -561,6 +577,7 @@ private void UpdatePreviewVisuals()
                 1f
             );
             previewBlock.SetBlockColor(shadowColor);
+            if (data.isFrozen) previewBlock.SetFrozen(true); 
 
             // GÖRSEL DÜZENLEME 3: Gridin/Efektlerin Arkasında Dursun
             SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
@@ -584,6 +601,7 @@ public void SpawnRowFromData(int y)
             
             newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
             newBlock.SetBlockColor(data.color);
+            if (data.isFrozen) newBlock.SetFrozen(true); // SpawnRowFromData'da newBlock.SetFrozen(true) olacak
 
             activeBlocks.Add(newBlock);
 

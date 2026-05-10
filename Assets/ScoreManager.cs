@@ -9,6 +9,8 @@ public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
 
+    
+
     // Bu referansı artık kod içinde bulacağız, public olmasına gerek yok.
     private TextMeshProUGUI scoreText; 
     private int currentScore = 0;

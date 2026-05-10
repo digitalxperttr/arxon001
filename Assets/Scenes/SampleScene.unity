@@ -241,7 +241,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0fe7325c02fb4b1fa52dc3ce4183c79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
-  scoreText: {fileID: 1530729595}
+  comboCount: 0
+  currentLevel: 1
+  totalLinesCleared: 0
+  linesNeededForNextLevel: 10
 --- !u!114 &113254869
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -698,6 +701,9 @@ MonoBehaviour:
   gridColor: {r: 1, g: 1, b: 1, a: 0.050980393}
   isGameOver: 0
   gameOverPanel: {fileID: 60933864}
+  previewYPosition: -1.2
+  previewAlpha: 0.5
+  nextRowData: []
 --- !u!4 &455075678
 Transform:
   m_ObjectHideFlags: 0
@@ -1237,7 +1243,7 @@ GameObject:
   - component: {fileID: 1530729595}
   m_Layer: 5
   m_Name: ScoreText
-  m_TagString: Untagged
+  m_TagString: ScoreText
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
