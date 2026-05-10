@@ -61,34 +61,53 @@ public class GridManager : MonoBehaviour
 
 
 void Start()
-{
-    GenerateBackgroundGrid();
-    // 1. Grid'i tertemiz hazırla
-    gridArray = new Block[width, height];
-    activeBlocks.Clear();
-
-    // 2. İlk satırı oluştur
-    //SpawnRandomRow(0);
-
-    // TEST İÇİN: 0'dan 6. satıra kadar doldur
-    for (int i = 0; i <= 8; i++)
     {
-        SpawnRandomRow(i);
+        GenerateBackgroundGrid();
+        
+        // 1. Grid'i tertemiz hazırla
+        gridArray = new Block[width, height];
+        activeBlocks.Clear();
+
+        // 2. Başlangıç tahtasını kur (Oyuncuya oynayabileceği 4 satır veriyoruz)
+        SetupInitialBoard(4);
+
+        // 3. Durumu IDLE yapalım ki oyuncu dokunabilsin
+        currentState = GameState.IDLE;
+
+        // 4. Sistemi coroutine ile dürt
+        StartCoroutine(InitialGravityCheck());
+        
+        // Skor tabelasını da hemen dürtelim
+        if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
     }
-    
-    // 3. KİLİDİ AÇ: Oyunun başında durumu IDLE yapalım ki oyuncu dokunabilsin
-    currentState = GameState.IDLE;
-
-    // 4. Sistemi coroutine ile dürt
-    StartCoroutine(InitialGravityCheck());
-    
-    GenerateNextRowData();
-    
-    // Skor tabelasını da hemen dürtelim
-    if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
-}
 
 
+// Oyun başlarken tahtayı dolduran yeni ve temiz fonksiyon
+    void SetupInitialBoard(int startingRowCount)
+    {
+        for (int y = 0; y < startingRowCount; y++)
+        {
+            // Önce hayali veriyi oluştur (Zorluk seviyesine göre hesaplar)
+            GenerateNextRowData(); 
+            
+            // Oyuna başlarken bloklar alttan kayarak gelmesin, direkt yerlerinde doğsunlar
+            foreach (BlockData data in nextRowData)
+            {
+                Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y, 0); 
+                Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+                newBlock.width = data.width;
+                newBlock.x = data.x;
+                newBlock.y = y;
+                newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
+                newBlock.SetBlockColor(data.color);
+                activeBlocks.Add(newBlock);
+            }
+        }
+        RebuildGridMemory();
+        
+        // Tahta dolduktan sonra, ekranın altındaki gerçek Önizleme Çubuğunu (Preview Bar) oluştur!
+        GenerateNextRowData();
+    }
 
 // -----------Kontrol fonksiyonu
 void CheckGameOver()
@@ -183,58 +202,7 @@ public void RebuildGridMemory()
     }
 }
 
-public void SpawnRandomRow(int y)
-{
-    int currentX = 0;
-    int blockCountInRow = 0;
 
-    while (currentX < width)
-    {
-        // Boşluk bırakma ihtimali
-        float gapChance = (blockCountInRow > 2) ? 0.7f : 0.4f; 
-        if (Random.value < gapChance) 
-        {
-            currentX++;
-            continue;
-        }
-
-        int bWidth = 1;
-        float widthRoll = Random.value;
-
-        // YENİ: 4 ve 5 birimlik blok ihtimalleri eklendi
-        if (widthRoll > 0.98f) bWidth = 5;      // %2 ihtimal
-        else if (widthRoll > 0.94f) bWidth = 4; // %4 ihtimal
-        else if (widthRoll > 0.85f) bWidth = 3; // %9 ihtimal
-        else if (widthRoll > 0.60f) bWidth = 2; // %25 ihtimal
-        else bWidth = 1;                       // %60 ihtimal
-
-        // Senin kullandığın sınır kontrolü (Aynı kalabilir)
-        if (currentX + bWidth > width) bWidth = width - currentX;
-
-        SpawnBlockWithColor(currentX, y, bWidth);
-        currentX += bWidth;
-        blockCountInRow++;
-    }
-    
-    if (blockCountInRow == 0)
-    {
-        SpawnBlockWithColor(Random.Range(0, width), y, 1);
-    }
-}
-
-void SpawnBlockWithColor(int x, int y, int bWidth)
-{
-    Vector3 spawnPos = new Vector3(x + (bWidth - 1) * 0.5f, y, 0);
-    Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-    newBlock.width = bWidth;
-    newBlock.x = x;
-    newBlock.y = y;
-    newBlock.transform.localScale = new Vector3(bWidth - 0.1f, 0.9f, 1);
-    newBlock.SetBlockColor(blockColors[Random.Range(0, blockColors.Length)]);
-
-    activeBlocks.Add(newBlock); // YENİ: Listeye ekle
-    RebuildGridMemory(); // Hafızayı baştan kur!
-}
 
 public IEnumerator PushBoardUpRoutine()
 {
@@ -339,54 +307,74 @@ bool CanMoveTo(Block b, int targetX, int targetY)
 
 
 
-public IEnumerator CheckAndClearRowsRoutine()
-{
-    // EMNİYET: Eğer bir şekilde liste boşsa direkt IDLE'a dön ve çık
-    if (activeBlocks == null || activeBlocks.Count == 0)
+public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
     {
-        ChangeState(GameState.IDLE);
-        yield break;
-    }
-
-    //bool rowCleared = false;
-    
-    // Satırları tara
-    int clearedRowCount = 0; // Bu kontrolde kaç satır silindi?
-
-    for (int y = 0; y < height; y++)
-    {
-        if (IsRowFull(y))
+        // 1. EMNİYET KONTROLÜ VE PERFECT CLEAR (BONUS BURAYA TAŞINDI)
+        if (activeBlocks == null || activeBlocks.Count == 0)
         {
-            ClearRow(y);
-            clearedRowCount++; // Satır sayısını artır
-            y--; 
-        }
-    }
-
-    if (clearedRowCount > 0)
-    {
-        // PUAN HESAPLAMA: 
-        // 1 satır: 100
-        // 2 satır: 300 (Bonuslu)
-        // 3 satır: 600 (Daha çok bonus!)
-        int pointsToGive = clearedRowCount * 100 * clearedRowCount; 
-        // EMNİYET: ScoreManager'ın hayatta olup olmadığını kontrol et
-        if (ScoreManager.Instance != null) 
-        {
-            ScoreManager.Instance.AddScore(pointsToGive);
+            if (!isGameOver) 
+            {
+                Debug.Log("<color=yellow>PERFECT CLEAR! Tahta tertemiz oldu!</color>");
+                
+                // Oyuncuya 1000 Puan Mükemmel Temizlik Bonusu
+                if (ScoreManager.Instance != null) ScoreManager.Instance.AddScore(1000); 
+                
+                // Oyunu kilitten kurtarmak için otomatik olarak alttan yeni satır ver!
+                yield return StartCoroutine(PushBoardUpRoutine());
+            }
+            else 
+            {
+                ChangeState(GameState.IDLE);
+            }
+            
+            yield break; // Fonksiyonu burada keser
         }
 
-        yield return new WaitForSeconds(0.2f);
-        yield return StartCoroutine(ApplyGravityRoutine());
-        yield return StartCoroutine(CheckAndClearRowsRoutine());
+        int clearedRowCount = 0; 
+
+        for (int y = 0; y < height; y++)
+        {
+            if (IsRowFull(y))
+            {
+                ClearRow(y);
+                clearedRowCount++; 
+                y--; 
+            }
+        }
+
+        if (clearedRowCount > 0)
+        {
+            if (isPlayerMove && ScoreManager.Instance != null) {
+                ScoreManager.Instance.IncrementCombo();
+                isPlayerMove = false; 
+            }
+
+            int multiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
+            int pointsToGive = clearedRowCount * 100 * clearedRowCount * multiplier; 
+            
+            if (ScoreManager.Instance != null) {
+                ScoreManager.Instance.AddScore(pointsToGive);
+                ScoreManager.Instance.AddClearedLines(clearedRowCount);
+            }
+
+            yield return new WaitForSeconds(0.2f);
+            yield return StartCoroutine(ApplyGravityRoutine());
+            
+            // Zincirleme reaksiyonları kontrol et
+            yield return StartCoroutine(CheckAndClearRowsRoutine(false));
+        }
+        else
+        {
+            // 3. KOMBO SIFIRLAMA
+            if (isPlayerMove && ScoreManager.Instance != null) {
+                ScoreManager.Instance.ResetCombo();
+            }
+            
+            // Sadece IDLE yapıyoruz, Perfect Clear artık en üstte kontrol ediliyor.
+            ChangeState(GameState.IDLE); 
+        }
     }
-    else
-    {
-        // PATLAYACAK SATIR KALMADIĞINDA BURAYA DÜŞER
-        // Kilidi açan en kritik satır:
-        ChangeState(GameState.IDLE); 
-    }
-}
+        
 bool IsRowFull(int y)
 {
     for (int x = 0; x < width; x++)
@@ -429,7 +417,7 @@ void ClearRow(int y)
     RebuildGridMemory(); // Hafızayı baştan kur!
 }
 
-    public void SpawnBlock(int x, int y, int bWidth)
+public void SpawnBlock(int x, int y, int bWidth)
     {
         Vector3 spawnPos = new Vector3(x + (bWidth - 1) * 0.5f, y, 0);
         Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
@@ -438,13 +426,13 @@ void ClearRow(int y)
         for (int i = 0; i < bWidth; i++) gridArray[x + i, y] = newBlock;
     }
 
-    public bool AreBlocksMoving()
+public bool AreBlocksMoving()
     {
         foreach (var b in gridArray) { if (b != null && b.isMoving) return true; }
         return false;
     }
 
-    public void ChangeState(GameState newState)
+public void ChangeState(GameState newState)
     {
         currentState = newState;
     }
@@ -475,10 +463,20 @@ public void GenerateNextRowData()
         int currentX = 0;
         int blockCountInRow = 0;
 
-        while (currentX < width)
+while (currentX < width)
         {
-            // Senin güncellediğin 4-5 hücreli zar atma mantığı:
-            float gapChance = (blockCountInRow > 2) ? 0.7f : 0.4f; 
+            // YENİ: ZORLUK ÇARPANI (Seviye 1'de 0, Seviye 20'de 1 olacak şekilde maksimuma ulaşır)
+            int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+            float diffFactor = Mathf.Clamp01((level - 1) / 20f); 
+
+            // YENİ: DİNAMİK BOŞLUK İHTİMALİ
+            // Seviye arttıkça boşluk ihtimali %40'tan %10'a düşer (Oyuncu nefes alamaz)
+            float baseGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor); 
+            // Satırda zaten blok varsa boşluk bırakma ihtimali %70'ten %30'a düşer
+            float highGapChance = Mathf.Lerp(0.7f, 0.3f, diffFactor); 
+
+            float gapChance = (blockCountInRow > 2) ? highGapChance : baseGapChance; 
+            
             if (Random.value < gapChance) 
             {
                 currentX++;
@@ -487,10 +485,19 @@ public void GenerateNextRowData()
 
             int bWidth = 1;
             float widthRoll = Random.value;
-            if (widthRoll > 0.98f) bWidth = 5;      
-            else if (widthRoll > 0.94f) bWidth = 4; 
-            else if (widthRoll > 0.85f) bWidth = 3; 
-            else if (widthRoll > 0.60f) bWidth = 2; 
+            
+            // YENİ: DİNAMİK BLOK İHTİMALİ (Tavan Eşikleri)
+            // Seviye arttıkça eşikler aşağı iner, yani BÜYÜK blok gelme şansı DRASTİK olarak artar!
+            float t5 = Mathf.Lerp(0.98f, 0.85f, diffFactor); // 5'li şansı: %2 -> %15
+            float t4 = Mathf.Lerp(0.94f, 0.70f, diffFactor); // 4'lü şansı: %4 -> %15
+            float t3 = Mathf.Lerp(0.85f, 0.50f, diffFactor); // 3'lü şansı: %9 -> %20
+            float t2 = Mathf.Lerp(0.60f, 0.20f, diffFactor); // 2'li şansı: %25 -> %30
+                                                             // 1'li şansı: Geriye kalanlar azalır.
+
+            if (widthRoll > t5) bWidth = 5;      
+            else if (widthRoll > t4) bWidth = 4; 
+            else if (widthRoll > t3) bWidth = 3; 
+            else if (widthRoll > t2) bWidth = 2; 
             else bWidth = 1;                       
 
             if (currentX + bWidth > width) bWidth = width - currentX;
@@ -504,8 +511,7 @@ public void GenerateNextRowData()
 
             currentX += bWidth;
             blockCountInRow++;
-        }
-        
+        }        
         // Güvenlik: Satır boş kalamaz
         if (blockCountInRow == 0)
         {
@@ -587,7 +593,7 @@ public void SpawnRowFromData(int y)
         }
         RebuildGridMemory();
     }
-    
+
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 

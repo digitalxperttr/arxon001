@@ -79,7 +79,6 @@ void Update()
             {
                 // Sadece blok farklı bir karedeyse yeni satır ekle ve kontrol yap[cite: 4]
                 StartCoroutine(FinishMovementRoutine());
-                Debug.Log("Gerçek hamle yapıldı, satır ekleniyor.");
             }
             else
             {
@@ -251,7 +250,7 @@ System.Collections.IEnumerator FinishMovementRoutine()
     // 3. PATLAMA VE KOMBO: 
     // Satır patladıkça yerçekimi tekrar çalışmalı (Özyinelemeli kontrol)
     grid.ChangeState(GameState.CHECKING);
-    yield return StartCoroutine(grid.CheckAndClearRowsRoutine());
+    yield return StartCoroutine(grid.CheckAndClearRowsRoutine(true));
     
     // 4. BOARD'U YUKARI İT VE SÜRECİ BİTİR
     yield return StartCoroutine(grid.PushBoardUpRoutine());

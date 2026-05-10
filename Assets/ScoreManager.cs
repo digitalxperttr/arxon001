@@ -13,6 +13,52 @@ public class ScoreManager : MonoBehaviour
     private TextMeshProUGUI scoreText; 
     private int currentScore = 0;
 
+    // KOMBO DEĞİŞKENLERİ
+    public int comboCount = 0;
+    // Kombo sıfırsa çarpan 1'dir, değilse kombonun kendisidir.
+    public int comboMultiplier { get { return comboCount > 0 ? comboCount : 1; } }
+
+    // SEVİYE (LEVEL) DEĞİŞKENLERİ
+    public int currentLevel = 1;
+    public int totalLinesCleared = 0;
+    public int linesNeededForNextLevel = 10; // İlk seviye için 10 satır patlatmak gereksin
+
+    public void IncrementCombo()
+    {
+        comboCount++;
+        if (comboCount > 1) 
+        {
+            // Şimdilik Konsola yazdırıyoruz, Adım 4'te bunu Ekranda uçan yazı yapacağız!
+            Debug.Log($"<color=orange>HARİKA! {comboCount}x COMBO!</color>");
+        }
+    }
+
+    public void ResetCombo()
+    {
+        if (comboCount > 1) {
+            Debug.Log("<color=red>Kombo Bozuldu!</color>");
+        }
+        comboCount = 0;
+    }
+
+    public void AddClearedLines(int count)
+    {
+        if (count <= 0) return;
+        
+        totalLinesCleared += count;
+        
+        // Level Up (Seviye Atlama) Kontrolü
+        if (totalLinesCleared >= linesNeededForNextLevel)
+        {
+            currentLevel++;
+            totalLinesCleared -= linesNeededForNextLevel; // Kalan satırları çöpe atma, yeni seviyeye aktar
+            linesNeededForNextLevel += 5; // Her seviyede gereken satır sayısını 5 artır (Zorluk eğrisi)
+            
+            // Şimdilik konsola basıyoruz, ileride harika bir UI efekti bağlayacağız!
+            Debug.Log($"<color=cyan>SEVİYE ATLADIN! YENİ SEVİYE: {currentLevel}</color>");
+        }
+    }
+
     void Awake()
     {
         // Doğru Singleton Deseni: Eğer bir tane zaten varsa, yenisini yok et.
