@@ -14,6 +14,9 @@ public class GridManager : MonoBehaviour
     public int height = 10;
     public float cellSize = 1f; // HATAYI DÜZELTEN SATIR
 
+    [Header("Efektler")]
+    public FloatingText floatingTextPrefab;
+
     public GameObject explosionPrefab;
 
     // Sahnedeki tüm kanlı canlı blokları burada tutacağız
@@ -332,14 +335,16 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
         }
 
         int clearedRowCount = 0; 
+        int lowestClearedY = -1; // YENİ: Yazının çıkacağı pozisyonu bulmak için
 
         for (int y = 0; y < height; y++)
         {
             if (IsRowFull(y))
             {
+                if (lowestClearedY == -1) lowestClearedY = y; // Patlayan ilk satırın yerini kaydet
                 ClearRow(y);
                 clearedRowCount++; 
-                //y--; 
+                y--; 
             }
         }
 
@@ -357,6 +362,27 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
                 ScoreManager.Instance.AddScore(pointsToGive);
                 ScoreManager.Instance.AddClearedLines(clearedRowCount);
             }
+
+            // === YENİ: EKRANDA UÇAN YAZILAR (FLOATING TEXT) ===
+        if (floatingTextPrefab != null)
+        {
+            // Yazıyı board'un tam ortasında, patlayan satır hizasında çıkar
+            float spawnX = (width - 1) / 2f; 
+            Vector3 spawnPos = new Vector3(spawnX, lowestClearedY + (clearedRowCount / 2f), 0);
+            
+            // Puan Yazısı
+            FloatingText pointText = Instantiate(floatingTextPrefab, spawnPos, Quaternion.identity);
+            pointText.SetText($"+{pointsToGive}", Color.yellow, 6f);
+
+            // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar
+            if (multiplier > 1)
+            {
+                Vector3 comboPos = spawnPos + new Vector3(0, 1.2f, 0);
+                FloatingText comboText = Instantiate(floatingTextPrefab, comboPos, Quaternion.identity);
+                comboText.SetText($"{multiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
+            }
+        }
+        // ================================================
 
             yield return new WaitForSeconds(0.2f);
             yield return StartCoroutine(ApplyGravityRoutine());
