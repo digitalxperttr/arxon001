@@ -94,6 +94,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e99c3c505cff04fc2b9943c8bc1ca411, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProgressManager
+  allLevels:
+  - {fileID: 11400000, guid: 8f21b1aa9c7b34b4ead9f29276810694, type: 2}
+  currentSelectedLevel: {fileID: 0}
 --- !u!114 &5088125559721086149
 MonoBehaviour:
   m_ObjectHideFlags: 0

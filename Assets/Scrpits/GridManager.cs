@@ -129,7 +129,7 @@ void CheckGameOver()
     }
 }
 
-void TriggerGameOver()
+public void TriggerGameOver()
 {
     if (isGameOver) return;
 
@@ -362,6 +362,11 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
                 ScoreManager.Instance.AddScore(pointsToGive);
                 ScoreManager.Instance.AddClearedLines(clearedRowCount);
             }
+            // === YENİ EKLENEN SATIRLAR ===
+            if (LevelManager.Instance != null && LevelManager.Instance.enabled) {
+                LevelManager.Instance.LinesCleared(clearedRowCount);
+            }
+            // =============================
 
             // === YENİ: EKRANDA UÇAN YAZILAR (FLOATING TEXT) ===
         if (floatingTextPrefab != null)

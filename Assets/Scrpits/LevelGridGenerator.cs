@@ -52,7 +52,17 @@ public class LevelGridGenerator : MonoBehaviour
     void OnLevelButtonClick(int levelNumber)
     {
         Debug.Log($"<color=green>{levelNumber}. Seviye Başlatılıyor!</color>");
-        // Tema 2'nin bölüm yükleme sistemini yazdığımızda buraya:
-        // SceneLoader.Instance.LoadAdventureLevel(levelNumber); komutunu gireceğiz.
-    }
-}
+        
+        if (ProgressManager.Instance != null && ProgressManager.Instance.allLevels.Length >= levelNumber)
+        {
+            // Diziler 0'dan başladığı için (levelNumber - 1) yapıyoruz.
+            ProgressManager.Instance.currentSelectedLevel = ProgressManager.Instance.allLevels[levelNumber - 1];
+            
+            // Veriyi hafızaya attık, şimdi oyun sahnesine geçiyoruz!
+            if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode(); // (GameScene sahnesini yüklüyor)
+        }
+        else
+        {
+            Debug.LogError("Bu seviye için LevelData bulunamadı! ProgressManager'daki listeyi kontrol et.");
+        }
+    }}

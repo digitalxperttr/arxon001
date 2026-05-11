@@ -74,15 +74,22 @@ void Update()
     {
         if (selectedBlock != null && isDragging)
         {
-            // YENİ KONTROL: Eğer blok başladığı kareye geri döndüyse hamle sayma![cite: 4]
+            // YENİ KONTROL: Eğer blok başladığı kareye geri döndüyse hamle sayma!
             if (selectedBlock.x != originalGridX)
             {
-                // Sadece blok farklı bir karedeyse yeni satır ekle ve kontrol yap[cite: 4]
+                // === YENİ EKLENEN: Hamle sayacından 1 düş! ===
+                if (LevelManager.Instance != null && LevelManager.Instance.enabled) 
+                {
+                    LevelManager.Instance.PlayerDidMove();
+                }
+                // ==============================================
+                
+                // Sadece blok farklı bir karedeyse yeni satır ekle ve kontrol yap
                 StartCoroutine(FinishMovementRoutine());
             }
             else
             {
-                Debug.Log("Blok eski yerine döndü, hamle sayılmadı.");
+                //Debug.Log("Blok eski yerine döndü, hamle sayılmadı.");
             }
         }
 
@@ -255,6 +262,15 @@ System.Collections.IEnumerator FinishMovementRoutine()
     // 4. BOARD'U YUKARI İT VE SÜRECİ BİTİR
     yield return StartCoroutine(grid.PushBoardUpRoutine());
     grid.ChangeState(GameState.IDLE);
+    
+    // === YENİ EKLENEN KISIM ===
+    // Tahta tamamen duruldu, patlamalar bitti. Hamle hakkı bitmiş mi ŞİMDİ kontrol et!
+    if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+    {
+        LevelManager.Instance.EvaluateEndOfTurn();
+    }
+    // ===========================
+
 }
 
 

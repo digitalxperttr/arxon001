@@ -2,6 +2,11 @@ using UnityEngine;
 
 public class ProgressManager : MonoBehaviour
 {
+    // --- YENİ EKLENEN MACERA MODU DEĞİŞKENLERİ ---[Header("Level Verileri")]
+    public LevelData[] allLevels; // Oyundaki tüm bölümlerin verilerini burada tutacağız
+    public LevelData currentSelectedLevel; // Oyuncunun haritada tıkladığı bölüm
+    // ---------------------------------------------
+    
     public static ProgressManager Instance;
 
     private const string HighestLevelUnlockedKey = "HighestLevelUnlocked";
