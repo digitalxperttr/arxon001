@@ -114,7 +114,7 @@ void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         currentScore = 0;
         UpdateScoreUI();
     }
-    
+        
     public void UpdateScoreUI() 
     {
         if (scoreText == null) 
