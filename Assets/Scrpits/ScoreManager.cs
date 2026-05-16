@@ -119,7 +119,7 @@ void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scoreText == null) 
         {
-            Debug.LogError("ScoreText referansı bulunamadı! Lütfen sahnedeki puan yazısının etiketini 'ScoreText' olarak ayarlayın.");
+            //Debug.LogError("ScoreText referansı bulunamadı! Lütfen sahnedeki puan yazısının etiketini 'ScoreText' olarak ayarlayın.");
             return;
         }
 

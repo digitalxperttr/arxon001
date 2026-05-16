@@ -7,10 +7,12 @@ public class LevelManager : MonoBehaviour
 
     public TextMeshProUGUI movesText;
     public TextMeshProUGUI targetText;
+    public GameObject winPanel;
     
     public LevelData currentLevel { get; private set; }
     private int remainingMoves;
     private int currentTargetLines;
+    
 
     void Awake() 
     { 
@@ -91,8 +93,10 @@ public class LevelManager : MonoBehaviour
         // 2. Patlamaların, düşen blokların ve uçan yazıların bitmesi için 1.5 saniye bekle
         yield return new WaitForSeconds(1.5f);
 
-        // 3. Her şey durulduktan sonra oyunu durdur
+        // 3. Her şey durulduktan sonra oyunu durdur ve Kazanma Panelini aç
         Time.timeScale = 0;
+        
+        if (winPanel != null) winPanel.SetActive(true); // <--- YENİ EKLENDİ
         
         // İleride buraya: winPanel.SetActive(true); gibi Kazandın ekranını açan bir kod ekleyeceğiz.
     }

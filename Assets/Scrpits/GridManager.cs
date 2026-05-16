@@ -30,7 +30,7 @@ public class GridManager : MonoBehaviour
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
     public bool isGameOver = false;
-    public GameObject gameOverPanel; // Unity'den atayacağımız panel
+    public GameObject losePanel; // Unity'den atayacağımız panel
 
     [Header("Önizleme (Preview) Ayarları")]
     public float previewYPosition = -1.2f; // Gridin hemen altında duracağı Y koordinatı
@@ -44,6 +44,8 @@ public class GridManager : MonoBehaviour
         public int width;
         public Color color;
         public bool isFrozen;
+        public bool isRock;
+        public bool isChained;
     }
 
     public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
@@ -130,19 +132,16 @@ void CheckGameOver()
 }
 
 public void TriggerGameOver()
-{
-    if (isGameOver) return;
+    {
+        if (isGameOver) return;
+        isGameOver = true;
+        
+        // Kaybetme panelini aç
+        if (losePanel != null) losePanel.SetActive(true);
 
-    isGameOver = true;
-
-    
-    // UI Panelini aç
-    if (gameOverPanel != null)
-        gameOverPanel.SetActive(true);
-
-    // Oyunu durdur (opsiyonel)
-    Time.timeScale = 0; 
-}
+        // Oyunu durdur
+        Time.timeScale = 0; 
+    }
 
 void GenerateBackgroundGrid()
 {
@@ -178,12 +177,6 @@ IEnumerator InitialGravityCheck()
     
     ChangeState(GameState.CHECKING);
     yield return StartCoroutine(CheckAndClearRowsRoutine());
-}
-IEnumerator InitialCheckRoutine()
-{
-    yield return new WaitForEndOfFrame();
-    yield return StartCoroutine(CheckAndClearRowsRoutine());
-    ChangeState(GameState.IDLE);
 }
 
 public void RebuildGridMemory()
@@ -290,21 +283,6 @@ public IEnumerator ApplyGravityRoutine()
 bool CanFall(Block b) {
     for (int i = 0; i < b.width; i++) {
         if (b.y - 1 < 0 || gridArray[b.x + i, b.y - 1] != null) return false;
-    }
-    return true;
-}
-
-
-// Yardımcı kontrol fonksiyonu
-bool CanMoveTo(Block b, int targetX, int targetY)
-{
-    if (targetY < 0 || targetY >= height) return false;
-    
-    for (int i = 0; i < b.width; i++)
-    {
-        // Eğer hedef hücrede başka bir blok varsa (ve o blok kendisi değilse)
-        if (gridArray[targetX + i, targetY] != null && gridArray[targetX + i, targetY] != b)
-            return false;
     }
     return true;
 }
@@ -421,54 +399,37 @@ void ClearRow(int y)
     {
         System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
+        System.Collections.Generic.List<Block> blocksToUnchain = new System.Collections.Generic.List<Block>(); // YENİ
 
-        // 1. Satırdaki blokları ayır (Buzlu mu, değil mi?)
+        // 1. Satırdaki blokları ayır
         for (int x = 0; x < width; x++) {
             Block b = gridArray[x, y];
             if (b != null) {
-                if (b.isFrozen && !blocksToUnfreeze.Contains(b)) {
-                    blocksToUnfreeze.Add(b); // Buzluysa sadece buzu kırılacak listesine al
-                } 
-                else if (!b.isFrozen && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
-                    blocksToDestroy.Add(b); // Buzlu değilse yok edilecek listesine al
+                if (b.isChained && !blocksToUnchain.Contains(b)) {
+                    blocksToUnchain.Add(b); // Zincirliyse zinciri kırılacak
+                }
+                else if (b.isFrozen && !b.isChained && !blocksToUnfreeze.Contains(b)) {
+                    blocksToUnfreeze.Add(b); // Sadece buzluysa buzu kırılacak
+                }
+                else if (!b.isFrozen && !b.isChained && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b) && !blocksToUnchain.Contains(b)) {
+                    blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
                 }
             }
         }
 
-        // 2. Buzlu blokların sadece buzunu kır (Oyunda kalmaya devam ederler)
-        foreach (Block b in blocksToUnfreeze) {
-            b.SetFrozen(false);
-        }
+        // 2. Etkileri Kır (Oyunda kalmaya devam ederler)
+        foreach (Block b in blocksToUnchain) b.SetChained(false);
+        foreach (Block b in blocksToUnfreeze) b.SetFrozen(false);
 
         // 3. Normal blokları patlat ve yok et
         foreach (Block b in blocksToDestroy) {
-            if (explosionPrefab != null) {
-                GameObject effect = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
-                var main = effect.GetComponent<ParticleSystem>().main;
-                
-                // ESKİ KOD: Color finalColor = b.GetComponent<SpriteRenderer>().color;
-                // YENİ KOD: Artık GPU'dan değil, doğrudan bloğun kendi hafızasından okuyoruz!
-                Color finalColor = b.blockColor; 
-                
-                finalColor.a = 1.0f; 
-                main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
-                Destroy(effect, 1f);
-            }
             activeBlocks.Remove(b);
-            Destroy(b.gameObject);
+            b.StartCoroutine(b.CrunchAndDestroy(explosionPrefab));
         }
         
-        RebuildGridMemory(); // Hafızayı baştan kur!
+        RebuildGridMemory(); 
     }
-public void SpawnBlock(int x, int y, int bWidth)
-    {
-        Vector3 spawnPos = new Vector3(x + (bWidth - 1) * 0.5f, y, 0);
-        Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-        newBlock.width = bWidth;
-        newBlock.MoveTo(x, y);
-        for (int i = 0; i < bWidth; i++) gridArray[x + i, y] = newBlock;
-    }
-
+    
 public bool AreBlocksMoving()
     {
         foreach (var b in gridArray) { if (b != null && b.isMoving) return true; }
@@ -501,26 +462,58 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 public void GenerateNextRowData()
-    {
+{
         nextRowData.Clear();
         int currentX = 0;
         int blockCountInRow = 0;
 
-while (currentX < width)
+        // --- ZORLUK (DIFFICULTY) DEĞERLERİNİ BELİRLE ---
+        float currentGapChance = 0.4f;
+        float currentT4 = 0.96f; // 4'lü blok şansı eşiği (1 - 0.04)
+        float currentT3 = 0.85f;
+        float currentT2 = 0.60f;
+        float currentFreezeChance = 0f;
+        float currentRockChance = 0f;
+        float currentChainedChance = 0f;
+
+        // Hangi modda olduğumuzu soruyoruz:
+        if (LevelManager.Instance != null && LevelManager.Instance.enabled && LevelManager.Instance.currentLevel != null)
         {
-            // YENİ: ZORLUK ÇARPANI (Seviye 1'de 0, Seviye 20'de 1 olacak şekilde maksimuma ulaşır)
-            int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
-            float diffFactor = Mathf.Clamp01((level - 1) / 20f); 
-
-            // YENİ: DİNAMİK BOŞLUK İHTİMALİ
-            // Seviye arttıkça boşluk ihtimali %40'tan %10'a düşer (Oyuncu nefes alamaz)
-            float baseGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor); 
-            // Satırda zaten blok varsa boşluk bırakma ihtimali %70'ten %30'a düşer
-            float highGapChance = Mathf.Lerp(0.7f, 0.3f, diffFactor); 
-
-            float gapChance = (blockCountInRow > 2) ? highGapChance : baseGapChance; 
+            // MACERA MODU: Verileri özel LevelData dosyasından çek
+            LevelData data = LevelManager.Instance.currentLevel;
+            currentGapChance = data.baseGapChance;
             
-            if (Random.value < gapChance) 
+            currentT4 = 1f - data.largeBlockChance; // Eğer %10 dev blok dediysek eşik 0.90 olur.
+            currentT3 = currentT4 - 0.15f; 
+            currentT2 = currentT3 - 0.25f; 
+            currentFreezeChance = data.frozenBlockChance;
+            currentRockChance = data.rockBlockChance;
+            currentChainedChance = data.chainedBlockChance;
+        }
+        else
+        {
+            // KLASİK MOD (Sonsuz): ScoreManager'dan dinamik olarak hesapla (Eski sistem)
+            int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+            float diffFactor = Mathf.Clamp01((level - 1) / 20f);
+
+            currentGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor);
+            currentT4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); 
+            currentT3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); 
+            currentT2 = Mathf.Lerp(0.60f, 0.15f, diffFactor);
+            currentFreezeChance = level >= 3 ? Mathf.Clamp01((level - 2) / 12f) * 0.6f : 0f;
+            // Klasik modda seviye 5'ten sonra kaya çıkmaya başlasın
+            currentRockChance = level >= 5 ? Mathf.Clamp01((level - 4) / 15f) * 0.2f : 0f; // <--- YENİ (Klasik Mod)
+            // Klasik modda seviye 7'den sonra da zincirli bloklar başlasın:
+            currentChainedChance = level >= 7 ? Mathf.Clamp01((level - 6) / 15f) * 0.2f : 0f;
+        }
+
+        // --- ŞİMDİ BLOKLARI ÜRET ---
+        while (currentX < width)
+        {
+            // Satırda çok blok varsa boşluk bırakma ihtimalini bir tık düşür
+            float gapChance = (blockCountInRow > 2) ? currentGapChance * 0.75f : currentGapChance;
+            
+            if (Random.value < gapChance)
             {
                 currentX++;
                 continue;
@@ -529,36 +522,32 @@ while (currentX < width)
             int bWidth = 1;
             float widthRoll = Random.value;
             
-            // YENİDEN DÜZENLENDİ: Maksimum 4'lü blok! 
-            // 5'li blok tamamen kaldırıldı, oranlar 4'lüye göre tekrar dengelendi.
-            float t4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); // 4'lü şansı: %4 -> %30 (Seviye arttıkça)
-            float t3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); // 3'lü şansı: %11 -> %30
-            float t2 = Mathf.Lerp(0.60f, 0.15f, diffFactor); // 2'li şansı: %25 -> %25
-                                                             // 1'li şansı: Geriye kalanlar
-
-            if (widthRoll > t4) bWidth = 4; 
-            else if (widthRoll > t3) bWidth = 3; 
-            else if (widthRoll > t2) bWidth = 2; 
-            else bWidth = 1;                               
+            if (widthRoll > currentT4) bWidth = 4;
+            else if (widthRoll > currentT3) bWidth = 3;
+            else if (widthRoll > currentT2) bWidth = 2;
+            else bWidth = 1;                              
 
             if (currentX + bWidth > width) bWidth = width - currentX;
 
-            // Bloğu OLUŞTURMA, sadece VERİSİNİ kaydet
+            // Veriyi kaydet
             BlockData newData = new BlockData();
             newData.x = currentX;
             newData.width = bWidth;
             newData.color = blockColors[Random.Range(0, blockColors.Length)];
-            
-            // YENİ: BUZLU BLOK İHTİMALİ (Seviye 3'ten sonra başlar, %30'a kadar çıkar)
-            //int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
-            float freezeChance = level >= 3 ? Mathf.Clamp01((level - 2) / 12f) * 0.6f : 0f;
-            newData.isFrozen = (Random.value < freezeChance);
+            // Eğer kaya olacaksa rengin falan bir önemi yok, SetRock onu gri yapacak
+            newData.isRock = (Random.value < currentRockChance); 
+            // Kaya değilse zincirli olabilir mi diye zar at:
+            newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
+            // İkisi de değilse buzlu olabilir mi diye zar at:
+            newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
+
             
             nextRowData.Add(newData);
 
             currentX += bWidth;
             blockCountInRow++;
-        }        
+        }       
+        
         // Güvenlik: Satır boş kalamaz
         if (blockCountInRow == 0)
         {
@@ -566,12 +555,14 @@ while (currentX < width)
             newData.x = Random.Range(0, width);
             newData.width = 1;
             newData.color = blockColors[Random.Range(0, blockColors.Length)];
+            newData.isFrozen = (Random.value < currentFreezeChance);
+            newData.isRock = (Random.value < currentRockChance);
             nextRowData.Add(newData);
         }
 
         // Veri hesaplandı, şimdi görselleri çiz!
         UpdatePreviewVisuals();
-    }
+}
 
 private void UpdatePreviewVisuals()
     {
@@ -609,6 +600,8 @@ private void UpdatePreviewVisuals()
             );
             previewBlock.SetBlockColor(shadowColor);
             if (data.isFrozen) previewBlock.SetFrozen(true); 
+            if (data.isRock) previewBlock.SetRock(true);
+            if (data.isChained) previewBlock.SetChained(true);  // <--- YENİ
 
             // GÖRSEL DÜZENLEME 3: Gridin/Efektlerin Arkasında Dursun
             SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
@@ -632,7 +625,9 @@ public void SpawnRowFromData(int y)
             
             newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
             newBlock.SetBlockColor(data.color);
-            if (data.isFrozen) newBlock.SetFrozen(true); // SpawnRowFromData'da newBlock.SetFrozen(true) olacak
+            if (data.isFrozen) newBlock.SetFrozen(true); 
+            if (data.isRock) newBlock.SetRock(true);
+            if (data.isChained) newBlock.SetChained(true);  // <--- YENİ
 
             activeBlocks.Add(newBlock);
 
