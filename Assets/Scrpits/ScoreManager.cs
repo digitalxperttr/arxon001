@@ -13,6 +13,8 @@ public class ScoreManager : MonoBehaviour
 
     // Bu referansı artık kod içinde bulacağız, public olmasına gerek yok.
     private TextMeshProUGUI scoreText; 
+    private TextMeshProUGUI bestScoreText; // En yüksek skor UI referansı
+    public int bestScore { get; private set; } // Hafızada tutacağımız rekor
     private int currentScore = 0;
 
     // KOMBO DEĞİŞKENLERİ
@@ -88,52 +90,49 @@ public class ScoreManager : MonoBehaviour
     }
 
     // Herhangi bir sahne yüklendiğinde bu fonksiyon otomatik olarak çalışır
-void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // YENİ KONTROL: Sadece oyun sahnemizde Puan yazısını ara!
         if (scene.name == "GameScene")
         {
             GameObject scoreTextObject = GameObject.FindWithTag("ScoreText");
-            if (scoreTextObject != null)
-            {
-                scoreText = scoreTextObject.GetComponent<TextMeshProUGUI>();
-            }
-            else 
-            {
-                // Hata mesajını daha spesifik hale getirelim
-                Debug.LogError("'GameScene' yüklendi ama 'ScoreText' etiketli UI objesi bulunamadı!");
-            }
+            if (scoreTextObject != null) scoreText = scoreTextObject.GetComponent<TextMeshProUGUI>();
+
+            // YENİ: Rekor yazısını Tag ile bul
+            GameObject bestScoreObject = GameObject.FindWithTag("BestScoreText");
+            if (bestScoreObject != null) bestScoreText = bestScoreObject.GetComponent<TextMeshProUGUI>();
         }
         else
         {
-            // Diğer sahnelerde (MainMenu gibi) referansı null yapalım ki eski sahneden kalmasın
             scoreText = null;
+            bestScoreText = null;
         }
         
-        // Yeni oyuna başlarken skoru sıfırla ve UI'ı güncelle
+        // YENİ: Oyuncu oyuna girdiğinde veya sahne değiştiğinde rekorunu hafızadan çek!
+        bestScore = PlayerPrefs.GetInt("ClassicBestScore", 0);
+        
         currentScore = 0;
         UpdateScoreUI();
     }
         
-    public void UpdateScoreUI() 
+public void UpdateScoreUI()
     {
-        if (scoreText == null) 
+        if (scoreText != null)
         {
-            //Debug.LogError("ScoreText referansı bulunamadı! Lütfen sahnedeki puan yazısının etiketini 'ScoreText' olarak ayarlayın.");
-            return;
+            // Kullanıcının daha önce düzelttiği "score" anahtarı
+            string translation = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetTranslation("score") : "Puan";
+            if (string.IsNullOrEmpty(translation) || translation.Contains("KEY_NOT_FOUND")) translation = "Puan";
+            
+            scoreText.text = $"{translation}: {currentScore}";
         }
 
-        string translation = "Puan"; // Varsayılan değer
-        if (LocalizationManager.Instance != null)
+        // YENİ: Rekor yazısını güncelle
+        if (bestScoreText != null)
         {
-            translation = LocalizationManager.Instance.GetTranslation("score");
-            if (string.IsNullOrEmpty(translation) || translation.Contains("KEY_NOT_FOUND"))
-            {
-                translation = "Puan"; 
-            }
+            string bestTranslation = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetTranslation("best_score") : "En İyi";
+            if (string.IsNullOrEmpty(bestTranslation) || bestTranslation.Contains("KEY_NOT_FOUND")) bestTranslation = "En İyi";
+            
+            bestScoreText.text = $"{bestTranslation}: {bestScore}";
         }
-
-        scoreText.text = $"{translation}: {currentScore}";
     }
 
     public void AddScore(int amount)
@@ -141,6 +140,16 @@ void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         if (this == null) return;
         
         currentScore += amount;
+
+        // YENİ: Eğer skorumuz rekoru geçtiyse ve KLASİK MODDAYSAK rekoru kaydet!
+        // (LevelManager kapalıysa veya currentLevel null ise Klasik moddayız demektir)
+        if (currentScore > bestScore && (LevelManager.Instance == null || LevelManager.Instance.currentLevel == null))
+        {
+            bestScore = currentScore;
+            PlayerPrefs.SetInt("ClassicBestScore", bestScore);
+            PlayerPrefs.Save();
+        }
+
         UpdateScoreUI();
         
         StopAllCoroutines();

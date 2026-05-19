@@ -159,6 +159,8 @@ MonoBehaviour:
   blockColor: {r: 0, g: 0, b: 0, a: 0}
   moveSpeed: 15
   isFrozen: 0
+  isRock: 0
+  isChained: 0
   glowIntensity: 2.5
 --- !u!96 &2158739461213683442
 TrailRenderer:
@@ -207,7 +209,7 @@ TrailRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_MaskInteraction: 0
   m_Time: 0.15
   m_PreviewTimeScale: 1

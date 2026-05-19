@@ -20,4 +20,7 @@ public class LevelData : ScriptableObject
     [Range(0f, 1f)] public float frozenBlockChance = 0f;   // Buzlu blok çıkma ihtimali
     [Range(0f, 1f)] public float rockBlockChance = 0.0f;     // YENİ: Kaya blok çıkma ihtimali
     [Range(0f, 1f)] public float chainedBlockChance = 0f;  // YENİ: Zincirli blok çıkma ihtimali
+
+    [Header("Sis (Fog) Ayarları")]
+    public int fogStartingRow = -1; // -1 ise sis yok demektir. Örn 4 yazarsan 4. satır ve yukarısı zifiri karanlık başlar.
 }

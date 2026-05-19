@@ -7,12 +7,26 @@ public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 
 public class GridManager : MonoBehaviour
 {
+    [System.Serializable]
+    public struct GemVisual
+    {
+        public Sprite sprite;
+        public Color particleColor; // O mücevher patladığında çıkacak renk
+    }
+
+    [Header("Mücevher Koleksiyonu")]
+    public GemVisual[] normalGems; // 1, 2, 3, 7, 8. sıradaki renkli taşlar
+    public Sprite rockSprite;      // 2. sıradaki gri taş
+    public Sprite iceSprite;       // 4. sıradaki buz
+    public Sprite lavaSprite;      // 6. sıradaki lavlı taş (Yeni mekanik!)
+    
     [Header("Renk Ayarları")]
     public Color[] blockColors; // Unity'den 5-6 renk ekle
     [Header("Grid Ayarları")]
     public int width = 8;
     public int height = 10;
     public float cellSize = 1f; // HATAYI DÜZELTEN SATIR
+    public GameObject[] activeFogRows; // Sis objelerini tutacak dizi
 
     [Header("Efektler")]
     public FloatingText floatingTextPrefab;
@@ -43,6 +57,7 @@ public class GridManager : MonoBehaviour
         public int x;
         public int width;
         public Color color;
+        public Sprite visualSprite; // YENİ: Hangi resmin kullanılacağını burada tutacağız
         public bool isFrozen;
         public bool isRock;
         public bool isChained;
@@ -69,7 +84,8 @@ public class GridManager : MonoBehaviour
 void Start()
     {
         GenerateBackgroundGrid();
-        
+        GenerateFog(); // <--- YENİ EKLENDİ (Oyuna başlarken sisi basar)
+
         // 1. Grid'i tertemiz hazırla
         gridArray = new Block[width, height];
         activeBlocks.Clear();
@@ -89,14 +105,12 @@ void Start()
 
 
 // Oyun başlarken tahtayı dolduran yeni ve temiz fonksiyon
-    void SetupInitialBoard(int startingRowCount)
+void SetupInitialBoard(int startingRowCount)
     {
         for (int y = 0; y < startingRowCount; y++)
         {
-            // Önce hayali veriyi oluştur (Zorluk seviyesine göre hesaplar)
             GenerateNextRowData(); 
             
-            // Oyuna başlarken bloklar alttan kayarak gelmesin, direkt yerlerinde doğsunlar
             foreach (BlockData data in nextRowData)
             {
                 Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y, 0); 
@@ -104,16 +118,22 @@ void Start()
                 newBlock.width = data.width;
                 newBlock.x = data.x;
                 newBlock.y = y;
-                newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
-                newBlock.SetBlockColor(data.color);
+                
+                // --- DÜZELTME BURADA: Artık başlangıçta da mücevher görsellerini giydiriyoruz ---
+                newBlock.SetVisual(data.visualSprite, data.color, data.width);
+
+                // YENİ: Kimlikleri aktarıyoruz
+                if (data.isRock) newBlock.SetRock(true);
+                if (data.isFrozen) newBlock.SetFrozen(true, iceSprite); // iceSprite'ı parametre olarak gönderdik
+                if (data.isChained) newBlock.SetChained(true);
+                
                 activeBlocks.Add(newBlock);
             }
         }
         RebuildGridMemory();
-        
-        // Tahta dolduktan sonra, ekranın altındaki gerçek Önizleme Çubuğunu (Preview Bar) oluştur!
         GenerateNextRowData();
     }
+
 
 // -----------Kontrol fonksiyonu
 void CheckGameOver()
@@ -212,6 +232,7 @@ public IEnumerator PushBoardUpRoutine()
     {
         b.y += 1;
         b.MoveTo(b.x, b.y);
+        ClearFogNearRow(b.y); // <--- YENİ EKLENDİ
     }
     
     // Hafızayı güncelle
@@ -419,7 +440,10 @@ void ClearRow(int y)
 
         // 2. Etkileri Kır (Oyunda kalmaya devam ederler)
         foreach (Block b in blocksToUnchain) b.SetChained(false);
-        foreach (Block b in blocksToUnfreeze) b.SetFrozen(false);
+        foreach (Block b in blocksToUnfreeze) {
+        b.SetFrozen(false);
+        b.SetHighlight(false); // <--- BU SATIRI EKLE (Rengi ve boyutu normale döndürür)
+    }
 
         // 3. Normal blokları patlat ve yok et
         foreach (Block b in blocksToDestroy) {
@@ -429,7 +453,7 @@ void ClearRow(int y)
         
         RebuildGridMemory(); 
     }
-    
+
 public bool AreBlocksMoving()
     {
         foreach (var b in gridArray) { if (b != null && b.isMoving) return true; }
@@ -457,8 +481,59 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
     b.x = newX;
     b.y = newY;
     RebuildGridMemory(); // Hafızayı baştan kur!
+
+    ClearFogNearRow(newY); // <--- YENİ EKLENDİ
 }
 
+public void GenerateFog()
+    {
+        if (activeFogRows != null) {
+            foreach(var fog in activeFogRows) if(fog != null) Destroy(fog);
+        }
+        activeFogRows = new GameObject[height];
+
+        int fogStart = -1;
+        if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null) {
+            fogStart = ProgressManager.Instance.currentSelectedLevel.fogStartingRow;
+        }
+
+        if (fogStart == -1) return; // Sis yoksa direkt çık
+
+        // Belirtilen satırdan en tepeye kadar siyah sis örtüleri oluştur
+        for (int y = fogStart; y < height; y++)
+        {
+            GameObject fogObj = new GameObject($"FogRow_{y}");
+            fogObj.transform.SetParent(this.transform);
+
+            fogObj.transform.position = new Vector3((width - 1) / 2f, y, 0); 
+            fogObj.transform.localScale = new Vector3(width, 1.05f, 1);
+            
+            SpriteRenderer sr = fogObj.AddComponent<SpriteRenderer>();
+            sr.sprite = cellPrefab.GetComponent<SpriteRenderer>().sprite; 
+            
+            // YENİ: Hücremizin grafik ayarlarını ezip "Dümdüz" çiz diyoruz ki saydam kalmasın.
+            sr.drawMode = SpriteDrawMode.Simple; 
+            
+            // YENİ: Tamamen zifiri karanlık, gece mavisi/siyah bir renk (Alpha 1.0 = Opak)
+            sr.color = new Color(0.02f, 0.02f, 0.05f, 1f); 
+            sr.sortingOrder = 15; // Blokların önünü kapatsın
+
+            activeFogRows[y] = fogObj;
+        }
+    }
+
+    public void ClearFogNearRow(int y)
+    {
+        if (activeFogRows == null) return;
+        
+        // YENİ: Sadece bloğun BULUNDUĞU satırı açıyoruz. (y+1'i sildik!)
+        // Böylece kar küreme aracı gibi daha oraya varmadan sisi yok etmeyecekler.
+        if (y >= 0 && y < height && activeFogRows[y] != null)
+        {
+            Destroy(activeFogRows[y]);
+            activeFogRows[y] = null;
+        }
+    }
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 public void GenerateNextRowData()
@@ -492,7 +567,7 @@ public void GenerateNextRowData()
         }
         else
         {
-            // KLASİK MOD (Sonsuz): ScoreManager'dan dinamik olarak hesapla (Eski sistem)
+            // --- KLASİK MOD (Sonsuz) ---
             int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
             float diffFactor = Mathf.Clamp01((level - 1) / 20f);
 
@@ -500,11 +575,12 @@ public void GenerateNextRowData()
             currentT4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); 
             currentT3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); 
             currentT2 = Mathf.Lerp(0.60f, 0.15f, diffFactor);
+            
             currentFreezeChance = level >= 3 ? Mathf.Clamp01((level - 2) / 12f) * 0.6f : 0f;
-            // Klasik modda seviye 5'ten sonra kaya çıkmaya başlasın
-            currentRockChance = level >= 5 ? Mathf.Clamp01((level - 4) / 15f) * 0.2f : 0f; // <--- YENİ (Klasik Mod)
-            // Klasik modda seviye 7'den sonra da zincirli bloklar başlasın:
-            currentChainedChance = level >= 7 ? Mathf.Clamp01((level - 6) / 15f) * 0.2f : 0f;
+            currentRockChance = level >= 5 ? Mathf.Clamp01((level - 4) / 15f) * 0.2f : 0f;
+            
+            // ŞİMDİLİK 0 YAPTIK: Zincirli bloklar kafa karıştırmasın
+            currentChainedChance = 0f; 
         }
 
         // --- ŞİMDİ BLOKLARI ÜRET ---
@@ -529,17 +605,43 @@ public void GenerateNextRowData()
 
             if (currentX + bWidth > width) bWidth = width - currentX;
 
-            // Veriyi kaydet
+            // --- GÖRSEL SEÇİM MANTIĞI ---
             BlockData newData = new BlockData();
             newData.x = currentX;
             newData.width = bWidth;
-            newData.color = blockColors[Random.Range(0, blockColors.Length)];
-            // Eğer kaya olacaksa rengin falan bir önemi yok, SetRock onu gri yapacak
-            newData.isRock = (Random.value < currentRockChance); 
-            // Kaya değilse zincirli olabilir mi diye zar at:
+            
+            // Emniyet Kemeri: Eğer mücevher listesi doluysa içinden seç
+                if (normalGems != null && normalGems.Length > 0)
+                {
+                    int randomIndex = Random.Range(0, normalGems.Length);
+                    newData.visualSprite = normalGems[randomIndex].sprite;
+                    newData.color = normalGems[randomIndex].particleColor;
+                }
+                else
+                {
+                    // Liste boşsa hata verme, geçici olarak beyaz bir şey ata (Hata logu bas)
+                    Debug.LogWarning("GridManager: Normal Gems listesi boş! Lütfen Inspector'dan doldur.");
+                    newData.color = Color.white;
+                }
+
+            // Eğer özel bir durum varsa (Kaya, Buz vb.) resmi değiştirelim
+            newData.isRock = (Random.value < currentRockChance);
+            if (newData.isRock)
+            {
+                newData.visualSprite = rockSprite; // GridManager'da tanımladığın kaya resmi
+                newData.color = Color.gray; // Patlama rengi gri olsun
+            }
+
             newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
-            // İkisi de değilse buzlu olabilir mi diye zar at:
+            // Zincirliyse resim aynı kalsın (üzerine zincir gelecek), mantığı bozmayalım.
+
             newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
+            if (newData.isFrozen)
+            {
+                // Buz resmini istersen direkt buraya da atayabilirsin
+                // newData.visualSprite = iceSprite; 
+            }
+
 
             
             nextRowData.Add(newData);
@@ -548,95 +650,81 @@ public void GenerateNextRowData()
             blockCountInRow++;
         }       
         
-        // Güvenlik: Satır boş kalamaz
-        if (blockCountInRow == 0)
-        {
-            BlockData newData = new BlockData();
-            newData.x = Random.Range(0, width);
-            newData.width = 1;
-            newData.color = blockColors[Random.Range(0, blockColors.Length)];
-            newData.isFrozen = (Random.value < currentFreezeChance);
-            newData.isRock = (Random.value < currentRockChance);
-            nextRowData.Add(newData);
-        }
+       if (blockCountInRow == 0)
+       {
+           BlockData newData = new BlockData();
+           newData.x = Random.Range(0, width);
+           newData.width = 1;
+           
+           // Görsel ataması
+           int randomIndex = Random.Range(0, normalGems.Length);
+           newData.visualSprite = normalGems[randomIndex].sprite;
+           newData.color = normalGems[randomIndex].particleColor;
+
+           // GÜVENLİK: Bu blok asla kilitli veya buzlu doğmasın ki oyuncu hamle yapabilsin
+           newData.isFrozen = false;
+           newData.isRock = false;
+           newData.isChained = false; 
+
+           nextRowData.Add(newData);
+       }
 
         // Veri hesaplandı, şimdi görselleri çiz!
         UpdatePreviewVisuals();
 }
 
 private void UpdatePreviewVisuals()
+{
+    foreach (GameObject obj in previewVisuals) { Destroy(obj); }
+    previewVisuals.Clear();
+
+    foreach (BlockData data in nextRowData)
     {
-        // 1. Eski önizleme görsellerini yok et
-        foreach (GameObject obj in previewVisuals) { Destroy(obj); }
-        previewVisuals.Clear();
+        Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, -1.0f, 0);
+        Block previewBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+        previewBlock.gameObject.name = "PreviewBlock";
+        previewBlock.enabled = false;
+        if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) col.enabled = false;
 
-        // 2. Yeni önizlemeleri oluştur
-        foreach (BlockData data in nextRowData)
-        {
-            // Pozisyon: -1.0f yaparak tam gridin (0. satırın) altına "yapıştırıyoruz"
-            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, -1.0f, 0);
-            
-            Block previewBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-            previewBlock.gameObject.name = "PreviewBlock";
-            
-            // Fizik ve hareketleri kapat
-            previewBlock.enabled = false; 
-            if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) 
-                col.enabled = false;
+        // Görseli ayarla (Yeni width parametresiyle)
+        previewBlock.SetVisual(data.visualSprite, data.color, data.width);
+        
+        // 1. Önce rengi ve boyutu ayarla (Parent)
+        SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
+        sr.size = new Vector2(data.width - 0.1f, 0.5f); 
+        sr.color = new Color(0.3f, 0.3f, 0.3f, 1f); // Gölge rengi
+        sr.sortingOrder = -5;
+        if (data.isFrozen) previewBlock.SetFrozen(true, iceSprite);
 
-            // GÖRSEL DÜZENLEME 1: İlham oyunundaki gibi altta "basık / yarım" görünsün
-            // Normalde Y scale 0.9f idi, bunu 0.5f yaparak yarısını gizlenmiş gibi gösteriyoruz.
-            // Ayrıca pozisyonunu hafifçe aşağı kaydırarak tam hizalıyoruz
-            previewBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.5f, 1);
-            previewBlock.transform.position -= new Vector3(0, 0.25f, 0); 
 
-            // GÖRSEL DÜZENLEME 2: Alpha yerine URP Emission'ı "boğmak" için rengi koyulaştır (Gölgeli)
-            // RGB değerlerini %30'una (0.3f) düşürüyoruz. Bu neon parlamayı söndürür.
-            Color shadowColor = new Color(
-                data.color.r * 0.3f, 
-                data.color.g * 0.3f, 
-                data.color.b * 0.3f, 
-                1f
-            );
-            previewBlock.SetBlockColor(shadowColor);
-            if (data.isFrozen) previewBlock.SetFrozen(true); 
-            if (data.isRock) previewBlock.SetRock(true);
-            if (data.isChained) previewBlock.SetChained(true);  // <--- YENİ
-
-            // GÖRSEL DÜZENLEME 3: Gridin/Efektlerin Arkasında Dursun
-            SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
-            sr.sortingOrder = -5; // Alttan/derinden geliyormuş hissi için
-
-            previewVisuals.Add(previewBlock.gameObject);
-        }
+        previewVisuals.Add(previewBlock.gameObject);
     }
+}
+
 public void SpawnRowFromData(int y)
+{
+    foreach (BlockData data in nextRowData)
     {
-        foreach (BlockData data in nextRowData)
-        {
-            // 1. DEĞİŞİKLİK: Görsel olarak doğrudan Y=0'da değil, Y-1'de (yerin altında) doğuruyoruz.
-            Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y - 1f, 0); 
-            
-            Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-            
-            newBlock.width = data.width;
-            newBlock.x = data.x;
-            newBlock.y = y; // Mantıksal olarak hedefi hala 0. satır
-            
-            newBlock.transform.localScale = new Vector3(data.width - 0.1f, 0.9f, 1);
-            newBlock.SetBlockColor(data.color);
-            if (data.isFrozen) newBlock.SetFrozen(true); 
-            if (data.isRock) newBlock.SetRock(true);
-            if (data.isChained) newBlock.SetChained(true);  // <--- YENİ
+        Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y - 1f, 0);
+        Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+        
+        newBlock.width = data.width;
+        newBlock.x = data.x;
+        newBlock.y = y;
 
-            activeBlocks.Add(newBlock);
+        // Görseli ayarla
+        newBlock.SetVisual(data.visualSprite, data.color, data.width);
 
-            // 2. DEĞİŞİKLİK: Yeni doğan bloğa da "hedefine doğru hareket et" emri veriyoruz.
-            // Böylece üstteki bloklar 0'dan 1'e giderken, bu da -1'den 0'a onlarla beraber gidecek.
-            newBlock.MoveTo(newBlock.x, newBlock.y);
-        }
-        RebuildGridMemory();
+        // YENİ: Kimlikleri aktarıyoruz
+        if (data.isRock) newBlock.SetRock(true);
+        if (data.isFrozen) newBlock.SetFrozen(true, iceSprite); // iceSprite'ı parametre olarak gönderdik
+        if (data.isChained) newBlock.SetChained(true);
+
+        activeBlocks.Add(newBlock);
+        newBlock.MoveTo(newBlock.x, newBlock.y);
     }
+    RebuildGridMemory();
+}
 
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 

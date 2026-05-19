@@ -34,6 +34,7 @@ void Update()
                 blockStartGridPos = selectedBlock.transform.position;
                 isDragging = false;
                 originalGridX = selectedBlock.x;
+                selectedBlock.SetHighlight(true);
             }
             else
             {
@@ -74,7 +75,8 @@ void Update()
     // 3. ADIM: Mouse/Parmak Bırakıldığı An
     if (Input.GetMouseButtonUp(0))
     {
-        if (selectedBlock != null && isDragging)
+        //if (selectedBlock != null && isDragging)
+        if (selectedBlock != null)
         {
             selectedBlock.SetHighlight(false); // <--- YENİ: Parmağı çekince parlaklık normale dönsün
             // YENİ KONTROL: Eğer blok başladığı kareye geri döndüyse hamle sayma!

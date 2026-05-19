@@ -6,8 +6,10 @@ public class Block : MonoBehaviour
 {
     public int x, y, width;
     public bool isMoving = false;
+    private Vector2 originalSize; // Bloğun normal boyutunu aklında tutması için
 
     public Color blockColor;
+    private Coroutine popCoroutine; // Büyüme animasyonunu takip etmek için
     
     [Header("Hareket Ayarları")]
     public float moveSpeed = 15f; // Kayma hızı, ihtiyaca göre artırabilirsin
@@ -22,39 +24,83 @@ public class Block : MonoBehaviour
     private static readonly int ColorProperty = Shader.PropertyToID("_Color"); // Shader'daki renk değişkeninin adı, URP'de genelde "_BaseColor" veya "_EmissionColor" olabilir.
     
     [Header("Görsel Efektler")]
-    public float glowIntensity = 0.7f; // Seçilince parlaklık çarpanı
+    public float glowIntensity = 1.3f; // Seçilince parlaklık çarpanı
     private TrailRenderer trail; // Hız izi (Motion Trail) için
+    private SpriteRenderer sr;
 
 
 void Awake()
     {
+        sr = GetComponent<SpriteRenderer>();
         trail = GetComponent<TrailRenderer>();
-        if (trail != null) trail.emitting = false; // Başlangıçta iz kapalı
     }
 
 public void SetHighlight(bool isHighlighted)
     {
-        // Seçiliyse rengin gücünü artır (URP'de Bloom parlaklığı verir), değilse normale dön
-        Color targetColor = isHighlighted ? blockColor * glowIntensity : blockColor;
-        
-        if (mpb == null) mpb = new MaterialPropertyBlock();
-        SpriteRenderer sr = GetComponent<SpriteRenderer>();
-        
-        sr.GetPropertyBlock(mpb);
-        mpb.SetColor(ColorProperty, targetColor);
-        sr.SetPropertyBlock(mpb);
+        if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+        // 1. PARLAMA (Glow): Rengi doğrudan şiddetlendiriyoruz
+        float intensity = isHighlighted ? 1.45f : 1.0f;
+        sr.color = isHighlighted ? new Color(intensity, intensity, intensity, 1f) : Color.white;
+
+        // 2. KATMAN: Tutulan blok öne çıksın
+        sr.sortingOrder = isHighlighted ? 30 : 10;
+        if (iceVisual != null && iceVisual.activeSelf)
+        {
+            iceVisual.GetComponent<SpriteRenderer>().sortingOrder = sr.sortingOrder + 1;
+            iceVisual.GetComponent<SpriteRenderer>().color = sr.color;
+        }
+
+        // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
+        if (trail == null) trail = GetComponent<TrailRenderer>();
+        if (trail != null)
+        {
+            trail.Clear();
+            trail.enabled = false; // emitting yerine direkt bileşeni kapatıyoruz!
+        }
+
+        // 4. BÜYÜME (SMOOTH POP): Anında değil, tatlı bir animasyonla büyüsün
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
+        popCoroutine = StartCoroutine(AnimatePop(isHighlighted));
     }
 
-public void SetRock(bool rockStatus)
+    // YENİ EKLENEN ANİMASYON FONKSİYONU
+  private IEnumerator AnimatePop(bool isHighlighted)
+{
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+    float elapsed = 0f;
+    float duration = 0.08f;
+
+    // Normal boyut
+    Vector2 startSize = sr.size;
+
+    // Highlight olunca biraz büyüsün
+    Vector2 targetSize = isHighlighted
+        ? new Vector2(originalSize.x * 1.08f, originalSize.y * 1.08f)
+        : originalSize;
+
+    while (elapsed < duration)
     {
-        isRock = rockStatus;
+        sr.size = Vector2.Lerp(startSize, targetSize, elapsed / duration);
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    sr.size = targetSize;
+}
+    
+    public void SetRock(bool rockStatus)
+    {
+        isRock = rockStatus; // Kimliği belirle
         if (isRock)
         {
-            // Şimdilik kaya olduğunu anlamak için koyu gri/taş rengi yapıyoruz.
-            // (İleride buraya kendi gerçek grafik dosyasını (sprite) atayacağız)
-            SetBlockColor(new Color(0.3f, 0.3f, 0.3f, 1f)); 
+            // Kaya için özel bir boyama yapmamıza gerek yok, 
+            // SetVisual zaten rockSprite'ı atamış olacak.
         }
     }
+
 
 public void SetBlockColor(Color c)
     {
@@ -86,40 +132,80 @@ public void SetBlockColor(Color c)
             trail.colorGradient = gradient;
         }
     }
-public void SetFrozen(bool frozen)
+// Trail (iz) rengini güncelleyen yardımcı fonksiyon
+    private void UpdateTrailColor(Color c)
     {
-        isFrozen = frozen;
-        if (isFrozen)
+        if (trail != null)
         {
-            // Eğer buz görseli henüz oluşturulmadıysa oluştur
-            if (iceVisual == null)
-            {
-                iceVisual = new GameObject("IceVisual");
-                iceVisual.transform.SetParent(this.transform);
-                iceVisual.transform.localPosition = Vector3.zero;
-                
-                SpriteRenderer mySr = GetComponent<SpriteRenderer>();
-                SpriteRenderer iceSr = iceVisual.AddComponent<SpriteRenderer>();
-                
-                // Ana bloğun şeklini ve boyutunu birebir kopyala
-                iceSr.sprite = mySr.sprite;
-                iceSr.drawMode = mySr.drawMode;
-                iceSr.size = mySr.size; 
-                
-                // Rengini yarı şeffaf bir buz mavisi yap
-                iceSr.color = new Color(0.5f, 0.9f, 1f, 0.6f); 
-                iceSr.sortingOrder = mySr.sortingOrder + 1; // Ana bloğun hemen önünde dursun
-                
-                iceVisual.transform.localScale = Vector3.one; 
-            }
-            iceVisual.SetActive(true);
-        }
-        else
-        {
-            // Buzu kır (Kapat)
-            if (iceVisual != null) iceVisual.SetActive(false);
+            Gradient gradient = new Gradient();
+            
+            GradientColorKey[] colorKeys = new GradientColorKey[2];
+            colorKeys[0] = new GradientColorKey(c, 0.0f);
+            colorKeys[1] = new GradientColorKey(c, 1.0f);
+            
+            GradientAlphaKey[] alphaKeys = new GradientAlphaKey[2];
+            alphaKeys[0] = new GradientAlphaKey(0.6f, 0.0f);
+            alphaKeys[1] = new GradientAlphaKey(0.0f, 1.0f);
+            
+            gradient.SetKeys(colorKeys, alphaKeys);
+            trail.colorGradient = gradient;
         }
     }
+    
+public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
+    {
+        if (sr == null) sr = GetComponent<SpriteRenderer>();
+        
+        sr.sprite = newSprite;
+        sr.color = Color.white; 
+        blockColor = colorData;
+        sr.drawMode = SpriteDrawMode.Sliced;
+        
+        // Boyutu ayarla ve hafızaya al
+        originalSize = new Vector2(blockWidth - 0.1f, 0.9f);
+        sr.size = originalSize;
+        sr.maskInteraction = SpriteMaskInteraction.None;
+        
+        // Collider güncelleme
+        BoxCollider2D col = GetComponent<BoxCollider2D>();
+        if (col != null) col.size = originalSize;
+
+        transform.localScale = Vector3.one;
+        UpdateTrailColor(colorData);
+    }
+
+public void SetFrozen(bool frozen, Sprite iceSprite = null)
+{
+    isFrozen = frozen;
+    if (isFrozen)
+    {
+        if (iceVisual == null)
+        {
+            iceVisual = new GameObject("IceVisual");
+            iceVisual.transform.SetParent(this.transform);
+            // Z değerini -0.1f yaparak "perde" gibi titremesini engelliyoruz
+            iceVisual.transform.localPosition = new Vector3(0, 0, -0.1f); 
+            iceVisual.AddComponent<SpriteRenderer>();
+        }
+
+        SpriteRenderer iceSr = iceVisual.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+        iceSr.sprite = iceSprite;
+        iceSr.drawMode = SpriteDrawMode.Sliced;
+        
+        // Boyutları ana blokla birebir eşitle
+        iceSr.size = sr.size; 
+        iceSr.color = sr.color;
+        iceSr.sortingOrder = sr.sortingOrder + 1;
+        
+        iceVisual.SetActive(true);
+    }
+    else
+    {
+        if (iceVisual != null) iceVisual.SetActive(false);
+    }
+}
 
 public void SetChained(bool chained)
     {
@@ -176,11 +262,11 @@ void Update()
     {
         if (isMoving)
         {
-            // YENİ: Blok aşağı düşerken iz bırakmasın! Sadece yatayda (oyuncu çekerken) bıraksın.
-            if (trail != null) 
+            // Sadece yatay hareketlerde (oyuncu kaydırırken) izin şalterini aç.
+            if (trail != null)
             {
-                float yFarki = Mathf.Abs(targetPosition.y - transform.position.y);
-                trail.emitting = (yFarki < 0.01f);
+            trail.Clear();
+            trail.enabled = false;
             }
 
             transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * moveSpeed);
@@ -193,7 +279,8 @@ void Update()
         }
         else
         {
-            if (trail != null) trail.emitting = false;
+            // Blok duruyorsa iz bırakıcıyı tamamen kapat
+            if (trail != null) trail.enabled = false;
         }
     }
 

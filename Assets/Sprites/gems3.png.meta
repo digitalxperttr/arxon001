@@ -1,10 +1,22 @@
 fileFormatVersion: 2
-guid: 99e7ef1022a2b4787bc3159669de712a
+guid: 4a3693516385d4b849d0992646c04d57
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -16793423984005362
-    second: gems_0
+      213: -3195431716960974785
+    second: gems3_0
+  - first:
+      213: -8066060662559328539
+    second: gems3_1
+  - first:
+      213: -8603357103293561841
+    second: gems3_2
+  - first:
+      213: 3336348028251839688
+    second: gems3_3
+  - first:
+      213: -4655307418456278966
+    second: gems3_4
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +63,7 @@ TextureImporter:
   spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 512
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -75,7 +87,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,23 +125,111 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: gems_0
+      name: gems3_kirmizi
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 4000
-        height: 1000
+        x: 218
+        y: 76
+        width: 515
+        height: 515
       alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e0feed8487654cff0800000000000000
-      internalID: -16793423984005362
+      spriteID: f38468698cb87a3d0800000000000000
+      internalID: -3195431716960974785
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems3_yesil
+      rect:
+        serializedVersion: 2
+        x: 951
+        y: 76
+        width: 515
+        height: 515
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 50, y: 50, z: 50, w: 50}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e6366f20989f0090800000000000000
+      internalID: -8066060662559328539
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems3_pembe
+      rect:
+        serializedVersion: 2
+        x: 1685
+        y: 76
+        width: 514
+        height: 515
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 50, y: 50, z: 50, w: 50}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f048a5e0c4cba9880800000000000000
+      internalID: -8603357103293561841
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems3_mavi
+      rect:
+        serializedVersion: 2
+        x: 2418
+        y: 76
+        width: 515
+        height: 515
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cc960fdad61d4e20800000000000000
+      internalID: 3336348028251839688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems3_sari
+      rect:
+        serializedVersion: 2
+        x: 3151
+        y: 76
+        width: 515
+        height: 515
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 50, y: 50, z: 50, w: 50}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a483caa5196056fb0800000000000000
+      internalID: -4655307418456278966
       vertices: []
       indices: 
       edges: []
@@ -138,7 +238,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 8b1bae2d13f4d4ff8a63faf6b2c7f580
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +248,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      gems_0: -16793423984005362
+      gems3_kirmizi: -3195431716960974785
+      gems3_mavi: 3336348028251839688
+      gems3_pembe: -8603357103293561841
+      gems3_sari: -4655307418456278966
+      gems3_yesil: -8066060662559328539
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
