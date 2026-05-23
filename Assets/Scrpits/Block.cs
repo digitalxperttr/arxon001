@@ -6,6 +6,7 @@ public class Block : MonoBehaviour
 {
     public int x, y, width;
     public bool isMoving = false;
+    public bool isBeingDestroyed = false;
     private Vector2 originalSize; // Bloğun normal boyutunu aklında tutması için
 
     public Color blockColor;
@@ -15,6 +16,9 @@ public class Block : MonoBehaviour
     public float moveSpeed = 15f; // Kayma hızı, ihtiyaca göre artırabilirsin
     private Vector3 targetPosition;
 
+    [Header("Block Type")]
+    public BlockType blockType = BlockType.Normal;
+    private IBlockEffect blockEffect;
     public bool isFrozen = false;
     public bool isRock = false;
     public bool isChained = false;
@@ -28,12 +32,33 @@ public class Block : MonoBehaviour
     private TrailRenderer trail; // Hız izi (Motion Trail) için
     private SpriteRenderer sr;
 
+    [Header("Special Block Visuals")]
+    [SerializeField] private float specialPulseSpeed = 3f;
+    [SerializeField] private float specialPulseAmount = 0.08f;
+
+    private Vector3 baseScale;
+    private bool isSpecialVisualActive = false;
+
 
 void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         trail = GetComponent<TrailRenderer>();
     }
+
+private void Start()
+{
+    SetupEffect();
+    baseScale = transform.localScale;
+    UpdateSpecialVisualState();
+}
+
+private void UpdateSpecialVisualState()
+{
+    isSpecialVisualActive =
+        blockType == BlockType.Fire ||
+        blockType == BlockType.Slice;
+}
 
 public void SetHighlight(bool isHighlighted)
     {
@@ -91,16 +116,15 @@ public void SetHighlight(bool isHighlighted)
     sr.size = targetSize;
 }
     
-    public void SetRock(bool rockStatus)
-    {
-        isRock = rockStatus; // Kimliği belirle
-        if (isRock)
-        {
-            // Kaya için özel bir boyama yapmamıza gerek yok, 
-            // SetVisual zaten rockSprite'ı atamış olacak.
-        }
-    }
+public void SetRock(bool rockStatus)
+{
+    isRock = rockStatus;
 
+    if (isRock)
+        blockType = BlockType.Rock;
+    else if (!isFrozen && !isChained)
+        blockType = BlockType.Normal;
+}
 
 public void SetBlockColor(Color c)
     {
@@ -171,12 +195,19 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         if (col != null) col.size = originalSize;
 
         transform.localScale = Vector3.one;
+        baseScale = transform.localScale;
+        UpdateSpecialVisualState();
         UpdateTrailColor(colorData);
     }
 
 public void SetFrozen(bool frozen, Sprite iceSprite = null)
 {
     isFrozen = frozen;
+    if (isFrozen)
+        blockType = BlockType.Ice;
+    else if (!isRock && !isChained)
+        blockType = BlockType.Normal;
+
     if (isFrozen)
     {
         if (iceVisual == null)
@@ -210,6 +241,11 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
 public void SetChained(bool chained)
     {
         isChained = chained;
+        if (isChained)
+            blockType = BlockType.Chained;
+        else if (!isRock && !isFrozen)
+            blockType = BlockType.Normal;
+
         if (isChained)
         {
             if (chainVisual == null)
@@ -282,6 +318,13 @@ void Update()
             // Blok duruyorsa iz bırakıcıyı tamamen kapat
             if (trail != null) trail.enabled = false;
         }
+
+        if (!isSpecialVisualActive || isBeingDestroyed)
+            return;
+
+        float pulse = 1f + Mathf.Sin(Time.time * specialPulseSpeed) * specialPulseAmount;
+
+        transform.localScale = baseScale * pulse;
     }
 
 public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab)
@@ -318,5 +361,49 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
         // 3. Gerçekten Yok Et
         Destroy(gameObject);
     }
-    
+
+private void SetupEffect()
+{
+    switch (blockType)
+    {
+        case BlockType.Fire:
+            blockEffect = new FireEffect();
+            break;
+
+        case BlockType.Slice:
+            blockEffect = new SliceEffect();
+            break;
     }
+}
+public void TriggerSpecial()
+{
+    UpdateSpecialVisualState();
+    SetupEffect();
+
+    if (blockEffect != null)
+    {
+        blockEffect.Trigger(this);
+    }
+}
+
+public System.Collections.IEnumerator SliceFeedback()
+{
+    Vector3 originalScale = transform.localScale;
+
+    SpriteRenderer sr = GetComponent<SpriteRenderer>();
+
+    Color originalColor = sr.color;
+
+    // Flash
+    sr.color = Color.white;
+
+    // Punch scale
+    transform.localScale = originalScale * 1.15f;
+
+    yield return new WaitForSeconds(0.06f);
+
+    sr.color = originalColor;
+    transform.localScale = originalScale;
+}
+
+}

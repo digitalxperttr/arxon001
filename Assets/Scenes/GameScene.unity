@@ -681,19 +681,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   normalGems:
-  - sprite: {fileID: 3336348028251839688, guid: 4a3693516385d4b849d0992646c04d57, type: 3}
+  - sprite: {fileID: 3951364350766183815, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
     particleColor: {r: 0, g: 0.6019833, b: 0.98039216, a: 1}
-  - sprite: {fileID: -3195431716960974785, guid: 4a3693516385d4b849d0992646c04d57, type: 3}
+  - sprite: {fileID: 7609447993192438805, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
     particleColor: {r: 1, g: 0, b: 0, a: 1}
-  - sprite: {fileID: -8066060662559328539, guid: 4a3693516385d4b849d0992646c04d57, type: 3}
+  - sprite: {fileID: 4549718214025315476, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
     particleColor: {r: 0, g: 1, b: 0.1026364, a: 1}
-  - sprite: {fileID: -8603357103293561841, guid: 4a3693516385d4b849d0992646c04d57, type: 3}
-    particleColor: {r: 1, g: 0.4764151, b: 0.82735205, a: 1}
-  - sprite: {fileID: -4655307418456278966, guid: 4a3693516385d4b849d0992646c04d57, type: 3}
-    particleColor: {r: 1, g: 0.9989331, b: 0, a: 1}
+  - sprite: {fileID: -8653105808086298531, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
+    particleColor: {r: 0.54378223, g: 0, b: 0.9056604, a: 1}
+  - sprite: {fileID: 1408294237913120078, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
+    particleColor: {r: 1, g: 0.6909754, b: 0, a: 1}
   rockSprite: {fileID: 531056626, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   iceSprite: {fileID: -56949323, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   lavaSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
+  fireSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
+  sliceSprite: {fileID: -3880138908684105042, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
+  classicFireChance: 0.311
+  classicSliceChance: 0.311
   blockColors:
   - {r: 1, g: 0, b: 0, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}
@@ -706,6 +710,12 @@ MonoBehaviour:
   activeFogRows: []
   floatingTextPrefab: {fileID: 7431225859572386497, guid: fb1be8ec24e5549d783921745fe111e1, type: 3}
   explosionPrefab: {fileID: 6904227193083937457, guid: 638ac8eef13614a4b9c1f31605a2b7b9, type: 3}
+  enableFreezeFrame: 0
+  freezeDuration: 0.06
+  freezeTimeScale: 0.03
+  enableCameraShake: 1
+  shakeDuration: 0.18
+  shakeStrength: 0.14
   activeBlocks: []
   blockPrefab: {fileID: 4165942794352353875, guid: c68cd50a2b94e4ed5ac370d3e673a80e, type: 3}
   currentState: 0

@@ -19,6 +19,12 @@ public class GridManager : MonoBehaviour
     public Sprite rockSprite;      // 2. sıradaki gri taş
     public Sprite iceSprite;       // 4. sıradaki buz
     public Sprite lavaSprite;      // 6. sıradaki lavlı taş (Yeni mekanik!)
+    [Header("Özel Blok Ayarları")]
+    public Sprite fireSprite;
+    public Sprite sliceSprite;
+
+    [Range(0f, 1f)] public float classicFireChance = 0.03f;
+    [Range(0f, 1f)] public float classicSliceChance = 0.02f;
     
     [Header("Renk Ayarları")]
     public Color[] blockColors; // Unity'den 5-6 renk ekle
@@ -32,6 +38,14 @@ public class GridManager : MonoBehaviour
     public FloatingText floatingTextPrefab;
 
     public GameObject explosionPrefab;
+
+    [SerializeField] private bool enableFreezeFrame = true;
+    [SerializeField] private float freezeDuration = 0.04f;
+    [SerializeField] private float freezeTimeScale = 0.08f;
+
+    [SerializeField] private bool enableCameraShake = true;
+    [SerializeField] private float shakeDuration = 0.12f;
+    [SerializeField] private float shakeStrength = 0.08f;
 
     // Sahnedeki tüm kanlı canlı blokları burada tutacağız
     public System.Collections.Generic.List<Block> activeBlocks = new System.Collections.Generic.List<Block>();
@@ -52,16 +66,19 @@ public class GridManager : MonoBehaviour
     
     // Gelecek satırın "taslağını" tutacak veri yapısı
     [System.Serializable]
-    public struct BlockData
-    {
-        public int x;
-        public int width;
-        public Color color;
-        public Sprite visualSprite; // YENİ: Hangi resmin kullanılacağını burada tutacağız
-        public bool isFrozen;
-        public bool isRock;
-        public bool isChained;
-    }
+   public struct BlockData
+{
+    public int x;
+    public int width;
+    public Color color;
+    public Sprite visualSprite;
+
+    public BlockType blockType;
+
+    public bool isFrozen;
+    public bool isRock;
+    public bool isChained;
+}
 
     public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
     private System.Collections.Generic.List<GameObject> previewVisuals = new System.Collections.Generic.List<GameObject>();
@@ -69,6 +86,9 @@ public class GridManager : MonoBehaviour
   
     void Awake()
     {
+        Application.targetFrameRate = 60;
+        QualitySettings.vSyncCount = 0;
+
         if (Instance == null)
         {
             Instance = this;
@@ -118,6 +138,7 @@ void SetupInitialBoard(int startingRowCount)
                 newBlock.width = data.width;
                 newBlock.x = data.x;
                 newBlock.y = y;
+                newBlock.blockType = data.blockType;
                 
                 // --- DÜZELTME BURADA: Artık başlangıçta da mücevher görsellerini giydiriyoruz ---
                 newBlock.SetVisual(data.visualSprite, data.color, data.width);
@@ -310,7 +331,7 @@ bool CanFall(Block b) {
 
 
 
-public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
+public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chainDepth = 1)
     {
         // 1. EMNİYET KONTROLÜ VE PERFECT CLEAR (BONUS BURAYA TAŞINDI)
         if (activeBlocks == null || activeBlocks.Count == 0)
@@ -349,12 +370,24 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
 
         if (clearedRowCount > 0)
         {
+            if (clearedRowCount >= 2)
+            {
+                StartCoroutine(FreezeFrameRoutine());
+            }
+
+            if (chainDepth >= 2)
+            {
+                StartCoroutine(CameraShakeRoutine(shakeDuration, shakeStrength));
+            }
+
             if (isPlayerMove && ScoreManager.Instance != null) {
                 ScoreManager.Instance.IncrementCombo();
                 isPlayerMove = false; 
             }
 
-            int multiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
+            int comboMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
+            int chainMultiplier = Mathf.Max(1, chainDepth);
+            int multiplier = comboMultiplier * chainMultiplier;
             int pointsToGive = clearedRowCount * 100 * clearedRowCount * multiplier; 
             
             if (ScoreManager.Instance != null) {
@@ -379,11 +412,26 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
             pointText.SetText($"+{pointsToGive}", Color.yellow, 6f);
 
             // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar
-            if (multiplier > 1)
+            if (comboMultiplier > 1)
             {
                 Vector3 comboPos = spawnPos + new Vector3(0, 1.2f, 0);
                 FloatingText comboText = Instantiate(floatingTextPrefab, comboPos, Quaternion.identity);
-                comboText.SetText($"{multiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
+                comboText.SetText($"{comboMultiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
+            }
+
+            if (chainMultiplier > 1)
+            {
+                Vector3 chainPos = spawnPos + new Vector3(0, 2.1f, 0);
+                FloatingText chainText = Instantiate(floatingTextPrefab, chainPos, Quaternion.identity);
+                chainText.SetText($"CHAIN x{chainMultiplier}!", Color.cyan, 8f);
+
+                if (chainDepth >= 3)
+                {
+                    StartCoroutine(CameraShakeRoutine(
+                        shakeDuration * 1.5f,
+                        shakeStrength * 1.8f
+                    ));
+                }
             }
         }
         // ================================================
@@ -392,7 +440,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
             yield return StartCoroutine(ApplyGravityRoutine());
             
             // Zincirleme reaksiyonları kontrol et
-            yield return StartCoroutine(CheckAndClearRowsRoutine(false));
+            yield return StartCoroutine(CheckAndClearRowsRoutine(false, chainDepth + 1));
         }
         else
         {
@@ -405,6 +453,48 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false)
             ChangeState(GameState.IDLE); 
         }
     }
+
+private IEnumerator FreezeFrameRoutine()
+{
+    if (!enableFreezeFrame)
+        yield break;
+
+    float originalScale = Time.timeScale;
+
+    Time.timeScale = freezeTimeScale;
+
+    yield return new WaitForSecondsRealtime(freezeDuration);
+
+    Time.timeScale = originalScale;
+}
+
+private IEnumerator CameraShakeRoutine(float duration, float strength)
+{
+    if (!enableCameraShake)
+        yield break;
+
+    Camera cam = Camera.main;
+
+    if (cam == null)
+        yield break;
+
+    Vector3 originalPos = cam.transform.position;
+
+    float timer = 0f;
+
+    while (timer < duration)
+    {
+        timer += Time.unscaledDeltaTime;
+
+        Vector2 offset = Random.insideUnitCircle * strength;
+
+        cam.transform.position = originalPos + new Vector3(offset.x, offset.y, 0f);
+
+        yield return null;
+    }
+
+    cam.transform.position = originalPos;
+}
 
 bool IsRowFull(int y)
 {
@@ -433,6 +523,7 @@ void ClearRow(int y)
                     blocksToUnfreeze.Add(b); // Sadece buzluysa buzu kırılacak
                 }
                 else if (!b.isFrozen && !b.isChained && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b) && !blocksToUnchain.Contains(b)) {
+                    b.TriggerSpecial();
                     blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
                 }
             }
@@ -446,10 +537,10 @@ void ClearRow(int y)
     }
 
         // 3. Normal blokları patlat ve yok et
-        foreach (Block b in blocksToDestroy) {
-            activeBlocks.Remove(b);
-            b.StartCoroutine(b.CrunchAndDestroy(explosionPrefab));
-        }
+        foreach (Block b in blocksToDestroy)
+            {
+                SafeDestroyBlock(b);
+            }
         
         RebuildGridMemory(); 
     }
@@ -550,6 +641,8 @@ public void GenerateNextRowData()
         float currentFreezeChance = 0f;
         float currentRockChance = 0f;
         float currentChainedChance = 0f;
+        float currentFireChance = 0f;
+        float currentSliceChance = 0f;
 
         // Hangi modda olduğumuzu soruyoruz:
         if (LevelManager.Instance != null && LevelManager.Instance.enabled && LevelManager.Instance.currentLevel != null)
@@ -581,6 +674,8 @@ public void GenerateNextRowData()
             
             // ŞİMDİLİK 0 YAPTIK: Zincirli bloklar kafa karıştırmasın
             currentChainedChance = 0f; 
+            currentFireChance = level >= 2 ? classicFireChance : 0f;
+            currentSliceChance = level >= 3 ? classicSliceChance : 0f;
         }
 
         // --- ŞİMDİ BLOKLARI ÜRET ---
@@ -609,6 +704,7 @@ public void GenerateNextRowData()
             BlockData newData = new BlockData();
             newData.x = currentX;
             newData.width = bWidth;
+            newData.blockType = BlockType.Normal;
             
             // Emniyet Kemeri: Eğer mücevher listesi doluysa içinden seç
                 if (normalGems != null && normalGems.Length > 0)
@@ -628,18 +724,42 @@ public void GenerateNextRowData()
             newData.isRock = (Random.value < currentRockChance);
             if (newData.isRock)
             {
-                newData.visualSprite = rockSprite; // GridManager'da tanımladığın kaya resmi
-                newData.color = Color.gray; // Patlama rengi gri olsun
+                newData.blockType = BlockType.Rock;
+                newData.visualSprite = rockSprite;
+                newData.color = Color.gray;
             }
+            if (!newData.isRock && !newData.isFrozen && !newData.isChained)
+{
+            float specialRoll = Random.value;
+
+            if (specialRoll < currentFireChance)
+            {
+                newData.blockType = BlockType.Fire;
+
+                if (fireSprite != null)
+                    newData.visualSprite = fireSprite;
+                else if (lavaSprite != null)
+                    newData.visualSprite = lavaSprite;
+            }
+            else if (specialRoll < currentFireChance + currentSliceChance)
+            {
+                newData.blockType = BlockType.Slice;
+
+                if (sliceSprite != null)
+                    newData.visualSprite = sliceSprite;
+            }
+}
 
             newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
-            // Zincirliyse resim aynı kalsın (üzerine zincir gelecek), mantığı bozmayalım.
+            if (newData.isChained)
+            {
+                newData.blockType = BlockType.Chained;
+            }
 
             newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
             if (newData.isFrozen)
             {
-                // Buz resmini istersen direkt buraya da atayabilirsin
-                // newData.visualSprite = iceSprite; 
+                newData.blockType = BlockType.Ice;
             }
 
 
@@ -665,14 +785,61 @@ public void GenerateNextRowData()
            newData.isFrozen = false;
            newData.isRock = false;
            newData.isChained = false; 
+           newData.blockType = BlockType.Normal;
 
            nextRowData.Add(newData);
        }
 
+        EnsureNextRowHasAtLeastOneGap();
         // Veri hesaplandı, şimdi görselleri çiz!
         UpdatePreviewVisuals();
 }
 
+private void EnsureNextRowHasAtLeastOneGap()
+{
+    if (nextRowData == null || nextRowData.Count == 0)
+        return;
+
+    bool[] occupied = new bool[width];
+
+    foreach (BlockData data in nextRowData)
+    {
+        for (int i = 0; i < data.width; i++)
+        {
+            int cellX = data.x + i;
+
+            if (cellX >= 0 && cellX < width)
+                occupied[cellX] = true;
+        }
+    }
+
+    bool isFull = true;
+
+    for (int x = 0; x < width; x++)
+    {
+        if (!occupied[x])
+        {
+            isFull = false;
+            break;
+        }
+    }
+
+    if (!isFull)
+        return;
+
+    int randomIndex = Random.Range(0, nextRowData.Count);
+    BlockData selectedData = nextRowData[randomIndex];
+
+    if (selectedData.width > 1)
+    {
+        selectedData.width -= 1;
+        nextRowData[randomIndex] = selectedData;
+    }
+    else
+    {
+        nextRowData.RemoveAt(randomIndex);
+    }
+}
 private void UpdatePreviewVisuals()
 {
     foreach (GameObject obj in previewVisuals) { Destroy(obj); }
@@ -711,6 +878,7 @@ public void SpawnRowFromData(int y)
         newBlock.width = data.width;
         newBlock.x = data.x;
         newBlock.y = y;
+        newBlock.blockType = data.blockType;
 
         // Görseli ayarla
         newBlock.SetVisual(data.visualSprite, data.color, data.width);
@@ -726,11 +894,170 @@ public void SpawnRowFromData(int y)
     RebuildGridMemory();
 }
 
-//---------------------ÖN İZLEME FONKSİYONLARI-----------------------
+//---------------------//ÖN İZLEME FONKSİYONLARI-----------------------
 
+public void SafeDestroyBlock(Block block)
+{
+    if (block == null)
+        return;
 
+    if (block.isBeingDestroyed)
+        return;
 
+    block.isBeingDestroyed = true;
 
+    activeBlocks.Remove(block);
+
+    for (int i = 0; i < block.width; i++)
+    {
+        int cellX = block.x + i;
+
+        if (cellX >= 0 && cellX < width && block.y >= 0 && block.y < height)
+        {
+            if (gridArray[cellX, block.y] == block)
+                gridArray[cellX, block.y] = null;
+        }
+    }
+
+    block.StartCoroutine(block.CrunchAndDestroy(explosionPrefab));
 }
 
+public void DestroyBlocksByColor(Color targetColor)
+{
+    System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
 
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.isBeingDestroyed)
+            continue;
+
+        if (block.blockColor == targetColor && !block.isRock)
+        {
+            blocksToDestroy.Add(block);
+        }
+    }
+
+    foreach (Block block in blocksToDestroy)
+    {
+        SafeDestroyBlock(block);
+    }
+
+    RebuildGridMemory();
+}
+
+public void TriggerSlice(Block sliceBlock)
+{
+    if (sliceBlock == null)
+        return;
+
+    int targetY = sliceBlock.y;
+
+    for (int x = sliceBlock.x + sliceBlock.width; x < width; x++)
+    {
+        Block target = gridArray[x, targetY];
+
+        if (target == null)
+            continue;
+
+        if (target == sliceBlock)
+            continue;
+
+        if (target.isRock)
+            return;
+
+        SliceBlock(target);
+
+        return;
+    }
+}
+
+public void SliceBlock(Block target)
+{
+    Debug.Log("SLICE TARGET: " + target.name + " width: " + target.width);
+    if (target == null)
+        return;
+
+    if (target.isBeingDestroyed)
+        return;
+
+    // Küçük blok direkt yok olur
+    if (target.width <= 2)
+    {
+        StartCoroutine(SliceDestroyAfterFeedback(target));
+        return;
+    }
+
+    int originalWidth = target.width;
+    int leftWidth = originalWidth / 2;
+    int rightWidth = originalWidth - leftWidth;
+
+    int originalX = target.x;
+    int y = target.y;
+
+    Color color = target.blockColor;
+    Sprite sprite = target.GetComponent<SpriteRenderer>().sprite;
+
+    target.StartCoroutine(target.SliceFeedback());
+    SafeDestroyBlock(target);
+
+    CreateSplitBlock(originalX, y, leftWidth, color, sprite);
+    CreateSplitBlock(originalX + leftWidth, y, rightWidth, color, sprite);
+
+    RebuildGridMemory();
+}
+
+void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)
+{
+    if (widthValue <= 0)
+        return;
+
+    Block newBlock = Instantiate(blockPrefab);
+    GameObject obj = newBlock.gameObject;
+
+    newBlock.SetVisual(sprite, color, widthValue);
+
+    newBlock.width = widthValue;
+    newBlock.x = x;
+    newBlock.y = y;
+    newBlock.blockColor = color;
+    newBlock.blockType = BlockType.Normal;
+
+    SpriteRenderer sr = newBlock.GetComponent<SpriteRenderer>();
+
+
+    sr.color = color;
+
+    if (sprite != null)
+        sr.sprite = sprite;
+
+        float worldX = x + (widthValue - 1) * 0.5f;
+
+        obj.transform.position = new Vector3(worldX, y, 0f);
+
+        
+    activeBlocks.Add(newBlock);
+
+    for (int i = 0; i < widthValue; i++)
+    {
+        int cellX = x + i;
+
+        if (cellX >= 0 && cellX < width)
+        {
+            gridArray[cellX, y] = newBlock;
+        }
+    }
+}
+private System.Collections.IEnumerator SliceDestroyAfterFeedback(Block target)
+{
+    if (target == null)
+        yield break;
+
+    yield return target.StartCoroutine(target.SliceFeedback());
+
+    SafeDestroyBlock(target);
+}
+
+}

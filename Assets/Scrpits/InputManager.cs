@@ -12,6 +12,9 @@ public class InputManager : MonoBehaviour
     private bool isDragging = false;
     public float dragThreshold = 0.5f;
     private int originalGridX;
+    private Vector3 blockStartWorldPos;
+    private int minAllowedX;
+    private int maxAllowedX;
 
     void Awake() => mainCam = Camera.main;
 
@@ -34,7 +37,10 @@ void Update()
                 blockStartGridPos = selectedBlock.transform.position;
                 isDragging = false;
                 originalGridX = selectedBlock.x;
+                blockStartWorldPos = selectedBlock.transform.position;
+                CalculateDragLimits(selectedBlock);
                 selectedBlock.SetHighlight(true);
+                
             }
             else
             {
@@ -48,27 +54,22 @@ void Update()
         if (Input.GetMouseButton(0) && selectedBlock != null)
         {
             Vector2 currentMousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+            float deltaX = currentMousePos.x - touchStartPos.x;
+
+            float minWorldX = minAllowedX + (selectedBlock.width - 1) * 0.5f;
+            float maxWorldX = maxAllowedX + (selectedBlock.width - 1) * 0.5f;
+
+            float targetWorldX = Mathf.Clamp(blockStartWorldPos.x + deltaX, minWorldX, maxWorldX);
+
+            selectedBlock.transform.position = new Vector3(
+                targetWorldX,
+                blockStartWorldPos.y,
+                blockStartWorldPos.z
+            );
+
+            isDragging = Mathf.Abs(deltaX) > 0.05f;
             
-            // Mevcut fare pozisyonu ile son işlem yapılan pozisyon arasındaki fark
-            float diff = currentMousePos.x - touchStartPos.x;
-
-            // Hassasiyeti burada ayarlıyoruz (0.5f idealdir, istersen 0.3f yapabilirsin)
-            float threshold = 0.5f; 
-
-            if (Mathf.Abs(diff) >= threshold)
-            {
-                int direction = diff > 0 ? 1 : -1;
-                
-                // Bloğu 1 birim kaydırmayı dene
-                TryMoveBlock(selectedBlock, direction); 
-                
-                // --- KRİTİK DÜZELTME ---
-                // Başlangıç pozisyonunu 'direction' kadar değil, fareye göre güncelle.
-                // Böylece fare hareketine devam ettikçe blok da bir sonraki kareye geçer.
-                touchStartPos.x += direction; 
-                
-                isDragging = true;
-            }
         }
 
 
@@ -79,8 +80,13 @@ void Update()
         if (selectedBlock != null)
         {
             selectedBlock.SetHighlight(false); // <--- YENİ: Parmağı çekince parlaklık normale dönsün
+            
+            int snappedX = GetSnappedX(selectedBlock);
+            grid.UpdateBlockInGrid(selectedBlock, snappedX, selectedBlock.y);
+            selectedBlock.MoveTo(snappedX, selectedBlock.y);
+            
             // YENİ KONTROL: Eğer blok başladığı kareye geri döndüyse hamle sayma!
-            if (selectedBlock.x != originalGridX)
+            if (snappedX != originalGridX)
             {
                 // === YENİ EKLENEN: Hamle sayacından 1 düş! ===
                 if (LevelManager.Instance != null && LevelManager.Instance.enabled) 
@@ -118,7 +124,43 @@ bool IsPathClear(Block b, int targetX)
 }
 
 
+void CalculateDragLimits(Block block)
+{
+    minAllowedX = block.x;
+    maxAllowedX = block.x;
 
+    // Sola doğru kaç hücre gidebilir?
+    while (minAllowedX > 0)
+    {
+        int checkX = minAllowedX - 1;
+
+        if (grid.gridArray[checkX, block.y] != null)
+            break;
+
+        minAllowedX--;
+    }
+
+    // Sağa doğru kaç hücre gidebilir?
+    while (maxAllowedX + block.width < grid.width)
+    {
+        int checkX = maxAllowedX + block.width;
+
+        if (grid.gridArray[checkX, block.y] != null)
+            break;
+
+        maxAllowedX++;
+    }
+}
+
+int GetSnappedX(Block block)
+{
+    float leftEdgeWorldX = block.transform.position.x - (block.width - 1) * 0.5f;
+    int snappedX = Mathf.RoundToInt(leftEdgeWorldX);
+
+    snappedX = Mathf.Clamp(snappedX, minAllowedX, maxAllowedX);
+
+    return snappedX;
+}
 
 void TryMoveBlock(Block block, int direction)
 {
