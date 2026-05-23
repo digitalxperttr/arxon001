@@ -697,7 +697,7 @@ MonoBehaviour:
   fireSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   sliceSprite: {fileID: -3880138908684105042, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   classicFireChance: 0.311
-  classicSliceChance: 0.311
+  classicSliceChance: 0
   blockColors:
   - {r: 1, g: 0, b: 0, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}

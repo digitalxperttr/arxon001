@@ -32,12 +32,18 @@ public class Block : MonoBehaviour
     private TrailRenderer trail; // Hız izi (Motion Trail) için
     private SpriteRenderer sr;
 
-    [Header("Special Block Visuals")]
-    [SerializeField] private float specialPulseSpeed = 3f;
-    [SerializeField] private float specialPulseAmount = 0.08f;
+    [Header("Fire Idle FX")]
+    [SerializeField] private GameObject fireIdleParticlePrefab;
 
-    private Vector3 baseScale;
+    [SerializeField] private float fireParticleMinDelay = 3f;
+    [SerializeField] private float fireParticleMaxDelay = 5f;
+    [SerializeField] private int fireParticleMinCount = 3;
+    [SerializeField] private int fireParticleMaxCount = 7;
+    [SerializeField] private float fireParticleSpawnRadiusX = 0.35f;
+    [SerializeField] private float fireParticleSpawnRadiusY = 0.25f;
+
     private bool isSpecialVisualActive = false;
+    private Coroutine fireIdleRoutine;
 
 
 void Awake()
@@ -49,15 +55,27 @@ void Awake()
 private void Start()
 {
     SetupEffect();
-    baseScale = transform.localScale;
     UpdateSpecialVisualState();
 }
 
 private void UpdateSpecialVisualState()
 {
     isSpecialVisualActive =
-        blockType == BlockType.Fire ||
-        blockType == BlockType.Slice;
+        blockType == BlockType.Fire;
+
+    if (isSpecialVisualActive)
+    {
+        if (fireIdleRoutine == null)
+            fireIdleRoutine = StartCoroutine(FireIdleParticleRoutine());
+    }
+    else
+    {
+        if (fireIdleRoutine != null)
+        {
+            StopCoroutine(fireIdleRoutine);
+            fireIdleRoutine = null;
+        }
+    }
 }
 
 public void SetHighlight(bool isHighlighted)
@@ -186,7 +204,7 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         sr.drawMode = SpriteDrawMode.Sliced;
         
         // Boyutu ayarla ve hafızaya al
-        originalSize = new Vector2(blockWidth - 0.1f, 0.9f);
+        originalSize = new Vector2(blockWidth - 0.04f, 0.96f);
         sr.size = originalSize;
         sr.maskInteraction = SpriteMaskInteraction.None;
         
@@ -195,7 +213,6 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         if (col != null) col.size = originalSize;
 
         transform.localScale = Vector3.one;
-        baseScale = transform.localScale;
         UpdateSpecialVisualState();
         UpdateTrailColor(colorData);
     }
@@ -318,14 +335,40 @@ void Update()
             // Blok duruyorsa iz bırakıcıyı tamamen kapat
             if (trail != null) trail.enabled = false;
         }
-
-        if (!isSpecialVisualActive || isBeingDestroyed)
-            return;
-
-        float pulse = 1f + Mathf.Sin(Time.time * specialPulseSpeed) * specialPulseAmount;
-
-        transform.localScale = baseScale * pulse;
     }
+
+private IEnumerator FireIdleParticleRoutine()
+{
+    while (true)
+    {
+        float delay = Random.Range(
+            fireParticleMinDelay,
+            fireParticleMaxDelay
+        );
+
+        yield return new WaitForSeconds(delay);
+
+        if (fireIdleParticlePrefab == null)
+            continue;
+
+        int count = Random.Range(fireParticleMinCount, fireParticleMaxCount + 1);
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 randomOffset = new Vector3(
+                Random.Range(-fireParticleSpawnRadiusX, fireParticleSpawnRadiusX),
+                Random.Range(-fireParticleSpawnRadiusY, fireParticleSpawnRadiusY),
+                0f
+            );
+
+            Instantiate(
+                fireIdleParticlePrefab,
+                transform.position + randomOffset,
+                Quaternion.Euler(0f, 0f, Random.Range(0f, 360f))
+            );
+        }
+    }
+}
 
 public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab)
     {

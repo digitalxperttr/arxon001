@@ -62,7 +62,7 @@ public class GridManager : MonoBehaviour
 
     [Header("Önizleme (Preview) Ayarları")]
     public float previewYPosition = -1.2f; // Gridin hemen altında duracağı Y koordinatı
-    public float previewAlpha = 0.5f;      // Yarı şeffaflık oranı
+    public float previewAlpha = 0.7f;      // Yarı şeffaflık oranı
     
     // Gelecek satırın "taslağını" tutacak veri yapısı
     [System.Serializable]
