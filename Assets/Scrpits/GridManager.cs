@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections; // Coroutine için şart
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
@@ -46,6 +47,18 @@ public class GridManager : MonoBehaviour
     [SerializeField] private bool enableCameraShake = true;
     [SerializeField] private float shakeDuration = 0.12f;
     [SerializeField] private float shakeStrength = 0.08f;
+
+    [Header("Fire Trigger Feedback")]
+    [SerializeField] private string fireTriggerText = "FIRE!";
+    [SerializeField] private Color fireTriggerTextColor = new Color(1f, 0.35f, 0.05f);
+    [SerializeField] private float fireTriggerTextSize = 9f;
+
+    [SerializeField] private float fireTriggerShakeDuration = 0.18f;
+    [SerializeField] private float fireTriggerShakeStrength = 0.16f;
+
+    [Header("Fire Color Pulse")]
+    [SerializeField] private float firePulseScale = 1.12f;
+    [SerializeField] private float firePulseDuration = 0.12f;
 
     // Sahnedeki tüm kanlı canlı blokları burada tutacağız
     public System.Collections.Generic.List<Block> activeBlocks = new System.Collections.Generic.List<Block>();
@@ -496,6 +509,68 @@ private IEnumerator CameraShakeRoutine(float duration, float strength)
     cam.transform.position = originalPos;
 }
 
+public void ShowFireTriggerFeedback(Block fireBlock)
+{
+    if (fireBlock == null)
+        return;
+
+    if (floatingTextPrefab != null)
+    {
+        Vector3 textPos = fireBlock.transform.position + new Vector3(0f, 1.2f, 0f);
+        FloatingText text = Instantiate(floatingTextPrefab, textPos, Quaternion.identity);
+        text.SetText(fireTriggerText, fireTriggerTextColor, fireTriggerTextSize);
+    }
+
+    StartCoroutine(CameraShakeRoutine(
+        fireTriggerShakeDuration,
+        fireTriggerShakeStrength
+    ));
+}
+
+private IEnumerator FireColorPulseRoutine(Color targetColor)
+{
+    List<Block> affectedBlocks = new List<Block>();
+
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.isBeingDestroyed)
+            continue;
+
+        if (block.blockColor == targetColor)
+        {
+            affectedBlocks.Add(block);
+        }
+    }
+
+    Dictionary<Block, Vector3> originalScales = new Dictionary<Block, Vector3>();
+
+    foreach (Block block in affectedBlocks)
+    {
+        if (block == null)
+            continue;
+
+        originalScales[block] = block.transform.localScale;
+
+        block.transform.localScale *= firePulseScale;
+    }
+
+    yield return new WaitForSeconds(firePulseDuration);
+
+    foreach (Block block in affectedBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (originalScales.ContainsKey(block))
+        {
+            block.transform.localScale = originalScales[block];
+        }
+    }
+}
+
 bool IsRowFull(int y)
 {
     for (int x = 0; x < width; x++)
@@ -925,6 +1000,8 @@ public void SafeDestroyBlock(Block block)
 public void DestroyBlocksByColor(Color targetColor)
 {
     System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
+
+    StartCoroutine(FireColorPulseRoutine(targetColor));
 
     foreach (Block block in activeBlocks)
     {
