@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections; // Coroutine için şart
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 
@@ -39,6 +40,10 @@ public class GridManager : MonoBehaviour
     public FloatingText floatingTextPrefab;
 
     public GameObject explosionPrefab;
+    [Header("Slice FX")]
+    [Tooltip("Assign the separate Slice FX prefab from Assets/Prefabs/VFX/SliceCutFX.prefab")]
+    [FormerlySerializedAs("sliceCutFxPrefab")]
+    [SerializeField] private GameObject sliceFXPrefab;
 
     [SerializeField] private bool enableFreezeFrame = true;
     [SerializeField] private float freezeDuration = 0.04f;
@@ -56,9 +61,42 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float fireTriggerShakeDuration = 0.18f;
     [SerializeField] private float fireTriggerShakeStrength = 0.16f;
 
+    [Header("Fire Arc Visual")]
+    [SerializeField] private bool enableFireArcVisual = true;
+    [SerializeField] private float fireArcDuration = 0.08f;
+    [SerializeField] private float fireArcWidth = 0.06f;
+    [SerializeField] private Color fireArcColor = new Color(1f, 0.35f, 0.05f, 1f);
+
+    [Header("Fire Wave Clear")]
+    [SerializeField] private float fireWaveDelayBetweenBlocks = 0.045f;
+    [SerializeField] private bool enableFireWaveClear = true;
+    private bool hasFireSourcePosition = false;
+    private Vector3 currentFireSourcePosition;
+    private Block heldFireSourceBlock;
+    private bool isFireResolving = false;
+
+    [Header("Slice Trigger Feedback")]
+    [SerializeField] private string sliceTriggerText = "SLICE!";
+    [SerializeField] private Color sliceTriggerTextColor = new Color(0.5f, 0.9f, 1f);
+    [SerializeField] private float sliceTriggerTextSize = 8f;
+
+    [SerializeField] private float sliceShakeDuration = 0.10f;
+    [SerializeField] private float sliceShakeStrength = 0.08f;
+    [SerializeField] private float sliceResolveDelay = 0.18f;
+    [SerializeField] private float slicePreSplitDelay = 0.08f;
+    [SerializeField] private float sliceSplitOffset = 0.12f;
+    [SerializeField] private float sliceSplitMoveDuration = 0.12f;
+    [SerializeField] private Vector3 sliceCutFxOffset = new Vector3(0f, 0f, -0.5f);
+    [SerializeField] private Vector3 sliceCutFxScale = Vector3.one;
+    [SerializeField] private float sliceCutFxLifetime = 0.35f;
+    private bool warnedMissingSliceFX = false;
+
     [Header("Fire Color Pulse")]
     [SerializeField] private float firePulseScale = 1.12f;
     [SerializeField] private float firePulseDuration = 0.12f;
+
+    [SerializeField] private bool enableClassicDoubleRowSpawn = true;
+    private BlockTestSpawner blockTestSpawner;
 
     // Sahnedeki tüm kanlı canlı blokları burada tutacağız
     public System.Collections.Generic.List<Block> activeBlocks = new System.Collections.Generic.List<Block>();
@@ -67,6 +105,10 @@ public class GridManager : MonoBehaviour
     public Block[,] gridArray;
     public Block blockPrefab;
     public GameState currentState = GameState.IDLE;
+    private bool isResolvingNoMove = false;
+    private bool isRunningDifficultyPush = false;
+    private bool isSliceResolving = false;
+    private int activeSliceOperations = 0;
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
@@ -79,7 +121,7 @@ public class GridManager : MonoBehaviour
     
     // Gelecek satırın "taslağını" tutacak veri yapısı
     [System.Serializable]
-   public struct BlockData
+public struct BlockData
 {
     public int x;
     public int width;
@@ -93,9 +135,90 @@ public class GridManager : MonoBehaviour
     public bool isChained;
 }
 
+private struct ClassicDifficultyProfile
+{
+    public float rockChance;
+    public float frozenChance;
+    public float chainedChance;
+    public float fireChance;
+    public float sliceChance;
+    public int minBlockWidth;
+    public int maxBlockWidth;
+    public bool allowDoubleRowSpawn;
+    public float doubleRowChance;
+    public bool allowTripleRowSpawn;
+    public float tripleRowChance;
+}
+
     public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
     private System.Collections.Generic.List<GameObject> previewVisuals = new System.Collections.Generic.List<GameObject>();
     //ÖN İZLEME HEADER BİTİMİ
+
+private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
+{
+    ClassicDifficultyProfile profile = new ClassicDifficultyProfile();
+
+    profile.rockChance = 0f;
+    profile.frozenChance = 0f;
+    profile.chainedChance = 0f;
+    profile.minBlockWidth = 1;
+    profile.maxBlockWidth = 4;
+
+    profile.allowDoubleRowSpawn = false;
+    profile.doubleRowChance = 0f;
+    profile.allowTripleRowSpawn = false;
+    profile.tripleRowChance = 0f;
+
+    if (level >= 15)
+    {
+        profile.fireChance = 0.06f;
+        profile.sliceChance = 0.04f;
+        profile.frozenChance = 0.07f;
+        profile.rockChance = 0.08f;
+        profile.allowDoubleRowSpawn = true;
+        profile.doubleRowChance = 0.22f;
+        profile.allowTripleRowSpawn = true;
+        profile.tripleRowChance = 0.04f;
+    }
+    else if (level >= 10)
+    {
+        profile.fireChance = 0.05f;
+        profile.sliceChance = 0.03f;
+        profile.frozenChance = 0.06f;
+        profile.rockChance = 0.05f;
+        profile.allowDoubleRowSpawn = true;
+        profile.doubleRowChance = 0.15f;
+    }
+    else if (level >= 6)
+    {
+        profile.fireChance = 0.04f;
+        profile.sliceChance = 0.03f;
+        profile.frozenChance = 0.04f;
+        profile.allowDoubleRowSpawn = true;
+        profile.doubleRowChance = 0.10f;
+    }
+    else if (level >= 3) 
+    {
+        profile.fireChance = 0.03f;
+        profile.sliceChance = 0.02f;
+    }
+
+    return profile;
+}
+
+private int GetClassicScoreMultiplier(int level)
+{
+    if (level >= 15)
+        return 8;
+
+    if (level >= 10)
+        return 4;
+
+    if (level >= 5)
+        return 2;
+
+    return 1;
+}
   
     void Awake()
     {
@@ -110,6 +233,8 @@ public class GridManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        blockTestSpawner = GetComponent<BlockTestSpawner>();
         gridArray = new Block[width, height];
     }
 
@@ -123,8 +248,16 @@ void Start()
         gridArray = new Block[width, height];
         activeBlocks.Clear();
 
-        // 2. Başlangıç tahtasını kur (Oyuncuya oynayabileceği 4 satır veriyoruz)
-        SetupInitialBoard(4);
+        // 2. Başlangıç tahtasını kur (debug spawner varsa onu kullan, yoksa normal akış)
+        bool usedDebugBoard =
+            blockTestSpawner != null &&
+            blockTestSpawner.enabled &&
+            blockTestSpawner.TryBuildInitialBoard(this);
+
+        if (!usedDebugBoard)
+        {
+            SetupInitialBoard(4);
+        }
 
         // 3. Durumu IDLE yapalım ki oyuncu dokunabilsin
         currentState = GameState.IDLE;
@@ -136,6 +269,68 @@ void Start()
         if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
     }
 
+private void Update()
+{
+    if (isGameOver)
+        return;
+
+    if (currentState != GameState.IDLE)
+        return;
+
+    if (isResolvingNoMove)
+        return;
+
+    if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+        return;
+
+    if (!HasAnyLegalPlayerMove())
+    {
+        StartCoroutine(ResolveNoMoveRoutine());
+    }
+}
+
+private bool HasAnyLegalPlayerMove()
+{
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.isRock || block.isChained)
+            continue;
+
+        int y = block.y;
+
+        // Can move left?
+        int leftX = block.x - 1;
+        if (leftX >= 0 && gridArray[leftX, y] == null)
+            return true;
+
+        // Can move right?
+        int rightX = block.x + block.width;
+        if (rightX < width && gridArray[rightX, y] == null)
+            return true;
+    }
+
+    return false;
+}
+
+private IEnumerator ResolveNoMoveRoutine()
+{
+    isResolvingNoMove = true;
+
+    yield return new WaitForSeconds(0.25f);
+
+    if (!isGameOver && currentState == GameState.IDLE && !HasAnyLegalPlayerMove())
+    {
+        ChangeState(GameState.SPAWNING);
+        yield return StartCoroutine(PushBoardUpRoutine());
+        ChangeState(GameState.IDLE);
+    }
+
+    isResolvingNoMove = false;
+}
+
 
 // Oyun başlarken tahtayı dolduran yeni ve temiz fonksiyon
 void SetupInitialBoard(int startingRowCount)
@@ -146,27 +341,100 @@ void SetupInitialBoard(int startingRowCount)
             
             foreach (BlockData data in nextRowData)
             {
-                Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y, 0); 
-                Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-                newBlock.width = data.width;
-                newBlock.x = data.x;
-                newBlock.y = y;
-                newBlock.blockType = data.blockType;
-                
-                // --- DÜZELTME BURADA: Artık başlangıçta da mücevher görsellerini giydiriyoruz ---
-                newBlock.SetVisual(data.visualSprite, data.color, data.width);
-
-                // YENİ: Kimlikleri aktarıyoruz
-                if (data.isRock) newBlock.SetRock(true);
-                if (data.isFrozen) newBlock.SetFrozen(true, iceSprite); // iceSprite'ı parametre olarak gönderdik
-                if (data.isChained) newBlock.SetChained(true);
-                
-                activeBlocks.Add(newBlock);
+                SpawnConfiguredBlock(data, y);
             }
         }
         RebuildGridMemory();
         GenerateNextRowData();
     }
+
+public int NormalGemCount
+{
+    get
+    {
+        return normalGems != null ? normalGems.Length : 0;
+    }
+}
+
+public BlockData CreateSingleCellBlockData(int x, BlockType blockType, int normalGemIndex, bool useRandomNormalGem = false)
+{
+    BlockData data = new BlockData();
+    data.x = x;
+    data.width = 1;
+    data.blockType = blockType;
+
+    ApplyNormalGemVisual(ref data, normalGemIndex, useRandomNormalGem);
+
+    switch (blockType)
+    {
+        case BlockType.Rock:
+            data.isRock = true;
+            data.visualSprite = rockSprite;
+            data.color = Color.gray;
+            break;
+        case BlockType.Ice:
+            data.isFrozen = true;
+            break;
+        case BlockType.Chained:
+            data.isChained = true;
+            break;
+        case BlockType.Fire:
+            if (fireSprite != null)
+                data.visualSprite = fireSprite;
+            break;
+        case BlockType.Slice:
+            if (sliceSprite != null)
+                data.visualSprite = sliceSprite;
+            break;
+    }
+
+    return data;
+}
+
+public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace = false, float spawnYOffset = 0f)
+{
+    Vector3 spawnPos = new Vector3(
+        data.x + (data.width - 1) * 0.5f,
+        y + spawnYOffset,
+        0f
+    );
+
+    Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+    newBlock.width = data.width;
+    newBlock.x = data.x;
+    newBlock.y = y;
+    newBlock.blockType = data.blockType;
+
+    newBlock.SetVisual(data.visualSprite, data.color, data.width);
+
+    if (data.isRock) newBlock.SetRock(true);
+    if (data.isFrozen) newBlock.SetFrozen(true, iceSprite);
+    if (data.isChained) newBlock.SetChained(true);
+
+    activeBlocks.Add(newBlock);
+
+    if (animateIntoPlace)
+        newBlock.MoveTo(newBlock.x, newBlock.y);
+
+    return newBlock;
+}
+
+private void ApplyNormalGemVisual(ref BlockData data, int normalGemIndex, bool useRandomNormalGem)
+{
+    if (normalGems == null || normalGems.Length == 0)
+    {
+        Debug.LogWarning("GridManager: Normal Gems listesi boş! Lütfen Inspector'dan doldur.");
+        data.color = Color.white;
+        return;
+    }
+
+    int resolvedIndex = useRandomNormalGem
+        ? Random.Range(0, normalGems.Length)
+        : Mathf.Clamp(normalGemIndex, 0, normalGems.Length - 1);
+
+    data.visualSprite = normalGems[resolvedIndex].sprite;
+    data.color = normalGems[resolvedIndex].particleColor;
+}
 
 
 // -----------Kontrol fonksiyonu
@@ -253,10 +521,28 @@ public void RebuildGridMemory()
     }
 }
 
+private IEnumerator RebuildAndApplyGravityRoutine()
+{
+    while (isSliceResolving)
+    {
+        yield return null;
+    }
+
+    RebuildGridMemory();
+    yield return StartCoroutine(ApplyGravityRoutine());
+    RebuildGridMemory();
+}
+
 
 
 public IEnumerator PushBoardUpRoutine()
 {
+    if (ShouldUseClassicDifficultyPush())
+    {
+        yield return StartCoroutine(PushBoardUpByDifficultyRoutine());
+        yield break;
+    }
+
     // EMNİYET KİLİDİ: Oyun bittiyse asla yeni satır ekleme ve yukarı itme
     if (isGameOver) yield break;
 
@@ -289,16 +575,80 @@ public IEnumerator PushBoardUpRoutine()
 
     // 3. SONRA KONTROLLERİ YAP
     ChangeState(GameState.FALLING); 
-    yield return StartCoroutine(ApplyGravityRoutine());
+    yield return StartCoroutine(RebuildAndApplyGravityRoutine());
     
     ChangeState(GameState.CHECKING);
     yield return StartCoroutine(CheckAndClearRowsRoutine());
+}
+
+private bool ShouldUseClassicDifficultyPush()
+{
+    if (isRunningDifficultyPush)
+        return false;
+
+    if (!enableClassicDoubleRowSpawn)
+        return false;
+
+    if (isResolvingNoMove)
+        return false;
+
+    if (currentState != GameState.IDLE)
+        return false;
+
+    if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+        return false;
+
+    return true;
+}
+
+private IEnumerator PushBoardUpByDifficultyRoutine()
+{
+    isRunningDifficultyPush = true;
+
+    int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+    int pushCount = 1;
+
+    if (enableClassicDoubleRowSpawn)
+    {
+        ClassicDifficultyProfile profile = GetClassicDifficultyProfile(level);
+
+        if (profile.allowDoubleRowSpawn && Random.value < profile.doubleRowChance)
+        {
+            pushCount = 2;
+            Debug.Log("DOUBLE ROW SPAWN!");
+        }
+    }
+
+    for (int i = 0; i < pushCount; i++)
+    {
+        yield return StartCoroutine(PushBoardUpRoutine());
+
+        if (isGameOver)
+            break;
+
+        yield return new WaitForSeconds(0.08f);
+    }
+
+    if (!isGameOver)
+    {
+        yield return StartCoroutine(RebuildAndApplyGravityRoutine());
+    }
+
+    isRunningDifficultyPush = false;
 }
 
 public void RestartGame()
 {
     Time.timeScale = 1f;
     isGameOver = false;
+
+    if (IsClassicRun())
+    {
+        if (ScoreManager.Instance != null)
+            ScoreManager.Instance.ResetScoreAndLevel();
+
+        ResetClassicRunState();
+    }
     
     // Çalışan tüm Coroutine'leri durdur ki eski referanslara gitmesinler
     StopAllCoroutines(); 
@@ -306,9 +656,27 @@ public void RestartGame()
     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 }
 
+public void ResetClassicRunState()
+{
+    isResolvingNoMove = false;
+    isRunningDifficultyPush = false;
+}
+
+public bool IsClassicRun()
+{
+    return LevelManager.Instance == null ||
+        !LevelManager.Instance.enabled ||
+        LevelManager.Instance.currentLevel == null;
+}
+
     // YERÇEKİMİ MOTORU
 public IEnumerator ApplyGravityRoutine()
 {
+    while (isSliceResolving)
+    {
+        yield return null;
+    }
+
     bool movedAny;
     do {
         movedAny = false;
@@ -336,6 +704,10 @@ public IEnumerator ApplyGravityRoutine()
 
 // Bloğun altındaki tüm genişliği kontrol eden yardımcı:
 bool CanFall(Block b) {
+    if (b == null) return false;
+    if (b.isChained) return false;
+    if (b == heldFireSourceBlock && isFireResolving) return false;
+
     for (int i = 0; i < b.width; i++) {
         if (b.y - 1 < 0 || gridArray[b.x + i, b.y - 1] != null) return false;
     }
@@ -344,7 +716,7 @@ bool CanFall(Block b) {
 
 
 
-public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chainDepth = 1)
+public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chainDepth = 0)
     {
         // 1. EMNİYET KONTROLÜ VE PERFECT CLEAR (BONUS BURAYA TAŞINDI)
         if (activeBlocks == null || activeBlocks.Count == 0)
@@ -398,10 +770,16 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
                 isPlayerMove = false; 
             }
 
-            int comboMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
-            int chainMultiplier = Mathf.Max(1, chainDepth);
-            int multiplier = comboMultiplier * chainMultiplier;
-            int pointsToGive = clearedRowCount * 100 * clearedRowCount * multiplier; 
+            int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+            int baseScore = 8 * clearedRowCount * clearedRowCount;
+            int moveMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
+            int chainMultiplier = chainDepth + 1;
+            int levelMultiplier = IsClassicRun() ? GetClassicScoreMultiplier(level) : 1;
+            int pointsToGive =
+                baseScore
+                * moveMultiplier
+                * chainMultiplier
+                * levelMultiplier; 
             
             if (ScoreManager.Instance != null) {
                 ScoreManager.Instance.AddScore(pointsToGive);
@@ -425,11 +803,11 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             pointText.SetText($"+{pointsToGive}", Color.yellow, 6f);
 
             // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar
-            if (comboMultiplier > 1)
+            if (moveMultiplier > 1)
             {
                 Vector3 comboPos = spawnPos + new Vector3(0, 1.2f, 0);
                 FloatingText comboText = Instantiate(floatingTextPrefab, comboPos, Quaternion.identity);
-                comboText.SetText($"{comboMultiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
+                comboText.SetText($"{moveMultiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
             }
 
             if (chainMultiplier > 1)
@@ -449,8 +827,19 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
         }
         // ================================================
 
+            while (isFireResolving)
+            {
+                yield return null;
+            }
+
+            while (isSliceResolving)
+            {
+                yield return null;
+            }
+
+            RebuildGridMemory();
             yield return new WaitForSeconds(0.2f);
-            yield return StartCoroutine(ApplyGravityRoutine());
+            yield return StartCoroutine(RebuildAndApplyGravityRoutine());
             
             // Zincirleme reaksiyonları kontrol et
             yield return StartCoroutine(CheckAndClearRowsRoutine(false, chainDepth + 1));
@@ -527,6 +916,68 @@ public void ShowFireTriggerFeedback(Block fireBlock)
     ));
 }
 
+public void SetCurrentFireSource(Block fireBlock)
+{
+    if (fireBlock == null)
+    {
+        hasFireSourcePosition = false;
+        heldFireSourceBlock = null;
+        return;
+    }
+
+    currentFireSourcePosition = fireBlock.transform.position;
+    hasFireSourcePosition = true;
+    heldFireSourceBlock = fireBlock;
+}
+
+private IEnumerator FireArcRoutine(Vector3 startPos, Vector3 endPos)
+{
+    if (!enableFireArcVisual)
+        yield break;
+
+    GameObject arcObj = new GameObject("FireArc");
+
+    LineRenderer line = arcObj.AddComponent<LineRenderer>();
+
+    line.positionCount = 2;
+    line.SetPosition(0, startPos);
+    line.SetPosition(1, endPos);
+
+    line.startWidth = fireArcWidth;
+    line.endWidth = fireArcWidth * 0.4f;
+
+    line.startColor = fireArcColor;
+    line.endColor = new Color(fireArcColor.r, fireArcColor.g, fireArcColor.b, 0f);
+
+    line.sortingOrder = 50;
+
+    Shader spriteShader = Shader.Find("Sprites/Default");
+    if (spriteShader != null)
+    {
+        Material mat = new Material(spriteShader);
+        line.material = mat;
+    }
+
+    yield return new WaitForSeconds(fireArcDuration);
+
+    Destroy(arcObj);
+}
+
+public void ShowSliceTriggerFeedback(Block target)
+{
+    if (target == null)
+        return;
+
+    if (floatingTextPrefab != null)
+    {
+        Vector3 textPos = target.transform.position + new Vector3(0f, 1.0f, 0f);
+        FloatingText text = Instantiate(floatingTextPrefab, textPos, Quaternion.identity);
+        text.SetText(sliceTriggerText, sliceTriggerTextColor, sliceTriggerTextSize);
+    }
+
+    StartCoroutine(CameraShakeRoutine(sliceShakeDuration, sliceShakeStrength));
+}
+
 private IEnumerator FireColorPulseRoutine(Color targetColor)
 {
     List<Block> affectedBlocks = new List<Block>();
@@ -585,28 +1036,39 @@ void ClearRow(int y)
     {
         System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
-        System.Collections.Generic.List<Block> blocksToUnchain = new System.Collections.Generic.List<Block>(); // YENİ
+        System.Collections.Generic.List<Block> blocksToHoldSlice = new System.Collections.Generic.List<Block>();
 
         // 1. Satırdaki blokları ayır
         for (int x = 0; x < width; x++) {
             Block b = gridArray[x, y];
             if (b != null) {
-                if (b.isChained && !blocksToUnchain.Contains(b)) {
-                    blocksToUnchain.Add(b); // Zincirliyse zinciri kırılacak
+                if (b.isChained) {
+                    b.DamageChain(); // Zincir artık 2 aşamalı
                 }
                 else if (b.isFrozen && !b.isChained && !blocksToUnfreeze.Contains(b)) {
                     blocksToUnfreeze.Add(b); // Sadece buzluysa buzu kırılacak
                 }
-                else if (!b.isFrozen && !b.isChained && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b) && !blocksToUnchain.Contains(b)) {
-                    b.TriggerSpecial();
-                    blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
+                else if (!b.isFrozen && !b.isChained && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
+                    if (b.blockType == BlockType.Slice)
+                    {
+                        if (!blocksToHoldSlice.Contains(b))
+                        {
+                            blocksToHoldSlice.Add(b);
+                            b.TriggerSpecial();
+                            StartCoroutine(SliceSourceHoldAndDestroyRoutine(b));
+                        }
+                    }
+                    else
+                    {
+                        b.TriggerSpecial();
+                        blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
+                    }
                 }
             }
         }
 
-        // 2. Etkileri Kır (Oyunda kalmaya devam ederler)
-        foreach (Block b in blocksToUnchain) b.SetChained(false);
-        foreach (Block b in blocksToUnfreeze) {
+            // 2. Etkileri Kır (Oyunda kalmaya devam ederler)
+            foreach (Block b in blocksToUnfreeze) {
         b.SetFrozen(false);
         b.SetHighlight(false); // <--- BU SATIRI EKLE (Rengi ve boyutu normale döndürür)
     }
@@ -616,7 +1078,7 @@ void ClearRow(int y)
             {
                 SafeDestroyBlock(b);
             }
-        
+
         RebuildGridMemory(); 
     }
 
@@ -718,6 +1180,9 @@ public void GenerateNextRowData()
         float currentChainedChance = 0f;
         float currentFireChance = 0f;
         float currentSliceChance = 0f;
+        bool useCustomSpawnRules = false;
+        int customMinBlockSize = 1;
+        int customMaxBlockSize = 4;
 
         // Hangi modda olduğumuzu soruyoruz:
         if (LevelManager.Instance != null && LevelManager.Instance.enabled && LevelManager.Instance.currentLevel != null)
@@ -732,6 +1197,15 @@ public void GenerateNextRowData()
             currentFreezeChance = data.frozenBlockChance;
             currentRockChance = data.rockBlockChance;
             currentChainedChance = data.chainedBlockChance;
+            useCustomSpawnRules = data.useCustomSpawnRules;
+
+            if (useCustomSpawnRules)
+            {
+                customMinBlockSize = Mathf.Max(1, data.minBlockSize);
+                customMaxBlockSize = Mathf.Max(customMinBlockSize, data.maxBlockSize);
+                currentFireChance = data.fireBlockChance;
+                currentSliceChance = data.sliceBlockChance;
+            }
         }
         else
         {
@@ -743,14 +1217,14 @@ public void GenerateNextRowData()
             currentT4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); 
             currentT3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); 
             currentT2 = Mathf.Lerp(0.60f, 0.15f, diffFactor);
-            
-            currentFreezeChance = level >= 3 ? Mathf.Clamp01((level - 2) / 12f) * 0.6f : 0f;
-            currentRockChance = level >= 5 ? Mathf.Clamp01((level - 4) / 15f) * 0.2f : 0f;
-            
-            // ŞİMDİLİK 0 YAPTIK: Zincirli bloklar kafa karıştırmasın
-            currentChainedChance = 0f; 
-            currentFireChance = level >= 2 ? classicFireChance : 0f;
-            currentSliceChance = level >= 3 ? classicSliceChance : 0f;
+
+            ClassicDifficultyProfile profile = GetClassicDifficultyProfile(level);
+
+            currentRockChance = profile.rockChance;
+            currentFreezeChance = profile.frozenChance;
+            currentChainedChance = profile.chainedChance;
+            currentFireChance = profile.fireChance;
+            currentSliceChance = profile.sliceChance;
         }
 
         // --- ŞİMDİ BLOKLARI ÜRET ---
@@ -766,34 +1240,34 @@ public void GenerateNextRowData()
             }
 
             int bWidth = 1;
-            float widthRoll = Random.value;
-            
-            if (widthRoll > currentT4) bWidth = 4;
-            else if (widthRoll > currentT3) bWidth = 3;
-            else if (widthRoll > currentT2) bWidth = 2;
-            else bWidth = 1;                              
 
-            if (currentX + bWidth > width) bWidth = width - currentX;
+            if (useCustomSpawnRules)
+            {
+                int availableCells = width - currentX;
+
+                if (availableCells < customMinBlockSize)
+                    break;
+
+                bWidth = Random.Range(customMinBlockSize, customMaxBlockSize + 1);
+
+                if (bWidth > availableCells)
+                    bWidth = availableCells;
+            }
+            else
+            {
+                float widthRoll = Random.value;
+                
+                if (widthRoll > currentT4) bWidth = 4;
+                else if (widthRoll > currentT3) bWidth = 3;
+                else if (widthRoll > currentT2) bWidth = 2;
+                else bWidth = 1;                              
+
+                if (currentX + bWidth > width) bWidth = width - currentX;
+            }
 
             // --- GÖRSEL SEÇİM MANTIĞI ---
-            BlockData newData = new BlockData();
-            newData.x = currentX;
+            BlockData newData = CreateSingleCellBlockData(currentX, BlockType.Normal, 0, true);
             newData.width = bWidth;
-            newData.blockType = BlockType.Normal;
-            
-            // Emniyet Kemeri: Eğer mücevher listesi doluysa içinden seç
-                if (normalGems != null && normalGems.Length > 0)
-                {
-                    int randomIndex = Random.Range(0, normalGems.Length);
-                    newData.visualSprite = normalGems[randomIndex].sprite;
-                    newData.color = normalGems[randomIndex].particleColor;
-                }
-                else
-                {
-                    // Liste boşsa hata verme, geçici olarak beyaz bir şey ata (Hata logu bas)
-                    Debug.LogWarning("GridManager: Normal Gems listesi boş! Lütfen Inspector'dan doldur.");
-                    newData.color = Color.white;
-                }
 
             // Eğer özel bir durum varsa (Kaya, Buz vb.) resmi değiştirelim
             newData.isRock = (Random.value < currentRockChance);
@@ -810,15 +1284,15 @@ public void GenerateNextRowData()
             if (specialRoll < currentFireChance)
             {
                 newData.blockType = BlockType.Fire;
+                newData.width = 1;
 
                 if (fireSprite != null)
                     newData.visualSprite = fireSprite;
-                else if (lavaSprite != null)
-                    newData.visualSprite = lavaSprite;
             }
             else if (specialRoll < currentFireChance + currentSliceChance)
             {
                 newData.blockType = BlockType.Slice;
+                newData.width = 1;
 
                 if (sliceSprite != null)
                     newData.visualSprite = sliceSprite;
@@ -847,30 +1321,86 @@ public void GenerateNextRowData()
         
        if (blockCountInRow == 0)
        {
-           BlockData newData = new BlockData();
-           newData.x = Random.Range(0, width);
-           newData.width = 1;
-           
-           // Görsel ataması
-           int randomIndex = Random.Range(0, normalGems.Length);
-           newData.visualSprite = normalGems[randomIndex].sprite;
-           newData.color = normalGems[randomIndex].particleColor;
+           int fallbackWidth = useCustomSpawnRules
+               ? RollCustomBlockWidth(customMinBlockSize, customMaxBlockSize, width)
+               : 1;
 
-           // GÜVENLİK: Bu blok asla kilitli veya buzlu doğmasın ki oyuncu hamle yapabilsin
-           newData.isFrozen = false;
-           newData.isRock = false;
-           newData.isChained = false; 
-           newData.blockType = BlockType.Normal;
+           if (fallbackWidth <= 0)
+               fallbackWidth = useCustomSpawnRules ? Mathf.Clamp(customMinBlockSize, 1, width) : 1;
+
+           int maxX = Mathf.Max(1, width - fallbackWidth + 1);
+           int fallbackX = Random.Range(0, maxX);
+
+           BlockData newData = CreateSingleCellBlockData(fallbackX, BlockType.Normal, 0, true);
+           newData.width = fallbackWidth;
+
+           newData.isRock = (Random.value < currentRockChance);
+           if (newData.isRock)
+           {
+               newData.blockType = BlockType.Rock;
+               newData.visualSprite = rockSprite;
+               newData.color = Color.gray;
+           }
+
+           if (!newData.isRock && !newData.isFrozen && !newData.isChained)
+           {
+               float specialRoll = Random.value;
+
+               if (specialRoll < currentFireChance)
+               {
+                   newData.blockType = BlockType.Fire;
+                   newData.width = 1;
+
+                   if (fireSprite != null)
+                       newData.visualSprite = fireSprite;
+               }
+               else if (specialRoll < currentFireChance + currentSliceChance)
+               {
+                   newData.blockType = BlockType.Slice;
+                   newData.width = 1;
+
+                   if (sliceSprite != null)
+                       newData.visualSprite = sliceSprite;
+               }
+           }
+
+           newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
+           if (newData.isChained)
+           {
+               newData.blockType = BlockType.Chained;
+           }
+
+           newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
+           if (newData.isFrozen)
+           {
+               newData.blockType = BlockType.Ice;
+           }
 
            nextRowData.Add(newData);
        }
 
-        EnsureNextRowHasAtLeastOneGap();
+        EnsureNextRowHasAtLeastOneGap(useCustomSpawnRules ? customMinBlockSize : 1);
         // Veri hesaplandı, şimdi görselleri çiz!
         UpdatePreviewVisuals();
 }
 
-private void EnsureNextRowHasAtLeastOneGap()
+private int RollCustomBlockWidth(int minBlockSize, int maxBlockSize, int availableCells)
+{
+    int minSize = Mathf.Max(1, minBlockSize);
+    int maxSize = Mathf.Max(minSize, maxBlockSize);
+
+    if (availableCells < minSize)
+        return 0;
+
+    int rolledSize = Random.Range(minSize, maxSize + 1);
+
+    if (rolledSize > availableCells)
+        rolledSize = availableCells;
+
+    return rolledSize;
+}
+
+private void EnsureNextRowHasAtLeastOneGap(int minimumAllowedWidth = 1)
 {
     if (nextRowData == null || nextRowData.Count == 0)
         return;
@@ -905,7 +1435,7 @@ private void EnsureNextRowHasAtLeastOneGap()
     int randomIndex = Random.Range(0, nextRowData.Count);
     BlockData selectedData = nextRowData[randomIndex];
 
-    if (selectedData.width > 1)
+    if (selectedData.width > minimumAllowedWidth)
     {
         selectedData.width -= 1;
         nextRowData[randomIndex] = selectedData;
@@ -947,36 +1477,22 @@ public void SpawnRowFromData(int y)
 {
     foreach (BlockData data in nextRowData)
     {
-        Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, y - 1f, 0);
-        Block newBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-        
-        newBlock.width = data.width;
-        newBlock.x = data.x;
-        newBlock.y = y;
-        newBlock.blockType = data.blockType;
-
-        // Görseli ayarla
-        newBlock.SetVisual(data.visualSprite, data.color, data.width);
-
-        // YENİ: Kimlikleri aktarıyoruz
-        if (data.isRock) newBlock.SetRock(true);
-        if (data.isFrozen) newBlock.SetFrozen(true, iceSprite); // iceSprite'ı parametre olarak gönderdik
-        if (data.isChained) newBlock.SetChained(true);
-
-        activeBlocks.Add(newBlock);
-        newBlock.MoveTo(newBlock.x, newBlock.y);
+        SpawnConfiguredBlock(data, y, true, -1f);
     }
     RebuildGridMemory();
 }
 
 //---------------------//ÖN İZLEME FONKSİYONLARI-----------------------
 
-public void SafeDestroyBlock(Block block)
+public void SafeDestroyBlock(Block block, GameObject destroyFxPrefab = null, bool useDefaultFxIfNull = true)
 {
     if (block == null)
         return;
 
     if (block.isBeingDestroyed)
+        return;
+
+    if (block == heldFireSourceBlock && isFireResolving)
         return;
 
     block.isBeingDestroyed = true;
@@ -994,11 +1510,20 @@ public void SafeDestroyBlock(Block block)
         }
     }
 
-    block.StartCoroutine(block.CrunchAndDestroy(explosionPrefab));
+    block.StartCoroutine(block.CrunchAndDestroy(explosionPrefab, destroyFxPrefab, useDefaultFxIfNull));
 }
 
 public void DestroyBlocksByColor(Color targetColor)
 {
+    if (enableFireWaveClear)
+    {
+        if (isFireResolving)
+            return;
+
+        StartCoroutine(DestroyBlocksByColorWaveRoutine(targetColor));
+        return;
+    }
+
     System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
 
     StartCoroutine(FireColorPulseRoutine(targetColor));
@@ -1011,7 +1536,10 @@ public void DestroyBlocksByColor(Color targetColor)
         if (block.isBeingDestroyed)
             continue;
 
-        if (block.blockColor == targetColor && !block.isRock)
+        if (block == heldFireSourceBlock)
+            continue;
+
+        if (block.blockColor == targetColor && !block.isRock && block.blockType != BlockType.Fire && block.blockType != BlockType.Slice)
         {
             blocksToDestroy.Add(block);
         }
@@ -1023,6 +1551,76 @@ public void DestroyBlocksByColor(Color targetColor)
     }
 
     RebuildGridMemory();
+    StartCoroutine(RebuildAndApplyGravityRoutine());
+}
+
+private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
+{
+    isFireResolving = true;
+
+    List<Block> blocksToDestroy = new List<Block>();
+
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.isBeingDestroyed)
+            continue;
+
+        if (block == heldFireSourceBlock)
+            continue;
+
+        if (block.blockColor == targetColor && !block.isRock && block.blockType != BlockType.Fire && block.blockType != BlockType.Slice)
+        {
+            blocksToDestroy.Add(block);
+        }
+    }
+
+    blocksToDestroy.Sort((a, b) =>
+    {
+        if (a.y != b.y)
+            return b.y.CompareTo(a.y);
+
+        return a.x.CompareTo(b.x);
+    });
+
+    foreach (Block block in blocksToDestroy)
+    {
+        if (block == null)
+            continue;
+
+        if (block.isBeingDestroyed)
+            continue;
+
+        if (hasFireSourcePosition)
+        {
+            yield return StartCoroutine(FireArcRoutine(
+                currentFireSourcePosition,
+                block.transform.position
+            ));
+        }
+
+        SafeDestroyBlock(block);
+
+        yield return new WaitForSeconds(fireWaveDelayBetweenBlocks);
+    }
+
+    yield return StartCoroutine(RebuildAndApplyGravityRoutine());
+
+    if (heldFireSourceBlock != null)
+    {
+        Block blockToDestroy = heldFireSourceBlock;
+        heldFireSourceBlock = null;
+        SafeDestroyBlock(blockToDestroy);
+
+        yield return StartCoroutine(RebuildAndApplyGravityRoutine());
+    }
+
+    hasFireSourcePosition = false;
+    isFireResolving = false;
+
+            yield return StartCoroutine(CheckAndClearRowsRoutine(false, 0));
 }
 
 public void TriggerSlice(Block sliceBlock)
@@ -1030,41 +1628,76 @@ public void TriggerSlice(Block sliceBlock)
     if (sliceBlock == null)
         return;
 
-    int targetY = sliceBlock.y;
+    List<Block> targets = new List<Block>();
 
-    for (int x = sliceBlock.x + sliceBlock.width; x < width; x++)
+    TryAddSliceTarget(targets, sliceBlock, sliceBlock.y + 1);
+    TryAddSliceTarget(targets, sliceBlock, sliceBlock.y - 1);
+
+    if (targets.Count == 0)
+        return;
+
+    isSliceResolving = true;
+    activeSliceOperations = targets.Count;
+
+    foreach (Block target in targets)
     {
-        Block target = gridArray[x, targetY];
-
         if (target == null)
             continue;
 
-        if (target == sliceBlock)
-            continue;
-
-        if (target.isRock)
-            return;
-
         SliceBlock(target);
-
-        return;
     }
+
+    StartCoroutine(SliceResolveDelayRoutine());
 }
 
-public void SliceBlock(Block target)
+private IEnumerator SliceBlockRoutine(Block target)
 {
-    Debug.Log("SLICE TARGET: " + target.name + " width: " + target.width);
     if (target == null)
-        return;
+    {
+        FinishSliceOperation();
+        yield break;
+    }
 
     if (target.isBeingDestroyed)
-        return;
+    {
+        FinishSliceOperation();
+        yield break;
+    }
 
-    // Küçük blok direkt yok olur
+    yield return StartCoroutine(SliceBlockRoutineInternal(target));
+
+    FinishSliceOperation();
+}
+
+private IEnumerator SliceBlockRoutineInternal(Block target)
+{
+    if (target == null)
+        yield break;
+
+    if (target.isBeingDestroyed)
+        yield break;
+
+    ShowSliceTriggerFeedback(target);
+
+    yield return target.StartCoroutine(target.SliceFeedback());
+
+    yield return new WaitForSeconds(slicePreSplitDelay);
+
+    if (target == null)
+        yield break;
+
+    if (target.isBeingDestroyed)
+        yield break;
+
     if (target.width <= 2)
     {
-        StartCoroutine(SliceDestroyAfterFeedback(target));
-        return;
+        SpawnSliceCutFx(target.transform.position);
+        yield return new WaitForSeconds(sliceResolveDelay);
+        SpriteRenderer targetSrSmall = target.GetComponent<SpriteRenderer>();
+        if (targetSrSmall != null)
+            targetSrSmall.enabled = false;
+        SafeDestroyBlock(target, null, false);
+        yield break;
     }
 
     int originalWidth = target.width;
@@ -1077,13 +1710,219 @@ public void SliceBlock(Block target)
     Color color = target.blockColor;
     Sprite sprite = target.GetComponent<SpriteRenderer>().sprite;
 
-    target.StartCoroutine(target.SliceFeedback());
-    SafeDestroyBlock(target);
+    Block leftBlock = CreateSplitBlockAndReturn(originalX, y, leftWidth, color, sprite);
+    Block rightBlock = CreateSplitBlockAndReturn(originalX + leftWidth, y, rightWidth, color, sprite);
 
-    CreateSplitBlock(originalX, y, leftWidth, color, sprite);
-    CreateSplitBlock(originalX + leftWidth, y, rightWidth, color, sprite);
+    if (leftBlock != null)
+    {
+        Vector3 finalPos = leftBlock.transform.position;
+        leftBlock.transform.position = finalPos + new Vector3(-sliceSplitOffset, 0f, 0f);
+        StartCoroutine(MoveBlockToPosition(leftBlock.transform, finalPos, sliceSplitMoveDuration));
+    }
+
+    if (rightBlock != null)
+    {
+        Vector3 finalPos = rightBlock.transform.position;
+        rightBlock.transform.position = finalPos + new Vector3(sliceSplitOffset, 0f, 0f);
+        StartCoroutine(MoveBlockToPosition(rightBlock.transform, finalPos, sliceSplitMoveDuration));
+    }
+
+    SpriteRenderer targetSr = target.GetComponent<SpriteRenderer>();
+    if (targetSr != null)
+        targetSr.enabled = false;
+
+    SpawnSliceCutFx(target.transform.position);
+    yield return new WaitForSeconds(sliceResolveDelay);
+    SafeDestroyBlock(target, null, false);
 
     RebuildGridMemory();
+}
+
+private IEnumerator SliceResolveDelayRoutine()
+{
+    yield return new WaitForSeconds(sliceResolveDelay);
+
+    while (activeSliceOperations > 0)
+    {
+        yield return null;
+    }
+
+    isSliceResolving = false;
+}
+
+private void FinishSliceOperation()
+{
+    if (activeSliceOperations > 0)
+        activeSliceOperations--;
+}
+
+private IEnumerator SliceSourceHoldAndDestroyRoutine(Block sliceBlock)
+{
+    if (sliceBlock == null)
+        yield break;
+
+    if (isSliceResolving)
+        yield return new WaitUntil(() => !isSliceResolving);
+    else
+        yield return new WaitForSeconds(sliceResolveDelay);
+
+    if (sliceBlock == null)
+        yield break;
+
+    if (sliceBlock.isBeingDestroyed)
+        yield break;
+
+    SafeDestroyBlock(sliceBlock, null, false);
+}
+
+private void SpawnSliceCutFx(Vector3 position)
+{
+    if (sliceFXPrefab == null)
+    {
+        if (!warnedMissingSliceFX)
+        {
+            Debug.LogWarning("GridManager: sliceFXPrefab is not assigned. Slice FX will be skipped.");
+            warnedMissingSliceFX = true;
+        }
+        return;
+    }
+
+    GameObject fx = Instantiate(sliceFXPrefab, position + sliceCutFxOffset, Quaternion.identity);
+    fx.transform.localScale = sliceCutFxScale;
+
+    if (fx.TryGetComponent<SpriteRenderer>(out SpriteRenderer sr))
+    {
+        sr.sortingOrder = 60;
+    }
+
+    Destroy(fx, sliceCutFxLifetime);
+}
+
+private void TryAddSliceTarget(List<Block> targets, Block sliceBlock, int targetY)
+{
+    if (targetY < 0 || targetY >= height)
+        return;
+
+    for (int x = sliceBlock.x; x < sliceBlock.x + sliceBlock.width; x++)
+    {
+        if (x < 0 || x >= width)
+            continue;
+
+        Block target = gridArray[x, targetY];
+
+        if (target == null)
+            continue;
+
+        if (target == sliceBlock)
+            continue;
+
+        if (targets.Contains(target))
+            continue;
+
+        if (target.width < 2)
+            continue;
+
+        if (target.isRock)
+            continue;
+
+        if (target.isFrozen)
+            continue;
+
+        if (target.isChained)
+            continue;
+
+        if (target.blockType == BlockType.Fire)
+            continue;
+
+        if (target.blockType == BlockType.Slice)
+            continue;
+
+        targets.Add(target);
+    }
+}
+
+public void SliceBlock(Block target)
+{
+    StartCoroutine(SliceBlockRoutine(target));
+}
+
+private IEnumerator SlicePostSplitSettleRoutine()
+{
+    isSliceResolving = true;
+
+    yield return null;
+    yield return StartCoroutine(RebuildAndApplyGravityRoutine());
+
+    isSliceResolving = false;
+}
+
+private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color color, Sprite sprite)
+{
+    if (widthValue <= 0)
+        return null;
+
+    Block newBlock = Instantiate(blockPrefab);
+    GameObject obj = newBlock.gameObject;
+
+    newBlock.SetVisual(sprite, color, widthValue);
+
+    newBlock.width = widthValue;
+    newBlock.x = x;
+    newBlock.y = y;
+    newBlock.blockColor = color;
+    newBlock.blockType = BlockType.Normal;
+
+    SpriteRenderer sr = newBlock.GetComponent<SpriteRenderer>();
+
+    if (sr != null)
+    {
+        sr.color = color;
+
+        if (sprite != null)
+            sr.sprite = sprite;
+    }
+
+    float worldX = x + (widthValue - 1) * 0.5f;
+    obj.transform.position = new Vector3(worldX, y, 0f);
+
+    activeBlocks.Add(newBlock);
+
+    for (int i = 0; i < widthValue; i++)
+    {
+        int cellX = x + i;
+
+        if (cellX >= 0 && cellX < width)
+            gridArray[cellX, y] = newBlock;
+    }
+
+    return newBlock;
+}
+
+private IEnumerator MoveBlockToPosition(Transform target, Vector3 finalPosition, float duration)
+{
+    if (target == null)
+        yield break;
+
+    Vector3 startPosition = target.position;
+    float timer = 0f;
+
+    while (timer < duration)
+    {
+        if (target == null)
+            yield break;
+
+        timer += Time.deltaTime;
+        float t = Mathf.Clamp01(timer / duration);
+
+        t = t * t * (3f - 2f * t);
+
+        target.position = Vector3.Lerp(startPosition, finalPosition, t);
+
+        yield return null;
+    }
+
+    if (target != null)
+        target.position = finalPosition;
 }
 
 void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)
@@ -1134,7 +1973,10 @@ private System.Collections.IEnumerator SliceDestroyAfterFeedback(Block target)
 
     yield return target.StartCoroutine(target.SliceFeedback());
 
-    SafeDestroyBlock(target);
+    SpawnSliceCutFx(target.transform.position);
+    SafeDestroyBlock(target, null, false);
+
+    yield return StartCoroutine(RebuildAndApplyGravityRoutine());
 }
 
 }

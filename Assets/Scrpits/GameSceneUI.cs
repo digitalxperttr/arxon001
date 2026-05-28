@@ -6,6 +6,17 @@ public class GameSceneUI : MonoBehaviour
     public void RestartLevel()
     {
         Time.timeScale = 1f; // Donmuş zamanı çöz!
+        bool isClassicRun = GridManager.Instance == null || GridManager.Instance.IsClassicRun();
+
+        if (isClassicRun)
+        {
+            if (ScoreManager.Instance != null)
+                ScoreManager.Instance.ResetScoreAndLevel();
+
+            if (GridManager.Instance != null)
+                GridManager.Instance.ResetClassicRunState();
+        }
+
         if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode(); // GameScene'i yeniden yükler (Macera verisi hafızada kalır, aynı bölüm baştan açılır)
     }
 

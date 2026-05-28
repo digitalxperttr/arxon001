@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c5be7f27bfa84b37bf7114acdbf74a7, type: 3}
+  m_Name: Level_3
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  levelNumber: 3
+  targetScore: 0
+  targetLines: 100
+  moveLimit: 100
+  isEndless: 1
+  baseGapChance: 0.4
+  largeBlockChance: 0.1
+  frozenBlockChance: 0
+  rockBlockChance: 0
+  chainedBlockChance: 0
+  useCustomSpawnRules: 1
+  minBlockSize: 2
+  maxBlockSize: 4
+  sliceBlockChance: 0.12
+  fireBlockChance: 0.12
+  fogStartingRow: -1

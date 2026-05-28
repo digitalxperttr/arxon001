@@ -7,6 +7,7 @@ public class FireEffect : IBlockEffect
         if (GridManager.Instance == null)
             return;
 
+        GridManager.Instance.SetCurrentFireSource(owner);
         GridManager.Instance.ShowFireTriggerFeedback(owner);
         GridManager.Instance.DestroyBlocksByColor(owner.blockColor);
     }

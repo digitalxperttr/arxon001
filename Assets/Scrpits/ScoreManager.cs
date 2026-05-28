@@ -45,6 +45,17 @@ public class ScoreManager : MonoBehaviour
         comboCount = 0;
     }
 
+    public void ResetScoreAndLevel()
+    {
+        currentScore = 0;
+        currentLevel = 1;
+        comboCount = 0;
+        totalLinesCleared = 0;
+        linesNeededForNextLevel = 10;
+
+        UpdateScoreUI();
+    }
+
     public void AddClearedLines(int count)
     {
         if (count <= 0) return;

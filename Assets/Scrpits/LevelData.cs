@@ -21,6 +21,13 @@ public class LevelData : ScriptableObject
     [Range(0f, 1f)] public float rockBlockChance = 0.0f;     // YENİ: Kaya blok çıkma ihtimali
     [Range(0f, 1f)] public float chainedBlockChance = 0f;  // YENİ: Zincirli blok çıkma ihtimali
 
+    [Header("Özel Spawn Ayarları")]
+    public bool useCustomSpawnRules = false;
+    [Min(1)] public int minBlockSize = 1;
+    [Min(1)] public int maxBlockSize = 4;
+    [Range(0f, 1f)] public float sliceBlockChance = 0f;
+    [Range(0f, 1f)] public float fireBlockChance = 0f;
+
     [Header("Sis (Fog) Ayarları")]
     public int fogStartingRow = -1; // -1 ise sis yok demektir. Örn 4 yazarsan 4. satır ve yukarısı zifiri karanlık başlar.
 }

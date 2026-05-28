@@ -694,10 +694,10 @@ MonoBehaviour:
   rockSprite: {fileID: 531056626, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   iceSprite: {fileID: -56949323, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   lavaSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
-  fireSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
-  sliceSprite: {fileID: -3880138908684105042, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
-  classicFireChance: 0.311
-  classicSliceChance: 0
+  fireSprite: {fileID: -5509541731536557800, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
+  sliceSprite: {fileID: -8413030977811616270, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
+  classicFireChance: 0
+  classicSliceChance: 0.877
   blockColors:
   - {r: 1, g: 0, b: 0, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}
@@ -710,12 +710,39 @@ MonoBehaviour:
   activeFogRows: []
   floatingTextPrefab: {fileID: 7431225859572386497, guid: fb1be8ec24e5549d783921745fe111e1, type: 3}
   explosionPrefab: {fileID: 6904227193083937457, guid: 638ac8eef13614a4b9c1f31605a2b7b9, type: 3}
+  sliceFXPrefab: {fileID: 6568322574869184099, guid: 7b27b5da8ea094968af4cde39f1fca15, type: 3}
   enableFreezeFrame: 0
   freezeDuration: 0.06
   freezeTimeScale: 0.03
   enableCameraShake: 1
   shakeDuration: 0.18
   shakeStrength: 0.14
+  fireTriggerText: FIRE!
+  fireTriggerTextColor: {r: 1, g: 0.35, b: 0.05, a: 1}
+  fireTriggerTextSize: 11.1
+  fireTriggerShakeDuration: 0.18
+  fireTriggerShakeStrength: 0.16
+  enableFireArcVisual: 1
+  fireArcDuration: 0.29
+  fireArcWidth: 0.24
+  fireArcColor: {r: 1, g: 0.35, b: 0.05, a: 1}
+  fireWaveDelayBetweenBlocks: 0.18
+  enableFireWaveClear: 1
+  sliceTriggerText: SLICE!
+  sliceTriggerTextColor: {r: 0.5, g: 0.9, b: 1, a: 1}
+  sliceTriggerTextSize: 8
+  sliceShakeDuration: 0.22
+  sliceShakeStrength: 0.08
+  sliceResolveDelay: 0.18
+  slicePreSplitDelay: 0.08
+  sliceSplitOffset: 0.48
+  sliceSplitMoveDuration: 0.43
+  sliceCutFxOffset: {x: 0, y: 0, z: -0.5}
+  sliceCutFxScale: {x: 1, y: 1, z: 1}
+  sliceCutFxLifetime: 0.35
+  firePulseScale: 1.12
+  firePulseDuration: 0.12
+  enableClassicDoubleRowSpawn: 1
   activeBlocks: []
   blockPrefab: {fileID: 4165942794352353875, guid: c68cd50a2b94e4ed5ac370d3e673a80e, type: 3}
   currentState: 0
@@ -724,7 +751,7 @@ MonoBehaviour:
   isGameOver: 0
   losePanel: {fileID: 621232009}
   previewYPosition: -1.2
-  previewAlpha: 0.5
+  previewAlpha: 0.17
   nextRowData: []
 --- !u!4 &455075678
 Transform:

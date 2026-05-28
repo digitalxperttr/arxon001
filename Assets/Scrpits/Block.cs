@@ -22,6 +22,8 @@ public class Block : MonoBehaviour
     public bool isFrozen = false;
     public bool isRock = false;
     public bool isChained = false;
+    [Header("Chain System")]
+    public int chainHealth = 0;
     private GameObject chainVisual;
     private GameObject iceVisual; // Üzerine eklenecek buz katmanı
     private MaterialPropertyBlock mpb;
@@ -259,9 +261,15 @@ public void SetChained(bool chained)
     {
         isChained = chained;
         if (isChained)
+        {
+            chainHealth = 2;
             blockType = BlockType.Chained;
+        }
         else if (!isRock && !isFrozen)
+        {
+            chainHealth = 0;
             blockType = BlockType.Normal;
+        }
 
         if (isChained)
         {
@@ -285,13 +293,70 @@ public void SetChained(bool chained)
                 chainVisual.transform.localScale = Vector3.one; 
             }
             chainVisual.SetActive(true);
+            UpdateChainVisual();
         }
         else
         {
             // Zinciri Kır (Kapat)
             if (chainVisual != null) chainVisual.SetActive(false);
+            UpdateChainVisual();
         }
     }
+
+public bool DamageChain()
+{
+    if (!isChained)
+        return false;
+
+    chainHealth--;
+
+    if (chainHealth <= 0)
+    {
+        isChained = false;
+        chainHealth = 0;
+        if (!isRock && !isFrozen)
+            blockType = BlockType.Normal;
+
+        UpdateChainVisual();
+
+        if (chainVisual != null)
+            chainVisual.SetActive(false);
+
+        return true;
+    }
+
+    UpdateChainVisual();
+
+    return false;
+}
+
+private void UpdateChainVisual()
+{
+    SpriteRenderer sr = GetComponent<SpriteRenderer>();
+
+    if (sr == null)
+        return;
+
+    Color c = sr.color;
+
+    if (isChained)
+    {
+        if (chainHealth == 2)
+        {
+            c.a = 0.65f;
+        }
+        else if (chainHealth == 1)
+        {
+            c.a = 0.82f;
+        }
+    }
+    else
+    {
+        c.a = 1f;
+    }
+
+    sr.color = c;
+}
 
     // Bloğu yeni bir koordinata gönder
 public void MoveTo(int newX, int newY)
@@ -372,13 +437,28 @@ private IEnumerator FireIdleParticleRoutine()
 
 public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab)
     {
+        yield return StartCoroutine(CrunchAndDestroy(explosionPrefab, null, true));
+    }
+
+public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab, GameObject overrideFxPrefab, bool useDefaultFxIfNull)
+    {
         // 1. Patlama Efekti (Partiküller)
-        if (explosionPrefab != null) {
-            GameObject effect = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
-            var main = effect.GetComponent<ParticleSystem>().main;
-            Color finalColor = blockColor;
-            finalColor.a = 1.0f;
-            main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
+        GameObject effectPrefab = overrideFxPrefab;
+
+        if (effectPrefab == null && useDefaultFxIfNull)
+            effectPrefab = explosionPrefab;
+
+        if (effectPrefab != null) {
+            GameObject effect = Instantiate(effectPrefab, transform.position, Quaternion.identity);
+
+            if (effect.TryGetComponent<ParticleSystem>(out ParticleSystem ps))
+            {
+                var main = ps.main;
+                Color finalColor = blockColor;
+                finalColor.a = 1.0f;
+                main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
+            }
+
             Destroy(effect, 1f);
         }
 
