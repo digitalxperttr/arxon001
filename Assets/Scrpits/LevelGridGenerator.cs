@@ -17,13 +17,16 @@ public class LevelGridGenerator : MonoBehaviour
     {
         // 1. Kalıcı yöneticiden oyuncunun ilerlemesini çek
         int unlockedCount = 1;
+        int availableLevelCount = totalLevels;
         if (ProgressManager.Instance != null)
         {
             unlockedCount = ProgressManager.Instance.highestLevelUnlocked;
+            availableLevelCount = ProgressManager.Instance.GetAdventureLevelCount();
         }
 
         // 2. Butonları yarat ve diz
-        for (int i = 1; i <= totalLevels; i++)
+        int buttonCount = Mathf.Max(totalLevels, availableLevelCount);
+        for (int i = 1; i <= buttonCount; i++)
         {
             GameObject buttonObj = Instantiate(levelButtonPrefab, gridParent);
             buttonObj.name = "Level_" + i;
@@ -34,7 +37,11 @@ public class LevelGridGenerator : MonoBehaviour
             
             Button button = buttonObj.GetComponent<Button>();
 
-            if (i <= unlockedCount)
+            bool hasBackingLevel =
+                ProgressManager.Instance == null ||
+                ProgressManager.Instance.HasAdventureLevel(i);
+
+            if (i <= unlockedCount && hasBackingLevel)
             {
                 // SEVİYE AÇIK: Tıklanabilir yap ve fonksiyon bağla
                 button.interactable = true;
@@ -53,11 +60,8 @@ public class LevelGridGenerator : MonoBehaviour
     {
         Debug.Log($"<color=green>{levelNumber}. Seviye Başlatılıyor!</color>");
         
-        if (ProgressManager.Instance != null && ProgressManager.Instance.allLevels.Length >= levelNumber)
+        if (ProgressManager.Instance != null && ProgressManager.Instance.TrySelectAdventureLevel(levelNumber))
         {
-            // Diziler 0'dan başladığı için (levelNumber - 1) yapıyoruz.
-            ProgressManager.Instance.currentSelectedLevel = ProgressManager.Instance.allLevels[levelNumber - 1];
-            
             // Veriyi hafızaya attık, şimdi oyun sahnesine geçiyoruz!
             if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode(); // (GameScene sahnesini yüklüyor)
         }

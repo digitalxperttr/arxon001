@@ -40,15 +40,12 @@ public class GameSceneUI : MonoBehaviour
         Time.timeScale = 1f;
         if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null)
         {
-            // Mevcut bölüm numarasını al (Örn: 1)
-            int currentLevelNum = ProgressManager.Instance.currentSelectedLevel.levelNumber;
+            int currentLevelNum = ProgressManager.Instance.currentSelectedLevelNumber;
             
             // Sonraki bölüm listede var mı diye kontrol et
-            if (currentLevelNum < ProgressManager.Instance.allLevels.Length)
+            if (currentLevelNum < ProgressManager.Instance.GetAdventureLevelCount() &&
+                ProgressManager.Instance.TrySelectAdventureLevel(currentLevelNum + 1))
             {
-                // Bir sonraki bölümü seçili hale getir (Diziler 0'dan başladığı için index doğrudan currentLevelNum olur)
-                ProgressManager.Instance.currentSelectedLevel = ProgressManager.Instance.allLevels[currentLevelNum];
-                
                 // Oyunu yeniden başlat (Yeni verilerle açılacaktır)
                 if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode();
             }

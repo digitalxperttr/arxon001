@@ -12,6 +12,7 @@ public class LevelManager : MonoBehaviour
     public LevelData currentLevel { get; private set; }
     private int remainingMoves;
     private int currentTargetLines;
+    private int currentTargetScore;
     
 
     void Awake() 
@@ -27,6 +28,7 @@ public class LevelManager : MonoBehaviour
             currentLevel = ProgressManager.Instance.currentSelectedLevel;
             remainingMoves = currentLevel.moveLimit;
             currentTargetLines = currentLevel.targetLines;
+            currentTargetScore = currentLevel.targetScore;
             UpdateUI();
         }
         else
@@ -62,13 +64,33 @@ public class LevelManager : MonoBehaviour
     private void UpdateUI()
     {
         if (movesText != null) movesText.text = $"Hamle: {remainingMoves}";
-        if (targetText != null) targetText.text = $"Hedef: {currentTargetLines} Satır";
+        if (targetText != null)
+        {
+            if (currentLevel.objectiveType == ObjectiveType.ReachScore && currentTargetScore > 0)
+            {
+                int score = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : 0;
+                targetText.text = $"Hedef: {score}/{currentTargetScore} Puan";
+            }
+            else
+            {
+                targetText.text = $"Hedef: {currentTargetLines} Satır";
+            }
+        }
     }
 
     private void CheckWinLoss()
     {
-        // 1. Önce kazanma kontrolü (Hedef 0'a ulaştı mı?)
-        if (currentTargetLines <= 0)
+        bool scoreGoalReached =
+            currentLevel.objectiveType == ObjectiveType.ReachScore &&
+            currentTargetScore > 0 &&
+            ScoreManager.Instance != null &&
+            ScoreManager.Instance.CurrentScore >= currentTargetScore;
+
+        bool lineGoalReached =
+            currentLevel.objectiveType != ObjectiveType.ReachScore &&
+            currentTargetLines <= 0;
+
+        if (scoreGoalReached || lineGoalReached)
         {
             Debug.Log("<color=green>BÖLÜM GEÇİLDİ! KAZANDIN!</color>");
             ProgressManager.Instance.UnlockNextLevel();
@@ -108,7 +130,13 @@ public void EvaluateEndOfTurn()
     if (currentLevel == null) return;
     
     // Eğer o el içinde patlayan bloklarla zaten kazandıysak, kaybetme kontrolüne girme
-    if (currentTargetLines <= 0) return;
+    bool scoreGoalReached =
+        currentLevel.objectiveType == ObjectiveType.ReachScore &&
+        currentTargetScore > 0 &&
+        ScoreManager.Instance != null &&
+        ScoreManager.Instance.CurrentScore >= currentTargetScore;
+
+    if (currentTargetLines <= 0 || scoreGoalReached) return;
 
     // Kazanmadıysak, tahta durulduysa ve hamlemiz de sıfırlandıysa ŞİMDİ kaybettin.
     if (remainingMoves <= 0)

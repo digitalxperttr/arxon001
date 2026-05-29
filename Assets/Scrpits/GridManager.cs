@@ -91,6 +91,10 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float sliceCutFxLifetime = 0.35f;
     private bool warnedMissingSliceFX = false;
 
+    [Header("Chain Break Feedback")]
+    [SerializeField] private float chainBreakImpactPause = 0.16f;
+    [SerializeField] private float chainBreakGravityStepDelay = 0.12f;
+
     [Header("Fire Color Pulse")]
     [SerializeField] private float firePulseScale = 1.12f;
     [SerializeField] private float firePulseDuration = 0.12f;
@@ -108,6 +112,9 @@ public class GridManager : MonoBehaviour
     private bool isResolvingNoMove = false;
     private bool isRunningDifficultyPush = false;
     private bool isSliceResolving = false;
+    private bool chainBreakImpactPausePending = false;
+    private bool slowGravityAfterChainBreakPending = false;
+    private bool useSlowGravityThisPass = false;
     private int activeSliceOperations = 0;
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
@@ -409,7 +416,7 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
 
     if (data.isRock) newBlock.SetRock(true);
     if (data.isFrozen) newBlock.SetFrozen(true, iceSprite);
-    if (data.isChained) newBlock.SetChained(true);
+    if (data.isChained) newBlock.SetChained(newBlock.width);
 
     activeBlocks.Add(newBlock);
 
@@ -677,6 +684,10 @@ public IEnumerator ApplyGravityRoutine()
         yield return null;
     }
 
+    bool shouldUseSlowGravity = useSlowGravityThisPass;
+    useSlowGravityThisPass = false;
+    float gravityStepDelay = shouldUseSlowGravity ? chainBreakGravityStepDelay : 0.1f;
+
     bool movedAny;
     do {
         movedAny = false;
@@ -698,14 +709,13 @@ public IEnumerator ApplyGravityRoutine()
                 }
             }
         }
-        if (movedAny) yield return new WaitForSeconds(0.1f);
+        if (movedAny) yield return new WaitForSeconds(gravityStepDelay);
     } while (movedAny);
 }
 
 // Bloğun altındaki tüm genişliği kontrol eden yardımcı:
 bool CanFall(Block b) {
     if (b == null) return false;
-    if (b.isChained) return false;
     if (b == heldFireSourceBlock && isFireResolving) return false;
 
     for (int i = 0; i < b.width; i++) {
@@ -835,6 +845,18 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             while (isSliceResolving)
             {
                 yield return null;
+            }
+
+            if (chainBreakImpactPausePending)
+            {
+                chainBreakImpactPausePending = false;
+                yield return new WaitForSeconds(chainBreakImpactPause);
+            }
+
+            if (slowGravityAfterChainBreakPending)
+            {
+                useSlowGravityThisPass = true;
+                slowGravityAfterChainBreakPending = false;
             }
 
             RebuildGridMemory();
@@ -1037,18 +1059,37 @@ void ClearRow(int y)
         System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToHoldSlice = new System.Collections.Generic.List<Block>();
+        System.Collections.Generic.HashSet<Block> processedChainedBlocks = new System.Collections.Generic.HashSet<Block>();
+        System.Collections.Generic.HashSet<Block> protectedFromRemovalThisClear = new System.Collections.Generic.HashSet<Block>();
 
         // 1. Satırdaki blokları ayır
         for (int x = 0; x < width; x++) {
             Block b = gridArray[x, y];
             if (b != null) {
-                if (b.isChained) {
-                    b.DamageChain(); // Zincir artık 2 aşamalı
+                bool wasChainedAtClearStart = b.IsChained();
+
+                if (wasChainedAtClearStart) {
+                    if (!processedChainedBlocks.Contains(b))
+                    {
+                        if (b.BreakOneChain())
+                        {
+                            chainBreakImpactPausePending = true;
+                            slowGravityAfterChainBreakPending = true;
+                        }
+
+                        processedChainedBlocks.Add(b);
+                        protectedFromRemovalThisClear.Add(b);
+                    }
+
+                    continue;
                 }
-                else if (b.isFrozen && !b.isChained && !blocksToUnfreeze.Contains(b)) {
+                else if (protectedFromRemovalThisClear.Contains(b)) {
+                    continue;
+                }
+                else if (b.isFrozen && !b.IsChained() && !blocksToUnfreeze.Contains(b)) {
                     blocksToUnfreeze.Add(b); // Sadece buzluysa buzu kırılacak
                 }
-                else if (!b.isFrozen && !b.isChained && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
+                else if (!b.isFrozen && !b.IsChained() && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
                     if (b.blockType == BlockType.Slice)
                     {
                         if (!blocksToHoldSlice.Contains(b))

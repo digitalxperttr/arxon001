@@ -1,9 +1,13 @@
 using UnityEngine;
 using System.Collections; // Coroutine için şart
+using System.Collections.Generic;
 
 
 public class Block : MonoBehaviour
 {
+    private const float ChainBreakOverlayAnimDuration = 0.12f;
+    private static readonly Vector3 ChainOverlayDefaultScale = new Vector3(1.5f, 1.5f, 1f);
+
     public int x, y, width;
     public bool isMoving = false;
     public bool isBeingDestroyed = false;
@@ -23,9 +27,21 @@ public class Block : MonoBehaviour
     public bool isRock = false;
     public bool isChained = false;
     [Header("Chain System")]
-    public int chainHealth = 0;
-    private GameObject chainVisual;
+    [SerializeField] private Transform chainOverlayRoot;
+    [SerializeField] private GameObject chainOverlayPrefab;
+    [SerializeField] private GameObject chainBreakFXPrefab;
+    [SerializeField] private SpriteRenderer flashOverlayRenderer;
+    [SerializeField] private Transform vfxAnchor;
+    [SerializeField] private float chainBreakFlashDuration = 0.10f;
+    [SerializeField] private float chainBreakShakeDuration = 0.15f;
+    [SerializeField] private float chainBreakShakeStrength = 0.04f;
+    [SerializeField] private float chainBreakPunchScale = 1.06f;
+    private int chainCount = 0;
+    private readonly List<GameObject> spawnedChainOverlays = new List<GameObject>();
+    private readonly HashSet<GameObject> animatingChainOverlays = new HashSet<GameObject>();
     private GameObject iceVisual; // Üzerine eklenecek buz katmanı
+    private Coroutine chainBreakFeedbackRoutine;
+    private bool isChainFlashPlaying = false;
     private MaterialPropertyBlock mpb;
     private static readonly int ColorProperty = Shader.PropertyToID("_Color"); // Shader'daki renk değişkeninin adı, URP'de genelde "_BaseColor" veya "_EmissionColor" olabilir.
     
@@ -52,6 +68,7 @@ void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         trail = GetComponent<TrailRenderer>();
+        ResolveChainOverlayReferences();
     }
 
 private void Start()
@@ -95,6 +112,8 @@ public void SetHighlight(bool isHighlighted)
             iceVisual.GetComponent<SpriteRenderer>().sortingOrder = sr.sortingOrder + 1;
             iceVisual.GetComponent<SpriteRenderer>().color = sr.color;
         }
+
+        RefreshChainOverlays();
 
         // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
         if (trail == null) trail = GetComponent<TrailRenderer>();
@@ -214,9 +233,11 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         BoxCollider2D col = GetComponent<BoxCollider2D>();
         if (col != null) col.size = originalSize;
 
+        SyncFlashOverlay();
         transform.localScale = Vector3.one;
         UpdateSpecialVisualState();
         UpdateTrailColor(colorData);
+        RefreshChainOverlays();
     }
 
 public void SetFrozen(bool frozen, Sprite iceSprite = null)
@@ -258,104 +279,345 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
 }
 
 public void SetChained(bool chained)
-    {
-        isChained = chained;
-        if (isChained)
-        {
-            chainHealth = 2;
-            blockType = BlockType.Chained;
-        }
-        else if (!isRock && !isFrozen)
-        {
-            chainHealth = 0;
-            blockType = BlockType.Normal;
-        }
+{
+    SetChained(chained ? Mathf.Max(1, width) : 0);
+}
 
-        if (isChained)
-        {
-            if (chainVisual == null)
-            {
-                chainVisual = new GameObject("ChainVisual");
-                chainVisual.transform.SetParent(this.transform);
-                chainVisual.transform.localPosition = Vector3.zero;
-                
-                SpriteRenderer mySr = GetComponent<SpriteRenderer>();
-                SpriteRenderer chainSr = chainVisual.AddComponent<SpriteRenderer>();
-                
-                chainSr.sprite = mySr.sprite;
-                chainSr.drawMode = mySr.drawMode;
-                chainSr.size = mySr.size;
-                
-                // Şimdilik zinciri temsil etmesi için koyu metalik ve yarı saydam yapalım
-                chainSr.color = new Color(0.1f, 0.1f, 0.1f, 0.7f); 
-                chainSr.sortingOrder = mySr.sortingOrder + 2; // En önde dursun
-                
-                chainVisual.transform.localScale = Vector3.one; 
-            }
-            chainVisual.SetActive(true);
-            UpdateChainVisual();
-        }
-        else
-        {
-            // Zinciri Kır (Kapat)
-            if (chainVisual != null) chainVisual.SetActive(false);
-            UpdateChainVisual();
-        }
+public void SetChained(int count)
+{
+    chainCount = Mathf.Max(0, count);
+    isChained = chainCount > 0;
+
+    if (isChained)
+    {
+        blockType = BlockType.Chained;
+    }
+    else if (!isRock && !isFrozen)
+    {
+        blockType = BlockType.Normal;
     }
 
-public bool DamageChain()
+    RefreshChainOverlays();
+    UpdateChainVisual();
+}
+
+public bool IsChained()
+{
+    return isChained;
+}
+
+public bool BreakOneChain()
 {
     if (!isChained)
         return false;
 
-    chainHealth--;
+    GameObject overlayToBreak = GetOverlayToBreak();
+    chainCount--;
 
-    if (chainHealth <= 0)
+    if (overlayToBreak != null)
     {
-        isChained = false;
-        chainHealth = 0;
-        if (!isRock && !isFrozen)
-            blockType = BlockType.Normal;
-
-        UpdateChainVisual();
-
-        if (chainVisual != null)
-            chainVisual.SetActive(false);
-
-        return true;
+        PlayChainBreakFX(overlayToBreak.transform.position);
+        StartCoroutine(AnimateBrokenChainOverlayRoutine(overlayToBreak));
+    }
+    else
+    {
+        PlayChainBreakFX();
     }
 
-    UpdateChainVisual();
+    if (chainBreakFeedbackRoutine != null)
+        StopCoroutine(chainBreakFeedbackRoutine);
 
-    return false;
+    chainBreakFeedbackRoutine = StartCoroutine(PlayChainBreakFeedback());
+
+    if (chainCount <= 0)
+    {
+        chainCount = 0;
+        isChained = false;
+
+        if (!isRock && !isFrozen)
+            blockType = BlockType.Normal;
+    }
+
+    RefreshChainOverlays();
+    UpdateChainVisual();
+    return true;
+}
+
+public int GetChainCount()
+{
+    return chainCount;
+}
+
+public bool DamageChain()
+{
+    return BreakOneChain();
+}
+
+public IEnumerator PlayChainBreakFeedback()
+{
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    Vector3 originalLocalPosition = transform.localPosition;
+    Vector3 originalLocalScale = transform.localScale;
+    Vector3 punchScale = originalLocalScale * chainBreakPunchScale;
+    float elapsed = 0f;
+
+    ShowFlashOverlay();
+
+    while (elapsed < chainBreakShakeDuration)
+    {
+        float t = elapsed / chainBreakShakeDuration;
+        float shakeStrength = chainBreakShakeStrength * (1f - t);
+        Vector2 shakeOffset = Random.insideUnitCircle * shakeStrength;
+
+        transform.localPosition = originalLocalPosition + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
+        transform.localScale = Vector3.Lerp(punchScale, originalLocalScale, t);
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    transform.localPosition = originalLocalPosition;
+    transform.localScale = originalLocalScale;
+
+    chainBreakFeedbackRoutine = null;
+}
+
+private void PlayChainBreakFX()
+{
+    if (chainBreakFXPrefab == null)
+        return;
+
+    Vector3 pos = vfxAnchor != null ? vfxAnchor.position : transform.position;
+    Instantiate(chainBreakFXPrefab, pos, Quaternion.identity);
+}
+
+private void PlayChainBreakFX(Vector3 pos)
+{
+    if (chainBreakFXPrefab == null)
+        return;
+
+    Instantiate(chainBreakFXPrefab, pos, Quaternion.identity);
 }
 
 private void UpdateChainVisual()
 {
-    SpriteRenderer sr = GetComponent<SpriteRenderer>();
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
 
     if (sr == null)
         return;
 
     Color c = sr.color;
-
-    if (isChained)
-    {
-        if (chainHealth == 2)
-        {
-            c.a = 0.65f;
-        }
-        else if (chainHealth == 1)
-        {
-            c.a = 0.82f;
-        }
-    }
-    else
-    {
-        c.a = 1f;
-    }
-
+    c.a = 1f;
     sr.color = c;
+}
+
+private void ShowFlashOverlay()
+{
+    SyncFlashOverlay();
+
+    if (flashOverlayRenderer == null)
+        return;
+
+    if (!flashOverlayRenderer.gameObject.activeSelf)
+        flashOverlayRenderer.gameObject.SetActive(true);
+
+    StopCoroutine(nameof(FlashOverlayRoutine));
+    StartCoroutine(nameof(FlashOverlayRoutine));
+}
+
+private IEnumerator FlashOverlayRoutine()
+{
+    Debug.Log("FLASH OVERLAY START: " + flashOverlayRenderer);
+
+    if (flashOverlayRenderer == null)
+        yield break;
+
+    SyncFlashOverlay();
+
+    isChainFlashPlaying = true;
+    flashOverlayRenderer.color = new Color(1f, 1f, 1f, 1f);
+    yield return new WaitForSeconds(0.5f);
+    flashOverlayRenderer.color = new Color(1f, 1f, 1f, 0f);
+    isChainFlashPlaying = false;
+    flashOverlayRenderer.gameObject.SetActive(false);
+}
+
+private void SyncFlashOverlay()
+{
+    if (flashOverlayRenderer == null || sr == null)
+        return;
+
+    flashOverlayRenderer.sprite = sr.sprite;
+    flashOverlayRenderer.drawMode = sr.drawMode;
+    flashOverlayRenderer.size = sr.size;
+    flashOverlayRenderer.material = sr.material;
+    flashOverlayRenderer.sortingLayerID = sr.sortingLayerID;
+    flashOverlayRenderer.sortingOrder = sr.sortingOrder + 20;
+
+    if (flashOverlayRenderer.transform.parent != transform)
+        flashOverlayRenderer.transform.SetParent(transform);
+
+    flashOverlayRenderer.transform.localPosition = Vector3.zero;
+    flashOverlayRenderer.transform.localRotation = Quaternion.identity;
+    flashOverlayRenderer.transform.localScale = Vector3.one;
+
+    if (isChainFlashPlaying)
+        return;
+
+    flashOverlayRenderer.color = new Color(1f, 1f, 1f, 0f);
+
+    if (flashOverlayRenderer.gameObject.activeSelf)
+        flashOverlayRenderer.gameObject.SetActive(false);
+}
+
+private void ResolveChainOverlayReferences()
+{
+    if (chainOverlayRoot == null)
+        chainOverlayRoot = transform;
+
+    if (chainOverlayPrefab == null)
+    {
+        Transform existingOverlay = transform.Find("ChainOverlay");
+        if (existingOverlay != null)
+        {
+            chainOverlayPrefab = existingOverlay.gameObject;
+            chainOverlayPrefab.SetActive(false);
+        }
+    }
+}
+
+private void RefreshChainOverlays()
+{
+    ResolveChainOverlayReferences();
+
+    for (int i = spawnedChainOverlays.Count - 1; i >= 0; i--)
+    {
+        if (spawnedChainOverlays[i] == null)
+            spawnedChainOverlays.RemoveAt(i);
+    }
+
+    int overlayCellCount = Mathf.Clamp(width, 0, 4);
+
+    while (spawnedChainOverlays.Count < overlayCellCount)
+    {
+        GameObject overlay = CreateChainOverlayInstance(spawnedChainOverlays.Count);
+        if (overlay == null)
+            break;
+
+        spawnedChainOverlays.Add(overlay);
+    }
+
+    for (int i = 0; i < spawnedChainOverlays.Count; i++)
+    {
+        GameObject overlay = spawnedChainOverlays[i];
+        if (overlay == null)
+            continue;
+
+        if (animatingChainOverlays.Contains(overlay))
+            continue;
+
+        overlay.transform.localPosition = GetChainOverlayLocalPosition(i);
+        overlay.SetActive(isChained && i < chainCount);
+        SyncChainOverlayRenderer(overlay);
+    }
+}
+
+private GameObject CreateChainOverlayInstance(int overlayIndex)
+{
+    if (chainOverlayPrefab == null)
+        return null;
+
+    GameObject overlay = Instantiate(chainOverlayPrefab, chainOverlayRoot);
+    overlay.name = $"ChainOverlay_{overlayIndex}";
+    overlay.transform.localScale = ChainOverlayDefaultScale;
+    overlay.SetActive(false);
+    return overlay;
+}
+
+private Vector3 GetChainOverlayLocalPosition(int cellIndex)
+{
+    float startX = -(width - 1) * 0.5f;
+    return new Vector3(startX + cellIndex, 0f, 0f);
+}
+
+private void SyncChainOverlayRenderer(GameObject overlay)
+{
+    if (overlay == null)
+        return;
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    SpriteRenderer overlayRenderer = overlay.GetComponent<SpriteRenderer>();
+    if (overlayRenderer == null || sr == null)
+        return;
+
+    overlayRenderer.sortingOrder = sr.sortingOrder + 2;
+    overlay.transform.localScale = ChainOverlayDefaultScale;
+}
+
+private GameObject GetOverlayToBreak()
+{
+    int overlayIndex = Mathf.Clamp(chainCount - 1, 0, spawnedChainOverlays.Count - 1);
+
+    if (overlayIndex < 0 || overlayIndex >= spawnedChainOverlays.Count)
+        return null;
+
+    return spawnedChainOverlays[overlayIndex];
+}
+
+private IEnumerator AnimateBrokenChainOverlayRoutine(GameObject overlay)
+{
+    if (overlay == null)
+        yield break;
+
+    animatingChainOverlays.Add(overlay);
+
+    Transform overlayTransform = overlay.transform;
+    SpriteRenderer overlayRenderer = overlay.GetComponent<SpriteRenderer>();
+
+    Vector3 originalScale = ChainOverlayDefaultScale;
+    Vector3 punchScale = originalScale * 1.18f;
+    Vector3 originalLocalPosition = overlayTransform.localPosition;
+    Color originalColor = overlayRenderer != null ? overlayRenderer.color : Color.white;
+
+    float elapsed = 0f;
+
+    while (elapsed < ChainBreakOverlayAnimDuration)
+    {
+        float t = elapsed / ChainBreakOverlayAnimDuration;
+        float shakeStrength = 0.05f * (1f - t);
+        Vector2 shakeOffset = Random.insideUnitCircle * shakeStrength;
+
+        overlayTransform.localScale = Vector3.Lerp(punchScale, Vector3.zero, t);
+        overlayTransform.localPosition = originalLocalPosition + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
+
+        if (overlayRenderer != null)
+        {
+            Color c = originalColor;
+            c.a = Mathf.Lerp(originalColor.a, 0f, t);
+            overlayRenderer.color = c;
+        }
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    overlayTransform.localPosition = originalLocalPosition;
+    overlayTransform.localScale = ChainOverlayDefaultScale;
+
+    if (overlayRenderer != null)
+    {
+        Color c = originalColor;
+        c.a = originalColor.a;
+        overlayRenderer.color = c;
+    }
+
+    overlay.SetActive(false);
+    animatingChainOverlays.Remove(overlay);
 }
 
     // Bloğu yeni bir koordinata gönder

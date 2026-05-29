@@ -16,6 +16,7 @@ public class ScoreManager : MonoBehaviour
     private TextMeshProUGUI bestScoreText; // En yüksek skor UI referansı
     public int bestScore { get; private set; } // Hafızada tutacağımız rekor
     private int currentScore = 0;
+    public int CurrentScore => currentScore;
 
     // KOMBO DEĞİŞKENLERİ
     public int comboCount = 0;

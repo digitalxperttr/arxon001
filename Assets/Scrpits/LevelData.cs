@@ -1,10 +1,14 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewLevel", menuName = "ARXON/Level Data")]
 public class LevelData : ScriptableObject
 {
     [Header("Bölüm Bilgileri")]
     public int levelNumber;
+
+    [Header("Adventure Metadata")]
+    public ObjectiveType objectiveType = ObjectiveType.ClearRows;
+    public int targetObstacleCount = 0;
+    public int targetComboCount = 0;
    
     [Header("Bölüm Hedefleri")]
     public int targetScore = 0;       // 0 ise bu hedeften muaf demektir

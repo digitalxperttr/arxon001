@@ -98,7 +98,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8f21b1aa9c7b34b4ead9f29276810694, type: 2}
   - {fileID: 11400000, guid: 854379632ef604a19af923a92fbec2ad, type: 2}
   - {fileID: 11400000, guid: 53599d41625b4bd38ce42b11484b0e45, type: 2}
-  currentSelectedLevel: {fileID: 0}
+  generatedAdventureLevels:
+  - {fileID: 11400000, guid: 8366f06d236d54d629ada6e017c4102d, type: 2}
+  - {fileID: 11400000, guid: c2632bb757971402686e92f5bedcc275, type: 2}
+  - {fileID: 11400000, guid: 3a7b9c6efc0834b1aa481a349ccb5663, type: 2}
+  - {fileID: 11400000, guid: 8b61c4c8899be405ba85bbfbb7a1212a, type: 2}
+  - {fileID: 11400000, guid: 608f579f821e54674a8dd19b405ff9f2, type: 2}
+  - {fileID: 11400000, guid: 02ed03dd34b8047828b42b4f2943c967, type: 2}
 --- !u!114 &5088125559721086149
 MonoBehaviour:
   m_ObjectHideFlags: 0

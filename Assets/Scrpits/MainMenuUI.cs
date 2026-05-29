@@ -18,7 +18,7 @@ public class MainMenuUI : MonoBehaviour
         // YENİ: Oyuna Klasik modda girdiğimizi belirtmek için seçili bölümü sıfırlıyoruz
         if (ProgressManager.Instance != null)
         {
-            ProgressManager.Instance.currentSelectedLevel = null; 
+            ProgressManager.Instance.ClearAdventureSelection();
         }
 
         if (SceneLoader.Instance != null)
