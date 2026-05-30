@@ -691,8 +691,8 @@ MonoBehaviour:
     particleColor: {r: 0.54378223, g: 0, b: 0.9056604, a: 1}
   - sprite: {fileID: 1408294237913120078, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
     particleColor: {r: 1, g: 0.6909754, b: 0, a: 1}
-  rockSprite: {fileID: 531056626, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
-  iceSprite: {fileID: -56949323, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
+  rockSprite: {fileID: -5279753745211438751, guid: 7a15c5072e85b4b498b2d227f4e86ffe, type: 3}
+  iceSprite: {fileID: 1514886434839385746, guid: 4b6d96284aec04939aacb61de729803b, type: 3}
   lavaSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
   fireSprite: {fileID: -5509541731536557800, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
   sliceSprite: {fileID: -8413030977811616270, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
@@ -708,6 +708,17 @@ MonoBehaviour:
   height: 10
   cellSize: 1
   activeFogRows: []
+  fogOverlayPrefab: {fileID: 4228708024784001848, guid: 69f51acd41b3540688522965135f6373, type: 3}
+  fogLightSprite: {fileID: 21300000, guid: 6fc1956716ff2453b8b51a6d81ef7f82, type: 3}
+  fogDenseSprite: {fileID: 21300000, guid: c16d25fa63af047fbb15094f93ac59a3, type: 3}
+  fogLightAlpha: 210
+  fogDenseAlpha: 200
+  fogTransitionDuration: 0.2
+  fogRevealPerRowClear: 0.05
+  fogRevealProgress: 0
+  fogRevealSoftness: 0.15
+  fogDistortionStrength: 0.012
+  fogDistortionSpeed: 0.45
   floatingTextPrefab: {fileID: 7431225859572386497, guid: fb1be8ec24e5549d783921745fe111e1, type: 3}
   explosionPrefab: {fileID: 6904227193083937457, guid: 638ac8eef13614a4b9c1f31605a2b7b9, type: 3}
   sliceFXPrefab: {fileID: 6568322574869184099, guid: 7b27b5da8ea094968af4cde39f1fca15, type: 3}
@@ -740,6 +751,8 @@ MonoBehaviour:
   sliceCutFxOffset: {x: 0, y: 0, z: -0.5}
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
+  chainBreakImpactPause: 0.16
+  chainBreakGravityStepDelay: 0.12
   firePulseScale: 1.12
   firePulseDuration: 0.12
   enableClassicDoubleRowSpawn: 1

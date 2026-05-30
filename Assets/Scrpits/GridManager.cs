@@ -35,6 +35,17 @@ public class GridManager : MonoBehaviour
     public int height = 10;
     public float cellSize = 1f; // HATAYI DÜZELTEN SATIR
     public GameObject[] activeFogRows; // Sis objelerini tutacak dizi
+    [SerializeField] private GameObject fogOverlayPrefab;
+    [SerializeField] private Sprite fogLightSprite;
+    [SerializeField] private Sprite fogDenseSprite;
+    [SerializeField] [Range(0, 255)] private int fogLightAlpha = 200;
+    [SerializeField] [Range(0, 255)] private int fogDenseAlpha = 200;
+    [SerializeField] [Range(0.15f, 0.25f)] private float fogTransitionDuration = 0.20f;
+    [SerializeField] private float fogRevealPerRowClear = 0.05f;
+    [SerializeField] [Range(0f, 1f)] private float fogRevealProgress;
+    [SerializeField] [Range(0.01f, 0.5f)] private float fogRevealSoftness = 0.15f;
+    [SerializeField] [Range(0.005f, 0.012f)] private float fogDistortionStrength = 0.008f;
+    [SerializeField] [Range(0.25f, 0.45f)] private float fogDistortionSpeed = 0.35f;
 
     [Header("Efektler")]
     public FloatingText floatingTextPrefab;
@@ -116,6 +127,7 @@ public class GridManager : MonoBehaviour
     private bool slowGravityAfterChainBreakPending = false;
     private bool useSlowGravityThisPass = false;
     private int activeSliceOperations = 0;
+    private FogController fogController;
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
@@ -559,7 +571,6 @@ public IEnumerator PushBoardUpRoutine()
     {
         b.y += 1;
         b.MoveTo(b.x, b.y);
-        ClearFogNearRow(b.y); // <--- YENİ EKLENDİ
     }
     
     // Hafızayı güncelle
@@ -799,6 +810,9 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             if (LevelManager.Instance != null && LevelManager.Instance.enabled) {
                 LevelManager.Instance.LinesCleared(clearedRowCount);
             }
+
+            if (fogController != null)
+                fogController.RevealRows(clearedRowCount, fogRevealPerRowClear);
             // =============================
 
             // === YENİ: EKRANDA UÇAN YAZILAR (FLOATING TEXT) ===
@@ -1150,59 +1164,64 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
     b.x = newX;
     b.y = newY;
     RebuildGridMemory(); // Hafızayı baştan kur!
-
-    ClearFogNearRow(newY); // <--- YENİ EKLENDİ
 }
 
 public void GenerateFog()
+{
+    if (activeFogRows != null)
     {
-        if (activeFogRows != null) {
-            foreach(var fog in activeFogRows) if(fog != null) Destroy(fog);
-        }
-        activeFogRows = new GameObject[height];
+        foreach (var fog in activeFogRows)
+            if (fog != null)
+                Destroy(fog);
+    }
 
-        int fogStart = -1;
-        if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null) {
-            fogStart = ProgressManager.Instance.currentSelectedLevel.fogStartingRow;
-        }
+    activeFogRows = new GameObject[0];
 
-        if (fogStart == -1) return; // Sis yoksa direkt çık
+    if (fogController == null)
+        fogController = GetComponent<FogController>() ?? gameObject.AddComponent<FogController>();
 
-        // Belirtilen satırdan en tepeye kadar siyah sis örtüleri oluştur
-        for (int y = fogStart; y < height; y++)
+    LevelData currentLevel =
+        ProgressManager.Instance != null
+        ? ProgressManager.Instance.currentSelectedLevel
+        : null;
+
+    FogDensity density = FogDensity.None;
+    float coveragePercent = 0f;
+    fogRevealProgress = 0f;
+
+    if (currentLevel != null)
+    {
+        density = currentLevel.fogDensity;
+        coveragePercent = Mathf.Clamp01(currentLevel.fogCoveragePercent);
+
+        if (density == FogDensity.None && currentLevel.fogStartingRow >= 0)
         {
-            GameObject fogObj = new GameObject($"FogRow_{y}");
-            fogObj.transform.SetParent(this.transform);
-
-            fogObj.transform.position = new Vector3((width - 1) / 2f, y, 0); 
-            fogObj.transform.localScale = new Vector3(width, 1.05f, 1);
-            
-            SpriteRenderer sr = fogObj.AddComponent<SpriteRenderer>();
-            sr.sprite = cellPrefab.GetComponent<SpriteRenderer>().sprite; 
-            
-            // YENİ: Hücremizin grafik ayarlarını ezip "Dümdüz" çiz diyoruz ki saydam kalmasın.
-            sr.drawMode = SpriteDrawMode.Simple; 
-            
-            // YENİ: Tamamen zifiri karanlık, gece mavisi/siyah bir renk (Alpha 1.0 = Opak)
-            sr.color = new Color(0.02f, 0.02f, 0.05f, 1f); 
-            sr.sortingOrder = 15; // Blokların önünü kapatsın
-
-            activeFogRows[y] = fogObj;
+            density = FogDensity.Dense;
+            coveragePercent = Mathf.Clamp01((height - currentLevel.fogStartingRow) / (float)height);
         }
     }
 
-    public void ClearFogNearRow(int y)
-    {
-        if (activeFogRows == null) return;
-        
-        // YENİ: Sadece bloğun BULUNDUĞU satırı açıyoruz. (y+1'i sildik!)
-        // Böylece kar küreme aracı gibi daha oraya varmadan sisi yok etmeyecekler.
-        if (y >= 0 && y < height && activeFogRows[y] != null)
-        {
-            Destroy(activeFogRows[y]);
-            activeFogRows[y] = null;
-        }
-    }
+    fogController.Configure(
+        transform,
+        fogOverlayPrefab,
+        width,
+        height,
+        density,
+        coveragePercent,
+        fogLightSprite,
+        fogDenseSprite,
+        fogLightAlpha,
+        fogDenseAlpha,
+        fogTransitionDuration,
+        fogRevealProgress,
+        fogRevealSoftness,
+        fogDistortionStrength,
+        fogDistortionSpeed);
+}
+
+public void ClearFogNearRow(int y)
+{
+}
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 public void GenerateNextRowData()

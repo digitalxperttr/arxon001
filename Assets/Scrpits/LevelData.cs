@@ -33,5 +33,7 @@ public class LevelData : ScriptableObject
     [Range(0f, 1f)] public float fireBlockChance = 0f;
 
     [Header("Sis (Fog) Ayarları")]
+    public FogDensity fogDensity = FogDensity.None;
+    [Range(0f, 1f)] public float fogCoveragePercent = 0f;
     public int fogStartingRow = -1; // -1 ise sis yok demektir. Örn 4 yazarsan 4. satır ve yukarısı zifiri karanlık başlar.
 }

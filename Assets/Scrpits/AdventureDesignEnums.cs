@@ -43,3 +43,10 @@ public enum SpecialMechanicFocus
     MoveEfficiency,
     ChainBreaking
 }
+
+public enum FogDensity
+{
+    None,
+    Light,
+    Dense
+}

@@ -34,6 +34,7 @@ public static class AdventureLevelGenerator
         ApplyPressure(ref profile, config.pressure, config.pressureOffset);
         ApplyObstacleTheme(ref profile, config.obstacleTheme);
         ApplySpecialFocus(ref profile, config.specialMechanicFocus);
+        ApplyFogAuthoring(config, ref profile);
         ApplyObjective(config, target, ref profile);
 
         target.moveLimit = Mathf.Max(1, profile.moveLimit + config.moveOffset);
@@ -47,6 +48,8 @@ public static class AdventureLevelGenerator
         target.maxBlockSize = Mathf.Clamp(Mathf.Max(target.minBlockSize, profile.maxBlockSize), 1, 4);
         target.sliceBlockChance = Mathf.Clamp01(profile.sliceBlockChance);
         target.fireBlockChance = Mathf.Clamp01(profile.fireBlockChance);
+        target.fogDensity = profile.fogDensity;
+        target.fogCoveragePercent = Mathf.Clamp01(profile.fogCoveragePercent);
         target.fogStartingRow = profile.fogStartingRow;
 
         ApplyOverrides(config, target);
@@ -139,6 +142,8 @@ public static class AdventureLevelGenerator
             target.fireBlockChance = Mathf.Clamp01(overrides.fireBlockChance);
             shouldEnableCustomSpawnRules |= target.fireBlockChance > 0f;
         }
+        if (overrides.overrideFogDensity) target.fogDensity = overrides.fogDensity;
+        if (overrides.overrideFogCoveragePercent) target.fogCoveragePercent = Mathf.Clamp01(overrides.fogCoveragePercent);
         if (overrides.overrideFogStartingRow) target.fogStartingRow = overrides.fogStartingRow;
 
         if (!target.useCustomSpawnRules && shouldEnableCustomSpawnRules)
@@ -160,6 +165,8 @@ public static class AdventureLevelGenerator
             maxBlockSize = 4,
             sliceBlockChance = 0f,
             fireBlockChance = 0f,
+            fogDensity = FogDensity.None,
+            fogCoveragePercent = 0f,
             fogStartingRow = -1
         };
 
@@ -251,14 +258,16 @@ public static class AdventureLevelGenerator
                 profile.chainedBlockChance += 0.10f;
                 break;
             case ObstacleTheme.Fog:
-                profile.fogStartingRow = 5;
+                profile.fogDensity = FogDensity.Light;
+                profile.fogCoveragePercent = 0.25f;
                 profile.baseGapChance -= 0.02f;
                 break;
             case ObstacleTheme.Mixed:
                 profile.frozenBlockChance += 0.05f;
                 profile.rockBlockChance += 0.05f;
                 profile.chainedBlockChance += 0.05f;
-                profile.fogStartingRow = 6;
+                profile.fogDensity = FogDensity.Light;
+                profile.fogCoveragePercent = 0.20f;
                 break;
         }
     }
@@ -276,7 +285,10 @@ public static class AdventureLevelGenerator
                 profile.useCustomSpawnRules = true;
                 break;
             case SpecialMechanicFocus.Fog:
-                profile.fogStartingRow = profile.fogStartingRow < 0 ? 6 : Mathf.Min(profile.fogStartingRow, 6);
+                if (profile.fogDensity == FogDensity.None)
+                    profile.fogDensity = FogDensity.Light;
+
+                profile.fogCoveragePercent = Mathf.Max(profile.fogCoveragePercent, 0.35f);
                 break;
             case SpecialMechanicFocus.LargeBlocks:
                 profile.largeBlockChance += 0.08f;
@@ -291,6 +303,18 @@ public static class AdventureLevelGenerator
         }
     }
 
+    private static void ApplyFogAuthoring(AdventureLevelConfig config, ref LevelProfile profile)
+    {
+        if (config.fogDensity != FogDensity.None)
+            profile.fogDensity = config.fogDensity;
+
+        if (config.fogCoveragePercent > 0f)
+            profile.fogCoveragePercent = Mathf.Clamp01(config.fogCoveragePercent);
+
+        if (profile.fogDensity == FogDensity.None)
+            profile.fogCoveragePercent = 0f;
+    }
+
     private static void LogGeneratedLevel(AdventureLevelConfig config, LevelData target)
     {
         Debug.Log(
@@ -299,7 +323,7 @@ public static class AdventureLevelGenerator
             $"TargetLines={target.targetLines} | TargetScore={target.targetScore} | MoveLimit={target.moveLimit} | " +
             $"Gap={target.baseGapChance:F2} | Large={target.largeBlockChance:F2} | " +
             $"Frozen={target.frozenBlockChance:F2} | Rock={target.rockBlockChance:F2} | Chain={target.chainedBlockChance:F2} | " +
-            $"Fire={target.fireBlockChance:F2} | Slice={target.sliceBlockChance:F2} | FogStart={target.fogStartingRow}");
+            $"Fire={target.fireBlockChance:F2} | Slice={target.sliceBlockChance:F2} | FogDensity={target.fogDensity} | FogCoverage={target.fogCoveragePercent:F2} | FogStart={target.fogStartingRow}");
     }
 
     private struct LevelProfile
@@ -315,6 +339,8 @@ public static class AdventureLevelGenerator
         public int maxBlockSize;
         public float sliceBlockChance;
         public float fireBlockChance;
+        public FogDensity fogDensity;
+        public float fogCoveragePercent;
         public int fogStartingRow;
     }
 }

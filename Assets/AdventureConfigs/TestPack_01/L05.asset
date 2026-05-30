@@ -15,13 +15,15 @@ MonoBehaviour:
   levelNumber: 5
   displayName: Adventure Level
   designerNotes: Hard / TightMoves / ClearRows / Mixed
-  difficulty: 2
+  difficulty: 1
   pressure: 1
-  objective: 0
-  obstacleTheme: 5
+  objective: 1
+  obstacleTheme: 4
   specialMechanicFocus: 0
-  targetLines: 6
-  targetScore: 0
+  fogDensity: 1
+  fogCoveragePercent: 1
+  targetLines: 0
+  targetScore: 800
   targetObstacleCount: 0
   targetComboCount: 0
   moveOffset: 0
@@ -52,5 +54,9 @@ MonoBehaviour:
     sliceBlockChance: 0
     overrideFireChance: 0
     fireBlockChance: 0
+    overrideFogDensity: 0
+    fogDensity: 0
+    overrideFogCoveragePercent: 0
+    fogCoveragePercent: 0
     overrideFogStartingRow: 0
     fogStartingRow: -1

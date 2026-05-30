@@ -56,6 +56,14 @@ public class AdventureLevelOverrides
     [Range(0f, 1f)] public float fireBlockChance = 0f;
 
     [Header("Sis")]
+    [InspectorName("Sis Yoğunluğunu Geçersiz Kıl")]
+    public bool overrideFogDensity;
+    [InspectorName("Sis Yoğunluğu")]
+    public FogDensity fogDensity = FogDensity.None;
+    [InspectorName("Sis Kapsama Yüzdesini Geçersiz Kıl")]
+    public bool overrideFogCoveragePercent;
+    [InspectorName("Sis Kapsama Yüzdesi")]
+    [Range(0f, 1f)] public float fogCoveragePercent = 0f;
     [InspectorName("Sis Başlangıç Satırını Geçersiz Kıl")]
     public bool overrideFogStartingRow;
     [InspectorName("Sis Başlangıç Satırı")]
@@ -89,6 +97,14 @@ public class AdventureLevelConfig : ScriptableObject
     [InspectorName("Özel Mekanik Odağı")]
     [Tooltip("Ana temanın üstüne eklenen isteğe bağlı mekanik vurgusu.")]
     public SpecialMechanicFocus specialMechanicFocus = SpecialMechanicFocus.None;
+
+    [Header("Sis")]
+    [InspectorName("Sis Yoğunluğu")]
+    [Tooltip("Tahtanın üst bölümünü örten görsel sis yoğunluğu.")]
+    public FogDensity fogDensity = FogDensity.None;
+    [InspectorName("Sis Kapsama Yüzdesi")]
+    [Tooltip("Tahtanın üstten ne kadarının sisle kaplanacağını belirler. 0.25 = üst %25.")]
+    [Range(0f, 1f)] public float fogCoveragePercent = 0f;
 
     [Header("Hedefler")]
     [InspectorName("Hedef Satır")]
