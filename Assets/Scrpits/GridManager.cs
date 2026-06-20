@@ -44,8 +44,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float fogRevealPerRowClear = 0.05f;
     [SerializeField] [Range(0f, 1f)] private float fogRevealProgress;
     [SerializeField] [Range(0.01f, 0.5f)] private float fogRevealSoftness = 0.15f;
-    [SerializeField] [Range(0.005f, 0.012f)] private float fogDistortionStrength = 0.008f;
-    [SerializeField] [Range(0.25f, 0.45f)] private float fogDistortionSpeed = 0.35f;
+    [SerializeField] [Range(0f, 0.10f)] private float fogDistortionStrength = 0.035f;
+    [SerializeField] [Range(0f, 1.50f)] private float fogDistortionSpeed = 0.55f;
 
     [Header("Efektler")]
     public FloatingText floatingTextPrefab;

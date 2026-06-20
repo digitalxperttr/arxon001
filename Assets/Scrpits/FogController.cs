@@ -16,8 +16,8 @@ public class FogController : MonoBehaviour
     private float transitionDuration = 0.2f;
     private float revealSoftness = 0.15f;
     private float baseAlpha = 1f;
-    private float distortionStrength = 0.008f;
-    private float distortionSpeed = 0.35f;
+    private float distortionStrength = 0.035f;
+    private float distortionSpeed = 0.55f;
 
     public void Configure(
         Transform parent,
