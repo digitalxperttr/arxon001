@@ -4,61 +4,61 @@ TextureImporter:
   internalIDToNameTable:
   - first:
       213: -1804941736785542857
-    second: toggle_off
+    second: ARXON_UI_0
   - first:
       213: 4769636487612069358
-    second: toggle_on
+    second: ARXON_UI_1
   - first:
       213: 6639260947963353429
-    second: icon_music
+    second: ARXON_UI_2
   - first:
       213: -7600345028329373531
-    second: icon_sound
+    second: ARXON_UI_3
   - first:
       213: 6419766078565387160
-    second: icon_hint
+    second: ARXON_UI_4
   - first:
       213: -6805545806030311118
-    second: btn_menu
+    second: ARXON_UI_5
   - first:
       213: 974833388053131572
-    second: btn_home
+    second: ARXON_UI_6
   - first:
       213: 6212847530548397612
-    second: btn_ok_baked
+    second: ARXON_UI_7
   - first:
       213: -5859787184770760983
-    second: icon_vibration
+    second: ARXON_UI_8
   - first:
       213: 7976789123237285845
-    second: icon_purchases
+    second: ARXON_UI_9
   - first:
       213: 1363979005850384625
-    second: icon_contact
+    second: ARXON_UI_10
   - first:
       213: 8189507084704322055
-    second: btn_restart
+    second: ARXON_UI_11
   - first:
       213: 2955353122125143204
-    second: progress_bar
+    second: ARXON_UI_12
   - first:
       213: 2324691289745412043
-    second: panel_settings
+    second: ARXON_UI_13
   - first:
       213: 8393855958040693790
-    second: panel_pause
+    second: ARXON_UI_14
   - first:
       213: -5923176541934888088
-    second: btn_green
+    second: ARXON_UI_15
   - first:
       213: 2447891607603930636
-    second: btn_level
+    second: ARXON_UI_16
   - first:
       213: 2813974135540034089
-    second: hud_classic
+    second: ARXON_UI_17
   - first:
       213: 3735505912331201804
-    second: hud_adventure
+    second: ARXON_UI_18
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -129,7 +129,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -167,7 +167,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: toggle_off
+      name: ARXON_UI_0
       rect:
         serializedVersion: 2
         x: 170
@@ -189,7 +189,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: toggle_on
+      name: ARXON_UI_1
       rect:
         serializedVersion: 2
         x: 604
@@ -211,7 +211,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_music
+      name: ARXON_UI_2
       rect:
         serializedVersion: 2
         x: 1249
@@ -233,7 +233,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_sound
+      name: ARXON_UI_3
       rect:
         serializedVersion: 2
         x: 1478
@@ -255,7 +255,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_hint
+      name: ARXON_UI_4
       rect:
         serializedVersion: 2
         x: 1707
@@ -277,7 +277,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_menu
+      name: ARXON_UI_5
       rect:
         serializedVersion: 2
         x: 1936
@@ -299,7 +299,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_home
+      name: ARXON_UI_6
       rect:
         serializedVersion: 2
         x: 2165
@@ -321,7 +321,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_ok_baked
+      name: ARXON_UI_7
       rect:
         serializedVersion: 2
         x: 188
@@ -343,7 +343,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_vibration
+      name: ARXON_UI_8
       rect:
         serializedVersion: 2
         x: 1249
@@ -365,7 +365,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_purchases
+      name: ARXON_UI_9
       rect:
         serializedVersion: 2
         x: 1478
@@ -387,7 +387,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_contact
+      name: ARXON_UI_10
       rect:
         serializedVersion: 2
         x: 1707
@@ -409,7 +409,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_restart
+      name: ARXON_UI_11
       rect:
         serializedVersion: 2
         x: 1933
@@ -431,7 +431,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: progress_bar
+      name: ARXON_UI_12
       rect:
         serializedVersion: 2
         x: 189
@@ -453,7 +453,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: panel_settings
+      name: ARXON_UI_13
       rect:
         serializedVersion: 2
         x: 138
@@ -475,7 +475,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: panel_pause
+      name: ARXON_UI_14
       rect:
         serializedVersion: 2
         x: 1257
@@ -497,7 +497,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_green
+      name: ARXON_UI_15
       rect:
         serializedVersion: 2
         x: 1322
@@ -519,7 +519,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: btn_level
+      name: ARXON_UI_16
       rect:
         serializedVersion: 2
         x: 2018
@@ -541,7 +541,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: hud_classic
+      name: ARXON_UI_17
       rect:
         serializedVersion: 2
         x: 133
@@ -563,7 +563,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: hud_adventure
+      name: ARXON_UI_18
       rect:
         serializedVersion: 2
         x: 133
@@ -598,25 +598,25 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      btn_green: -5923176541934888088
-      btn_home: 974833388053131572
-      btn_level: 2447891607603930636
-      btn_menu: -6805545806030311118
-      btn_ok_baked: 6212847530548397612
-      btn_restart: 8189507084704322055
-      hud_adventure: 3735505912331201804
-      hud_classic: 2813974135540034089
-      icon_contact: 1363979005850384625
-      icon_hint: 6419766078565387160
-      icon_music: 6639260947963353429
-      icon_purchases: 7976789123237285845
-      icon_sound: -7600345028329373531
-      icon_vibration: -5859787184770760983
-      panel_pause: 8393855958040693790
-      panel_settings: 2324691289745412043
-      progress_bar: 2955353122125143204
-      toggle_off: -1804941736785542857
-      toggle_on: 4769636487612069358
+      ARXON_UI_0: -1804941736785542857
+      ARXON_UI_1: 4769636487612069358
+      ARXON_UI_10: 1363979005850384625
+      ARXON_UI_11: 8189507084704322055
+      ARXON_UI_12: 2955353122125143204
+      ARXON_UI_13: 2324691289745412043
+      ARXON_UI_14: 8393855958040693790
+      ARXON_UI_15: -5923176541934888088
+      ARXON_UI_16: 2447891607603930636
+      ARXON_UI_17: 2813974135540034089
+      ARXON_UI_18: 3735505912331201804
+      ARXON_UI_2: 6639260947963353429
+      ARXON_UI_3: -7600345028329373531
+      ARXON_UI_4: 6419766078565387160
+      ARXON_UI_5: -6805545806030311118
+      ARXON_UI_6: 974833388053131572
+      ARXON_UI_7: 6212847530548397612
+      ARXON_UI_8: -5859787184770760983
+      ARXON_UI_9: 7976789123237285845
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

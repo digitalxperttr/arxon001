@@ -4,6 +4,7 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement; // Sahne yönetimi için gerekli
+using UnityEngine.UI;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -14,6 +15,12 @@ public class ScoreManager : MonoBehaviour
     // Bu referansı artık kod içinde bulacağız, public olmasına gerek yok.
     private TextMeshProUGUI scoreText; 
     private TextMeshProUGUI bestScoreText; // En yüksek skor UI referansı
+    private TextMeshProUGUI levelText;
+    private TextMeshProUGUI xpText;
+    private Image levelProgressBarFill;
+    private GameObject levelProgressBarBG;
+    private GameObject targetTextObject;
+    private GameObject movesTextObject;
     public int bestScore { get; private set; } // Hafızada tutacağımız rekor
     private int currentScore = 0;
     public int CurrentScore => currentScore;
@@ -112,11 +119,37 @@ public class ScoreManager : MonoBehaviour
             // YENİ: Rekor yazısını Tag ile bul
             GameObject bestScoreObject = GameObject.FindWithTag("BestScoreText");
             if (bestScoreObject != null) bestScoreText = bestScoreObject.GetComponent<TextMeshProUGUI>();
+
+            GameObject levelTextObject = GameObject.Find("LevelText");
+            if (levelTextObject != null) levelText = levelTextObject.GetComponent<TextMeshProUGUI>();
+
+            GameObject xpTextObject = GameObject.Find("XPText");
+            if (xpTextObject != null) xpText = xpTextObject.GetComponent<TextMeshProUGUI>();
+
+            levelProgressBarBG = GameObject.Find("LevelProgressBarBG");
+
+            GameObject levelProgressBarFillObject = GameObject.Find("LevelProgressBarFill");
+            if (levelProgressBarFillObject != null)
+            {
+                levelProgressBarFill = levelProgressBarFillObject.GetComponent<Image>();
+            }
+
+            targetTextObject = GameObject.Find("TargetText");
+            movesTextObject = GameObject.Find("MovesText");
+
+            bool isClassicMode = ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null;
+            SetClassicHudState(isClassicMode);
         }
         else
         {
             scoreText = null;
             bestScoreText = null;
+            levelText = null;
+            xpText = null;
+            levelProgressBarFill = null;
+            levelProgressBarBG = null;
+            targetTextObject = null;
+            movesTextObject = null;
         }
         
         // YENİ: Oyuncu oyuna girdiğinde veya sahne değiştiğinde rekorunu hafızadan çek!
@@ -130,21 +163,15 @@ public void UpdateScoreUI()
     {
         if (scoreText != null)
         {
-            // Kullanıcının daha önce düzelttiği "score" anahtarı
-            string translation = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetTranslation("score") : "Puan";
-            if (string.IsNullOrEmpty(translation) || translation.Contains("KEY_NOT_FOUND")) translation = "Puan";
-            
-            scoreText.text = $"{translation}: {currentScore}";
+            scoreText.text = currentScore.ToString();
         }
 
-        // YENİ: Rekor yazısını güncelle
         if (bestScoreText != null)
         {
-            string bestTranslation = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetTranslation("best_score") : "En İyi";
-            if (string.IsNullOrEmpty(bestTranslation) || bestTranslation.Contains("KEY_NOT_FOUND")) bestTranslation = "En İyi";
-            
-            bestScoreText.text = $"{bestTranslation}: {bestScore}";
+            bestScoreText.text = bestScore.ToString();
         }
+
+        UpdateClassicLevelUI();
     }
 
     public void AddScore(int amount)
@@ -194,5 +221,54 @@ public void UpdateScoreUI()
         }
         
         scoreText.transform.localScale = originalScale;
+    }
+
+    private void UpdateClassicLevelUI()
+    {
+        if (levelText != null)
+        {
+            levelText.text = $"Seviye {currentLevel}";
+        }
+
+        if (levelProgressBarFill != null)
+        {
+            float progress = linesNeededForNextLevel > 0
+                ? Mathf.Clamp01(totalLinesCleared / (float)linesNeededForNextLevel)
+                : 0f;
+            levelProgressBarFill.fillAmount = progress;
+        }
+
+        if (xpText != null)
+        {
+            xpText.text = $"{totalLinesCleared} / {linesNeededForNextLevel}";
+        }
+    }
+
+    private void SetClassicHudState(bool isClassicMode)
+    {
+        if (levelText != null)
+        {
+            levelText.gameObject.SetActive(isClassicMode);
+        }
+
+        if (levelProgressBarBG != null)
+        {
+            levelProgressBarBG.SetActive(isClassicMode);
+        }
+
+        if (xpText != null)
+        {
+            xpText.gameObject.SetActive(isClassicMode);
+        }
+
+        if (targetTextObject != null)
+        {
+            targetTextObject.SetActive(!isClassicMode);
+        }
+
+        if (movesTextObject != null)
+        {
+            movesTextObject.SetActive(!isClassicMode);
+        }
     }
 }
