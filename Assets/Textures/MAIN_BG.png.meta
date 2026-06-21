@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: b409f990a97054c49abb3826b3e62260
+guid: d8ad2a4440a8a4aacb2aa3cdfbdfd4dc
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 218617802675930632
-    second: cl_game_gpt2_bg_0
+      213: -6119542113224626067
+    second: MAIN_BG_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 512
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,10 +72,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: cl_game_gpt2_bg_0
+      name: MAIN_BG_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8064316bbbfa80300800000000000000
-      internalID: 218617802675930632
+      spriteID: d60f339eed4031ba0800000000000000
+      internalID: -6119542113224626067
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      cl_game_gpt2_bg_0: 218617802675930632
+      MAIN_BG_0: -6119542113224626067
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: c5a3510da9a67417fbfe1c890c1dff73
+guid: 046df4ca851244730b974f6dab957fdb
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4437397998368277304
-    second: puan_tablo_bg_0
+      213: 9163382638843267429
+    second: ADVENTURE_BG_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 512
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -75,7 +75,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: puan_tablo_bg_0
+      name: ADVENTURE_BG_0
       rect:
         serializedVersion: 2
-        x: 11
+        x: 0
         y: 0
-        width: 1515
-        height: 1024
+        width: 852
+        height: 1847
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8ccba34e7023b62c0800000000000000
-      internalID: -4437397998368277304
+      spriteID: 5690c39d5ffda2f70800000000000000
+      internalID: 9163382638843267429
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      puan_tablo_bg_0: -4437397998368277304
+      ADVENTURE_BG_0: 9163382638843267429
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
