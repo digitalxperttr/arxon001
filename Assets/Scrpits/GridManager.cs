@@ -1601,6 +1601,12 @@ public void DestroyBlocksByColor(Color targetColor)
 
         if (block.blockColor == targetColor && !block.isRock && block.blockType != BlockType.Fire && block.blockType != BlockType.Slice)
         {
+            if (block.isFrozen)
+            {
+                block.SetFrozen(false);
+                continue;
+            }
+
             blocksToDestroy.Add(block);
         }
     }
@@ -1633,9 +1639,17 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
 
         if (block.blockColor == targetColor && !block.isRock && block.blockType != BlockType.Fire && block.blockType != BlockType.Slice)
         {
+            if (block.isFrozen)
+            {
+                block.SetFrozen(false);
+                continue;
+            }
+
             blocksToDestroy.Add(block);
         }
     }
+
+    RebuildGridMemory();
 
     blocksToDestroy.Sort((a, b) =>
     {

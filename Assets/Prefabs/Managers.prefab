@@ -64,9 +64,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   comboCount: 0
+  scoreLevelThresholds:
+  - 0
+  - 250
+  - 600
+  - 1000
+  - 1300
+  - 1800
+  - 2600
+  - 3200
+  - 4000
+  - 5000
   currentLevel: 1
-  totalLinesCleared: 0
-  linesNeededForNextLevel: 10
 --- !u!114 &7920278384887831759
 MonoBehaviour:
   m_ObjectHideFlags: 0

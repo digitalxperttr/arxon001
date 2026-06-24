@@ -1817,6 +1817,21 @@ MonoBehaviour:
     m_Scale: 1
     m_AtlasIndex: 0
     m_ClassDefinitionType: 0
+  - m_Index: 120
+    m_Metrics:
+      m_Width: 31
+      m_Height: 48
+      m_HorizontalBearingX: 1
+      m_HorizontalBearingY: 37
+      m_HorizontalAdvance: 32
+    m_GlyphRect:
+      m_X: 447
+      m_Y: 454
+      m_Width: 31
+      m_Height: 48
+    m_Scale: 1
+    m_AtlasIndex: 0
+    m_ClassDefinitionType: 0
   - m_Index: 122
     m_Metrics:
       m_Width: 16
@@ -1919,21 +1934,6 @@ MonoBehaviour:
       m_Y: 454
       m_Width: 46
       m_Height: 24
-    m_Scale: 1
-    m_AtlasIndex: 0
-    m_ClassDefinitionType: 0
-  - m_Index: 120
-    m_Metrics:
-      m_Width: 31
-      m_Height: 48
-      m_HorizontalBearingX: 1
-      m_HorizontalBearingY: 37
-      m_HorizontalAdvance: 32
-    m_GlyphRect:
-      m_X: 447
-      m_Y: 454
-      m_Width: 31
-      m_Height: 48
     m_Scale: 1
     m_AtlasIndex: 0
     m_ClassDefinitionType: 0
@@ -2395,6 +2395,10 @@ MonoBehaviour:
     m_GlyphIndex: 118
     m_Scale: 1
   - m_ElementType: 1
+    m_Unicode: 351
+    m_GlyphIndex: 120
+    m_Scale: 1
+  - m_ElementType: 1
     m_Unicode: 8216
     m_GlyphIndex: 122
     m_Scale: 1
@@ -2421,10 +2425,6 @@ MonoBehaviour:
   - m_ElementType: 1
     m_Unicode: 8482
     m_GlyphIndex: 128
-    m_Scale: 1
-  - m_ElementType: 1
-    m_Unicode: 351
-    m_GlyphIndex: 120
     m_Scale: 1
   m_AtlasTextures:
   - {fileID: -1874885781740235736}
@@ -11883,10 +11883,10 @@ Material:
     - _FaceDilate: 0
     - _FaceUVSpeedX: 0
     - _FaceUVSpeedY: 0
-    - _GlowInner: 0.05
+    - _GlowInner: 0
     - _GlowOffset: 0
-    - _GlowOuter: 0.05
-    - _GlowPower: 0.75
+    - _GlowOuter: 0.391
+    - _GlowPower: 0.54
     - _GradientScale: 5
     - _LightAngle: 3.1416
     - _MaskSoftnessX: 0
@@ -11924,9 +11924,9 @@ Material:
     - _ClipRect: {r: -32767, g: -32767, b: 32767, a: 32767}
     - _EnvMatrixRotation: {r: 0, g: 0, b: 0, a: 0}
     - _FaceColor: {r: 1, g: 1, b: 1, a: 1}
-    - _GlowColor: {r: 0, g: 1, b: 0, a: 0.5}
+    - _GlowColor: {r: 0.0754717, g: 0.0754717, b: 0.0754717, a: 0.6156863}
     - _MaskCoord: {r: 0, g: 0, b: 32767, a: 32767}
-    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor: {r: 1, g: 1, b: 1, a: 1}
     - _ReflectFaceColor: {r: 0, g: 0, b: 0, a: 1}
     - _ReflectOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}

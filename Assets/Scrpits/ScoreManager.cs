@@ -21,7 +21,9 @@ public class ScoreManager : MonoBehaviour
     private GameObject levelProgressBarBG;
     private GameObject targetTextObject;
     private GameObject movesTextObject;
+    private LevelUpFXUI levelUpFXUI;
     public int bestScore { get; private set; } // Hafızada tutacağımız rekor
+    public int PreviousBestScoreAtRunStart { get; private set; }
     private int currentScore = 0;
     public int CurrentScore => currentScore;
 
@@ -31,9 +33,8 @@ public class ScoreManager : MonoBehaviour
     public int comboMultiplier { get { return comboCount > 0 ? comboCount : 1; } }
 
     // SEVİYE (LEVEL) DEĞİŞKENLERİ
+    [SerializeField] private int[] scoreLevelThresholds = { 0, 250, 600, 1000, 1300, 1800, 2600, 3200, 4000, 5000 };
     public int currentLevel = 1;
-    public int totalLinesCleared = 0;
-    public int linesNeededForNextLevel = 10; // İlk seviye için 10 satır patlatmak gereksin
 
     public void IncrementCombo()
     {
@@ -56,30 +57,25 @@ public class ScoreManager : MonoBehaviour
     public void ResetScoreAndLevel()
     {
         currentScore = 0;
-        currentLevel = 1;
+        currentLevel = GetLevelForScore(currentScore);
         comboCount = 0;
-        totalLinesCleared = 0;
-        linesNeededForNextLevel = 10;
 
         UpdateScoreUI();
     }
 
+    public void ResetClassicScoreAndBestForTesting()
+    {
+        PlayerPrefs.DeleteKey("ClassicBestScore");
+        PlayerPrefs.Save();
+
+        bestScore = 0;
+        PreviousBestScoreAtRunStart = 0;
+        ResetScoreAndLevel();
+    }
+
     public void AddClearedLines(int count)
     {
-        if (count <= 0) return;
-        
-        totalLinesCleared += count;
-        
-        // Level Up (Seviye Atlama) Kontrolü
-        if (totalLinesCleared >= linesNeededForNextLevel)
-        {
-            currentLevel++;
-            totalLinesCleared -= linesNeededForNextLevel; // Kalan satırları çöpe atma, yeni seviyeye aktar
-            linesNeededForNextLevel += 5; // Her seviyede gereken satır sayısını 5 artır (Zorluk eğrisi)
-            
-            // Şimdilik konsola basıyoruz, ileride harika bir UI efekti bağlayacağız!
-            Debug.Log($"<color=cyan>SEVİYE ATLADIN! YENİ SEVİYE: {currentLevel}</color>");
-        }
+        // Classic level progression is score based now; this remains for existing callers.
     }
 
     void Awake()
@@ -136,6 +132,7 @@ public class ScoreManager : MonoBehaviour
 
             targetTextObject = GameObject.Find("TargetText");
             movesTextObject = GameObject.Find("MovesText");
+            levelUpFXUI = FindObjectOfType<LevelUpFXUI>();
 
             bool isClassicMode = ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null;
             SetClassicHudState(isClassicMode);
@@ -150,12 +147,15 @@ public class ScoreManager : MonoBehaviour
             levelProgressBarBG = null;
             targetTextObject = null;
             movesTextObject = null;
+            levelUpFXUI = null;
         }
         
         // YENİ: Oyuncu oyuna girdiğinde veya sahne değiştiğinde rekorunu hafızadan çek!
         bestScore = PlayerPrefs.GetInt("ClassicBestScore", 0);
+        PreviousBestScoreAtRunStart = bestScore;
         
         currentScore = 0;
+        currentLevel = GetLevelForScore(currentScore);
         UpdateScoreUI();
     }
         
@@ -179,6 +179,7 @@ public void UpdateScoreUI()
         if (this == null) return;
         
         currentScore += amount;
+        UpdateLevelFromScore();
 
         // YENİ: Eğer skorumuz rekoru geçtiyse ve KLASİK MODDAYSAK rekoru kaydet!
         // (LevelManager kapalıysa veya currentLevel null ise Klasik moddayız demektir)
@@ -223,6 +224,58 @@ public void UpdateScoreUI()
         scoreText.transform.localScale = originalScale;
     }
 
+    private void UpdateLevelFromScore()
+    {
+        int previousLevel = currentLevel;
+        currentLevel = GetLevelForScore(currentScore);
+
+        if (currentLevel > previousLevel)
+        {
+            Debug.Log($"<color=cyan>SEVİYE ATLADIN! YENİ SEVİYE: {currentLevel}</color>");
+            if (levelUpFXUI != null)
+            {
+                levelUpFXUI.ShowLevelUp(currentLevel);
+            }
+        }
+    }
+
+    private int GetLevelForScore(int score)
+    {
+        if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
+        {
+            return 1;
+        }
+
+        int level = 1;
+        for (int i = 0; i < scoreLevelThresholds.Length; i++)
+        {
+            if (score >= scoreLevelThresholds[i])
+            {
+                level = i + 1;
+            }
+        }
+
+        return Mathf.Max(1, level);
+    }
+
+    private int GetNextLevelThreshold()
+    {
+        if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
+        {
+            return Mathf.Max(1, currentScore);
+        }
+
+        for (int i = 0; i < scoreLevelThresholds.Length; i++)
+        {
+            if (scoreLevelThresholds[i] > currentScore)
+            {
+                return scoreLevelThresholds[i];
+            }
+        }
+
+        return Mathf.Max(currentScore, scoreLevelThresholds[scoreLevelThresholds.Length - 1]);
+    }
+
     private void UpdateClassicLevelUI()
     {
         if (levelText != null)
@@ -232,15 +285,16 @@ public void UpdateScoreUI()
 
         if (levelProgressBarFill != null)
         {
-            float progress = linesNeededForNextLevel > 0
-                ? Mathf.Clamp01(totalLinesCleared / (float)linesNeededForNextLevel)
+            int nextLevelThreshold = GetNextLevelThreshold();
+            float progress = nextLevelThreshold > 0
+                ? Mathf.Clamp01(currentScore / (float)nextLevelThreshold)
                 : 0f;
             levelProgressBarFill.fillAmount = progress;
         }
 
         if (xpText != null)
         {
-            xpText.text = $"{totalLinesCleared} / {linesNeededForNextLevel}";
+            xpText.text = $"{currentScore} / {GetNextLevelThreshold()}";
         }
     }
 
