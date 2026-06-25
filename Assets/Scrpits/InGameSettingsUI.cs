@@ -24,7 +24,7 @@ public class InGameSettingsUI : MonoBehaviour
     {
         if (inputManager == null)
         {
-            inputManager = FindObjectOfType<InputManager>();
+            inputManager = FindAnyObjectByType<InputManager>();
         }
     }
 

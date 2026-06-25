@@ -16,13 +16,31 @@ public class InputManager : MonoBehaviour
     private int minAllowedX;
     private int maxAllowedX;
 
-    void Awake() => mainCam = Camera.main;
+    void Awake()
+    {
+        mainCam = Camera.main;
+        if (grid == null)
+        {
+            grid = GridManager.Instance;
+        }
+    }
 
 void Update()
 {
+    if (IsBoardBusy())
+    {
+        CancelActiveDrag();
+        return;
+    }
+
     /// 1. ADIM: Mouse/Parmak Basıldığı An
     if (Input.GetMouseButtonDown(0))
     {
+        if (IsBoardBusy())
+        {
+            return;
+        }
+
         Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
 
@@ -76,6 +94,12 @@ void Update()
     // 3. ADIM: Mouse/Parmak Bırakıldığı An
     if (Input.GetMouseButtonUp(0))
     {
+        if (IsBoardBusy())
+        {
+            CancelActiveDrag();
+            return;
+        }
+
         //if (selectedBlock != null && isDragging)
         if (selectedBlock != null)
         {
@@ -108,6 +132,28 @@ void Update()
         isDragging = false;
     }
 
+}
+
+private bool IsBoardBusy()
+{
+    if (grid == null)
+    {
+        grid = GridManager.Instance;
+    }
+
+    return grid != null && grid.IsBoardBusy;
+}
+
+private void CancelActiveDrag()
+{
+    if (selectedBlock != null)
+    {
+        selectedBlock.SetHighlight(false);
+        selectedBlock.transform.position = blockStartWorldPos;
+    }
+
+    selectedBlock = null;
+    isDragging = false;
 }
 
 

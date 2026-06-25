@@ -120,6 +120,15 @@ public class GridManager : MonoBehaviour
     public Block[,] gridArray;
     public Block blockPrefab;
     public GameState currentState = GameState.IDLE;
+    public bool IsBoardBusy =>
+        isGameOver ||
+        currentState != GameState.IDLE ||
+        isResolvingNoMove ||
+        isRunningDifficultyPush ||
+        isSliceResolving ||
+        isFireResolving ||
+        activeSliceOperations > 0 ||
+        AreBlocksMoving();
     private bool isResolvingNoMove = false;
     private bool isRunningDifficultyPush = false;
     private bool isSliceResolving = false;
@@ -133,6 +142,9 @@ public class GridManager : MonoBehaviour
 
     public bool isGameOver = false;
     public GameObject losePanel; // Unity'den atayacağımız panel
+    [SerializeField] private GameObject noSpaceWarningPanel;
+    [SerializeField] private float gameOverGreyWaveRowDelay = 0.045f;
+    [SerializeField] private float noSpaceWarningDuration = 2f;
 
     [Header("Önizleme (Preview) Ayarları")]
     public float previewYPosition = -1.2f; // Gridin hemen altında duracağı Y koordinatı
@@ -476,13 +488,63 @@ public void TriggerGameOver()
     {
         if (isGameOver) return;
         isGameOver = true;
-        
-        // Kaybetme panelini aç
-        if (losePanel != null) losePanel.SetActive(true);
 
-        // Oyunu durdur
-        Time.timeScale = 0; 
+        StartCoroutine(GameOverNoSpaceRoutine());
     }
+
+private IEnumerator GameOverNoSpaceRoutine()
+{
+    yield return StartCoroutine(PlayGameOverGreyWaveRoutine());
+
+    if (noSpaceWarningPanel != null)
+    {
+        noSpaceWarningPanel.SetActive(true);
+        yield return new WaitForSeconds(noSpaceWarningDuration);
+        noSpaceWarningPanel.SetActive(false);
+    }
+
+    // Kaybetme panelini aç
+    if (losePanel != null) losePanel.SetActive(true);
+
+    // Oyunu durdur
+    Time.timeScale = 0;
+}
+
+private IEnumerator PlayGameOverGreyWaveRoutine()
+{
+    List<Block> blocks = new List<Block>();
+    foreach (Block block in activeBlocks)
+    {
+        if (block != null)
+        {
+            block.SetHighlight(false);
+            blocks.Add(block);
+        }
+    }
+
+    blocks.Sort((a, b) =>
+    {
+        if (a.y != b.y)
+            return b.y.CompareTo(a.y);
+
+        return a.x.CompareTo(b.x);
+    });
+
+    int lastY = int.MinValue;
+    foreach (Block block in blocks)
+    {
+        if (block == null)
+            continue;
+
+        if (lastY != int.MinValue && block.y != lastY)
+        {
+            yield return new WaitForSeconds(gameOverGreyWaveRowDelay);
+        }
+
+        block.SetGameOverGreyed(true);
+        lastY = block.y;
+    }
+}
 
 void GenerateBackgroundGrid()
 {

@@ -132,7 +132,7 @@ public class ScoreManager : MonoBehaviour
 
             targetTextObject = GameObject.Find("TargetText");
             movesTextObject = GameObject.Find("MovesText");
-            levelUpFXUI = FindObjectOfType<LevelUpFXUI>();
+            levelUpFXUI = FindAnyObjectByType<LevelUpFXUI>();
 
             bool isClassicMode = ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null;
             SetClassicHudState(isClassicMode);
@@ -276,6 +276,26 @@ public void UpdateScoreUI()
         return Mathf.Max(currentScore, scoreLevelThresholds[scoreLevelThresholds.Length - 1]);
     }
 
+    private int GetCurrentLevelStartThreshold()
+    {
+        if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
+        {
+            return 0;
+        }
+
+        int index = Mathf.Clamp(currentLevel - 1, 0, scoreLevelThresholds.Length - 1);
+        return scoreLevelThresholds[index];
+    }
+
+    private void GetCurrentLevelProgress(out int progressScore, out int requiredScore)
+    {
+        int currentLevelStartScore = GetCurrentLevelStartThreshold();
+        int nextLevelScore = GetNextLevelThreshold();
+
+        requiredScore = Mathf.Max(1, nextLevelScore - currentLevelStartScore);
+        progressScore = Mathf.Clamp(currentScore - currentLevelStartScore, 0, requiredScore);
+    }
+
     private void UpdateClassicLevelUI()
     {
         if (levelText != null)
@@ -285,16 +305,15 @@ public void UpdateScoreUI()
 
         if (levelProgressBarFill != null)
         {
-            int nextLevelThreshold = GetNextLevelThreshold();
-            float progress = nextLevelThreshold > 0
-                ? Mathf.Clamp01(currentScore / (float)nextLevelThreshold)
-                : 0f;
+            GetCurrentLevelProgress(out int progressScore, out int requiredScore);
+            float progress = Mathf.Clamp01(progressScore / (float)requiredScore);
             levelProgressBarFill.fillAmount = progress;
         }
 
         if (xpText != null)
         {
-            xpText.text = $"{currentScore} / {GetNextLevelThreshold()}";
+            GetCurrentLevelProgress(out int progressScore, out int requiredScore);
+            xpText.text = $"{progressScore} / {requiredScore}";
         }
     }
 

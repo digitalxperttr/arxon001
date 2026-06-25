@@ -29,12 +29,12 @@ public class InGameConfirmDialog : MonoBehaviour
     {
         if (inputManager == null)
         {
-            inputManager = FindObjectOfType<InputManager>();
+            inputManager = FindAnyObjectByType<InputManager>();
         }
 
         if (gameSceneUI == null)
         {
-            gameSceneUI = FindObjectOfType<GameSceneUI>();
+            gameSceneUI = FindAnyObjectByType<GameSceneUI>();
         }
     }
 

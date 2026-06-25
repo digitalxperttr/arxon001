@@ -44,8 +44,15 @@ public class Block : MonoBehaviour
     private bool isChainFlashPlaying = false;
     private MaterialPropertyBlock mpb;
     private static readonly int ColorProperty = Shader.PropertyToID("_Color"); // Shader'daki renk değişkeninin adı, URP'de genelde "_BaseColor" veya "_EmissionColor" olabilir.
+    private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
+    private static Material sharedRuntimeGrayscaleMaterial;
+    private readonly Dictionary<SpriteRenderer, Color> gameOverOriginalRendererColors = new Dictionary<SpriteRenderer, Color>();
+    private readonly Dictionary<SpriteRenderer, Material> gameOverOriginalRendererMaterials = new Dictionary<SpriteRenderer, Material>();
+    private readonly Dictionary<SpriteRenderer, bool> gameOverOriginalRendererEnabledStates = new Dictionary<SpriteRenderer, bool>();
+    private bool isGameOverGreyed = false;
     
     [Header("Görsel Efektler")]
+    [SerializeField] private Material gameOverGrayscaleMaterial;
     public float glowIntensity = 1.3f; // Seçilince parlaklık çarpanı
     private TrailRenderer trail; // Hız izi (Motion Trail) için
     private SpriteRenderer sr;
@@ -167,6 +174,7 @@ public void SetRock(bool rockStatus)
 
 public void SetBlockColor(Color c)
     {
+        ClearGameOverGreyCache();
         blockColor = c; 
         
         if (mpb == null) mpb = new MaterialPropertyBlock();
@@ -174,6 +182,7 @@ public void SetBlockColor(Color c)
         
         sr.GetPropertyBlock(mpb);
         mpb.SetColor(ColorProperty, c);
+        mpb.SetColor(BaseColorProperty, c);
         sr.SetPropertyBlock(mpb);
 
         // === İZ (TRAIL) RENGİNİ DİNAMİK AYARLAMA ===
@@ -218,6 +227,7 @@ public void SetBlockColor(Color c)
 public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
     {
         if (sr == null) sr = GetComponent<SpriteRenderer>();
+        ClearGameOverGreyCache();
         
         sr.sprite = newSprite;
         sr.color = Color.white; 
@@ -239,6 +249,161 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         UpdateTrailColor(colorData);
         RefreshChainOverlays();
     }
+
+public void SetGameOverGreyed(bool greyed)
+{
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+    if (sr == null) return;
+
+    if (mpb == null) mpb = new MaterialPropertyBlock();
+
+    if (!greyed)
+    {
+        RestoreGameOverRendererColors();
+        sr.GetPropertyBlock(mpb);
+        mpb.SetColor(ColorProperty, blockColor);
+        mpb.SetColor(BaseColorProperty, blockColor);
+        sr.SetPropertyBlock(mpb);
+        isGameOverGreyed = false;
+        return;
+    }
+
+    if (!isGameOverGreyed)
+    {
+        CacheGameOverRendererColors();
+    }
+
+    bool canUseGrayscaleShader = blockType == BlockType.Normal;
+    if (canUseGrayscaleShader)
+    {
+        Material grayscaleMaterial = GetGameOverGrayscaleMaterial();
+        sr.color = Color.white;
+        if (grayscaleMaterial != null)
+        {
+            sr.sharedMaterial = grayscaleMaterial;
+        }
+    }
+    else
+    {
+        sr.color = GetSpecialBlockGameOverTint();
+    }
+
+    HideGameOverChildRenderers();
+
+    isGameOverGreyed = true;
+}
+
+private void CacheGameOverRendererColors()
+{
+    gameOverOriginalRendererColors.Clear();
+    gameOverOriginalRendererMaterials.Clear();
+    gameOverOriginalRendererEnabledStates.Clear();
+
+    SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
+    foreach (SpriteRenderer renderer in renderers)
+    {
+        if (renderer == null)
+            continue;
+
+        if (!gameOverOriginalRendererColors.ContainsKey(renderer))
+        {
+            gameOverOriginalRendererColors.Add(renderer, renderer.color);
+        }
+
+        if (!gameOverOriginalRendererMaterials.ContainsKey(renderer))
+        {
+            gameOverOriginalRendererMaterials.Add(renderer, renderer.sharedMaterial);
+        }
+
+        if (!gameOverOriginalRendererEnabledStates.ContainsKey(renderer))
+        {
+            gameOverOriginalRendererEnabledStates.Add(renderer, renderer.enabled);
+        }
+    }
+}
+
+private void HideGameOverChildRenderers()
+{
+    SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
+    foreach (SpriteRenderer renderer in renderers)
+    {
+        if (renderer != null && renderer != sr)
+        {
+            renderer.enabled = false;
+        }
+    }
+}
+
+private void RestoreGameOverRendererColors()
+{
+    foreach (KeyValuePair<SpriteRenderer, Color> entry in gameOverOriginalRendererColors)
+    {
+        if (entry.Key != null)
+        {
+            entry.Key.color = entry.Value;
+        }
+    }
+
+    foreach (KeyValuePair<SpriteRenderer, Material> entry in gameOverOriginalRendererMaterials)
+    {
+        if (entry.Key != null)
+        {
+            entry.Key.sharedMaterial = entry.Value;
+        }
+    }
+
+    foreach (KeyValuePair<SpriteRenderer, bool> entry in gameOverOriginalRendererEnabledStates)
+    {
+        if (entry.Key != null)
+        {
+            entry.Key.enabled = entry.Value;
+        }
+    }
+
+    gameOverOriginalRendererColors.Clear();
+    gameOverOriginalRendererMaterials.Clear();
+    gameOverOriginalRendererEnabledStates.Clear();
+}
+
+private void ClearGameOverGreyCache()
+{
+    gameOverOriginalRendererColors.Clear();
+    gameOverOriginalRendererMaterials.Clear();
+    gameOverOriginalRendererEnabledStates.Clear();
+    isGameOverGreyed = false;
+}
+
+private Color GetSpecialBlockGameOverTint()
+{
+    return new Color(0.48f, 0.48f, 0.48f, 1f);
+}
+
+private Material GetGameOverGrayscaleMaterial()
+{
+    if (gameOverGrayscaleMaterial == null)
+    {
+        gameOverGrayscaleMaterial = Resources.Load<Material>("M_GameOverGrayscale");
+    }
+
+    if (gameOverGrayscaleMaterial == null)
+    {
+        if (sharedRuntimeGrayscaleMaterial == null)
+        {
+            Shader shader = Shader.Find("ARXON/Sprite Grayscale");
+            if (shader != null)
+            {
+                sharedRuntimeGrayscaleMaterial = new Material(shader)
+                {
+                    name = "Runtime_GameOverGrayscale"
+                };
+            }
+        }
+
+        gameOverGrayscaleMaterial = sharedRuntimeGrayscaleMaterial;
+    }
+
+    return gameOverGrayscaleMaterial;
+}
 
 public void SetFrozen(bool frozen, Sprite iceSprite = null)
 {
