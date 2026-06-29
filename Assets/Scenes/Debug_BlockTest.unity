@@ -649,6 +649,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputManager
   grid: {fileID: 455075677}
+  placementGuide: {fileID: 0}
   dragThreshold: 0.5
 --- !u!1 &455075676
 GameObject:
@@ -709,6 +710,17 @@ MonoBehaviour:
   height: 10
   cellSize: 1
   activeFogRows: []
+  fogOverlayPrefab: {fileID: 0}
+  fogLightSprite: {fileID: 0}
+  fogDenseSprite: {fileID: 0}
+  fogLightAlpha: 200
+  fogDenseAlpha: 200
+  fogTransitionDuration: 0.2
+  fogRevealPerRowClear: 0.05
+  fogRevealProgress: 0
+  fogRevealSoftness: 0.15
+  fogDistortionStrength: 0.035
+  fogDistortionSpeed: 0.55
   floatingTextPrefab: {fileID: 7431225859572386497, guid: fb1be8ec24e5549d783921745fe111e1, type: 3}
   explosionPrefab: {fileID: 6904227193083937457, guid: 638ac8eef13614a4b9c1f31605a2b7b9, type: 3}
   sliceFXPrefab: {fileID: 6568322574869184099, guid: 7b27b5da8ea094968af4cde39f1fca15, type: 3}
@@ -741,6 +753,8 @@ MonoBehaviour:
   sliceCutFxOffset: {x: 0, y: 0, z: -0.5}
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
+  chainBreakImpactPause: 0.16
+  chainBreakGravityStepDelay: 0.12
   firePulseScale: 1.12
   firePulseDuration: 0.12
   enableClassicDoubleRowSpawn: 1
@@ -751,6 +765,9 @@ MonoBehaviour:
   gridColor: {r: 1, g: 1, b: 1, a: 0.050980393}
   isGameOver: 0
   losePanel: {fileID: 621232009}
+  noSpaceWarningPanel: {fileID: 0}
+  gameOverGreyWaveRowDelay: 0.045
+  noSpaceWarningDuration: 2
   previewYPosition: -1.2
   previewAlpha: 0.17
   nextRowData: []
@@ -802,14 +819,14 @@ MonoBehaviour:
   - x: 0
     y: 0
     width: 3
-    blockType: 0
+    blockType: 3
     specialType: 0
     normalGemIndex: 0
   - x: 3
     y: 0
     width: 1
     blockType: 0
-    specialType: 2
+    specialType: 0
     normalGemIndex: 1
   - x: 4
     y: 0
@@ -826,7 +843,7 @@ MonoBehaviour:
   - x: 6
     y: 1
     width: 1
-    blockType: 0
+    blockType: 3
     specialType: 0
     normalGemIndex: 2
   - x: 5

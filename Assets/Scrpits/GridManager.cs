@@ -9,6 +9,8 @@ public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 
 public class GridManager : MonoBehaviour
 {
+    private const bool TutorialBoardOverrideEnabled = false;
+
     [System.Serializable]
     public struct GemVisual
     {
@@ -137,6 +139,7 @@ public class GridManager : MonoBehaviour
     private bool useSlowGravityThisPass = false;
     private int activeSliceOperations = 0;
     private FogController fogController;
+    private FirstTimeTutorial firstTimeTutorial;
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
@@ -225,8 +228,15 @@ private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
         profile.fireChance = 0.04f;
         profile.sliceChance = 0.03f;
         profile.frozenChance = 0.04f;
+        profile.rockChance = 0.03f;
         profile.allowDoubleRowSpawn = true;
         profile.doubleRowChance = 0.10f;
+    }
+    else if (level >= 5)
+    {
+        profile.fireChance = 0.03f;
+        profile.sliceChance = 0.02f;
+        profile.rockChance = 0.03f;
     }
     else if (level >= 3) 
     {
@@ -250,6 +260,23 @@ private int GetClassicScoreMultiplier(int level)
 
     return 1;
 }
+
+private int GetPerfectClearBonus(int level)
+{
+    if (level >= 13)
+        return 800;
+
+    if (level >= 10)
+        return 400;
+
+    if (level >= 7)
+        return 200;
+
+    if (level >= 4)
+        return 150;
+
+    return 100;
+}
   
     void Awake()
     {
@@ -266,6 +293,9 @@ private int GetClassicScoreMultiplier(int level)
         }
 
         blockTestSpawner = GetComponent<BlockTestSpawner>();
+        firstTimeTutorial = TutorialBoardOverrideEnabled
+            ? FindFirstObjectByType<FirstTimeTutorial>()
+            : null;
         gridArray = new Block[width, height];
     }
 
@@ -280,12 +310,18 @@ void Start()
         activeBlocks.Clear();
 
         // 2. Başlangıç tahtasını kur (debug spawner varsa onu kullan, yoksa normal akış)
+        bool usedTutorialBoard =
+            TutorialBoardOverrideEnabled &&
+            firstTimeTutorial != null &&
+            firstTimeTutorial.TryBuildInitialBoard(this);
+
         bool usedDebugBoard =
+            !usedTutorialBoard &&
             blockTestSpawner != null &&
             blockTestSpawner.enabled &&
             blockTestSpawner.TryBuildInitialBoard(this);
 
-        if (!usedDebugBoard)
+        if (!usedTutorialBoard && !usedDebugBoard)
         {
             SetupInitialBoard(4);
         }
@@ -450,6 +486,51 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
     return newBlock;
 }
 
+public void SetNextRowData(List<BlockData> rowData)
+{
+    nextRowData.Clear();
+
+    if (rowData != null)
+    {
+        nextRowData.AddRange(rowData);
+    }
+
+    UpdatePreviewVisuals();
+}
+
+public void SetPreviewVisualAlpha(int previewIndex, float alpha)
+{
+    if (previewIndex < 0 || previewIndex >= previewVisuals.Count)
+        return;
+
+    SetPreviewVisualAlpha(previewVisuals[previewIndex], alpha);
+}
+
+public void SetAllPreviewVisualsAlpha(float alpha)
+{
+    for (int i = 0; i < previewVisuals.Count; i++)
+    {
+        SetPreviewVisualAlpha(previewVisuals[i], alpha);
+    }
+}
+
+private void SetPreviewVisualAlpha(GameObject previewObject, float alpha)
+{
+    if (previewObject == null)
+        return;
+
+    SpriteRenderer[] renderers = previewObject.GetComponentsInChildren<SpriteRenderer>(true);
+    foreach (SpriteRenderer renderer in renderers)
+    {
+        if (renderer == null)
+            continue;
+
+        Color color = renderer.color;
+        color.a = alpha;
+        renderer.color = color;
+    }
+}
+
 private void ApplyNormalGemVisual(ref BlockData data, int normalGemIndex, bool useRandomNormalGem)
 {
     if (normalGems == null || normalGems.Length == 0)
@@ -555,7 +636,7 @@ void GenerateBackgroundGrid()
     {
         for (int y = 0; y < height; y++)
         {
-            Vector2 pos = new Vector2(x, y);
+            Vector3 pos = GetCellWorldPosition(x, y);
             GameObject cell = Instantiate(cellPrefab, pos, Quaternion.identity);
             cell.name = $"Cell_{x}_{y}";
             cell.transform.SetParent(gridParent.transform);
@@ -806,10 +887,12 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
         {
             if (!isGameOver) 
             {
-                Debug.Log("<color=yellow>PERFECT CLEAR! Tahta tertemiz oldu!</color>");
-                
-                // Oyuncuya 1000 Puan Mükemmel Temizlik Bonusu
-                if (ScoreManager.Instance != null) ScoreManager.Instance.AddScore(1000); 
+                int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+                int perfectClearBonus = GetPerfectClearBonus(level);
+
+                Debug.Log($"<color=yellow>PERFECT CLEAR! +{perfectClearBonus}</color>");
+
+                if (ScoreManager.Instance != null) ScoreManager.Instance.AddScore(perfectClearBonus); 
                 
                 // Oyunu kilitten kurtarmak için otomatik olarak alttan yeni satır ver!
                 yield return StartCoroutine(PushBoardUpRoutine());
@@ -1228,6 +1311,11 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
     RebuildGridMemory(); // Hafızayı baştan kur!
 }
 
+public Vector3 GetCellWorldPosition(int gridX, int gridY)
+{
+    return new Vector3(gridX * cellSize, gridY * cellSize, 0f);
+}
+
 public void GenerateFog()
 {
     if (activeFogRows != null)
@@ -1284,6 +1372,23 @@ public void GenerateFog()
 public void ClearFogNearRow(int y)
 {
 }
+
+private int CountBlocksByType(BlockType type)
+{
+    int count = 0;
+
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.blockType == type)
+            count++;
+    }
+
+    return count;
+}
+
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
 public void GenerateNextRowData()
@@ -1291,6 +1396,13 @@ public void GenerateNextRowData()
         nextRowData.Clear();
         int currentX = 0;
         int blockCountInRow = 0;
+        int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+        bool isClassicMode =
+            LevelManager.Instance == null ||
+            !LevelManager.Instance.enabled ||
+            LevelManager.Instance.currentLevel == null;
+        int currentFireCount = CountBlocksByType(BlockType.Fire);
+        int currentSliceCount = CountBlocksByType(BlockType.Slice);
 
         // --- ZORLUK (DIFFICULTY) DEĞERLERİNİ BELİRLE ---
         float currentGapChance = 0.4f;
@@ -1332,7 +1444,6 @@ public void GenerateNextRowData()
         else
         {
             // --- KLASİK MOD (Sonsuz) ---
-            int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
             float diffFactor = Mathf.Clamp01((level - 1) / 20f);
 
             currentGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor);
@@ -1390,11 +1501,16 @@ public void GenerateNextRowData()
             // --- GÖRSEL SEÇİM MANTIĞI ---
             BlockData newData = CreateSingleCellBlockData(currentX, BlockType.Normal, 0, true);
             newData.width = bWidth;
+            bool canSpawnFire = !isClassicMode || currentFireCount < 1;
+            bool canSpawnSlice = !isClassicMode || currentSliceCount < 1;
 
             // Eğer özel bir durum varsa (Kaya, Buz vb.) resmi değiştirelim
             newData.isRock = (Random.value < currentRockChance);
             if (newData.isRock)
             {
+                if (isClassicMode)
+                    Debug.Log("ROCK GENERATED at level " + level);
+
                 newData.blockType = BlockType.Rock;
                 newData.visualSprite = rockSprite;
                 newData.color = Color.gray;
@@ -1403,18 +1519,20 @@ public void GenerateNextRowData()
 {
             float specialRoll = Random.value;
 
-            if (specialRoll < currentFireChance)
+            if (canSpawnFire && specialRoll < currentFireChance)
             {
                 newData.blockType = BlockType.Fire;
                 newData.width = 1;
+                currentFireCount++;
 
                 if (fireSprite != null)
                     newData.visualSprite = fireSprite;
             }
-            else if (specialRoll < currentFireChance + currentSliceChance)
+            else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
             {
                 newData.blockType = BlockType.Slice;
                 newData.width = 1;
+                currentSliceCount++;
 
                 if (sliceSprite != null)
                     newData.visualSprite = sliceSprite;
@@ -1455,10 +1573,15 @@ public void GenerateNextRowData()
 
            BlockData newData = CreateSingleCellBlockData(fallbackX, BlockType.Normal, 0, true);
            newData.width = fallbackWidth;
+           bool canSpawnFire = !isClassicMode || currentFireCount < 1;
+           bool canSpawnSlice = !isClassicMode || currentSliceCount < 1;
 
            newData.isRock = (Random.value < currentRockChance);
            if (newData.isRock)
            {
+               if (isClassicMode)
+                   Debug.Log("ROCK GENERATED at level " + level);
+
                newData.blockType = BlockType.Rock;
                newData.visualSprite = rockSprite;
                newData.color = Color.gray;
@@ -1468,18 +1591,20 @@ public void GenerateNextRowData()
            {
                float specialRoll = Random.value;
 
-               if (specialRoll < currentFireChance)
+               if (canSpawnFire && specialRoll < currentFireChance)
                {
                    newData.blockType = BlockType.Fire;
                    newData.width = 1;
+                   currentFireCount++;
 
                    if (fireSprite != null)
                        newData.visualSprite = fireSprite;
                }
-               else if (specialRoll < currentFireChance + currentSliceChance)
+               else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
                {
                    newData.blockType = BlockType.Slice;
                    newData.width = 1;
+                   currentSliceCount++;
 
                    if (sliceSprite != null)
                        newData.visualSprite = sliceSprite;

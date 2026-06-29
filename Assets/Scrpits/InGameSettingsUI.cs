@@ -8,6 +8,7 @@ public class InGameSettingsUI : MonoBehaviour
     private const string SoundEnabledKey = "SoundEnabled";
     private const string HintEnabledKey = "HintEnabled";
     private const string VibrationEnabledKey = "VibrationEnabled";
+    private const string TutorialCompletedKey = "TutorialCompleted";
 
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject settingsModalDim;
@@ -78,6 +79,8 @@ public class InGameSettingsUI : MonoBehaviour
 
     public void ResetClassicScoreForTesting()
     {
+        PlayerPrefs.SetInt(TutorialCompletedKey, 0);
+
         if (ScoreManager.Instance != null)
         {
             ScoreManager.Instance.ResetClassicScoreAndBestForTesting();

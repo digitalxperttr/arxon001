@@ -165,6 +165,8 @@ MonoBehaviour:
   isFrozen: 0
   isRock: 0
   isChained: 0
+  chainStage1Sprite: {fileID: 21300000, guid: ce09fc508712c4af7905a17d5c146816, type: 3}
+  chainStage2Sprite: {fileID: 21300000, guid: faa6993e95f354e598c0cc156e789763, type: 3}
   chainOverlayRoot: {fileID: 0}
   chainOverlayPrefab: {fileID: 0}
   chainBreakFXPrefab: {fileID: 6568322574869184099, guid: 0485eb1ef4242424b9b69ab88dff4d5b, type: 3}
@@ -482,5 +484,5 @@ SpriteRenderer:
   m_Size: {x: 0.5976563, y: 0.59765625}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0

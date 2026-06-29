@@ -1,9 +1,18 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
+using System;
 
 public class InputManager : MonoBehaviour
 {
+    private const bool TutorialInputHooksEnabled = false;
+
+    public static event Action UserInputStarted;
+    public static event Action SuccessfulPlacement;
+
     public GridManager grid;
+    [SerializeField] private PlacementGuide placementGuide;
+    private FirstTimeTutorial firstTimeTutorial;
     private Camera mainCam;
     private Block selectedBlock;
     private Vector2 startTouchPos;
@@ -15,6 +24,9 @@ public class InputManager : MonoBehaviour
     private Vector3 blockStartWorldPos;
     private int minAllowedX;
     private int maxAllowedX;
+    private bool isTutorialPreviewDrag = false;
+    private Vector3 tutorialPreviewDragOffset;
+    private readonly List<Vector2Int> heldBlockOriginCells = new List<Vector2Int>();
 
     void Awake()
     {
@@ -23,10 +35,32 @@ public class InputManager : MonoBehaviour
         {
             grid = GridManager.Instance;
         }
+
+        if (placementGuide == null)
+        {
+            placementGuide = FindFirstObjectByType<PlacementGuide>();
+        }
+
+        if (placementGuide == null)
+        {
+            GameObject guideRoot = new GameObject("PlacementGuide");
+            placementGuide = guideRoot.AddComponent<PlacementGuide>();
+        }
+
+        firstTimeTutorial = TutorialInputHooksEnabled
+            ? FindFirstObjectByType<FirstTimeTutorial>()
+            : null;
+        placementGuide.ConfigureFromGrid(grid);
+        placementGuide.Hide();
     }
 
 void Update()
 {
+    if (Input.GetMouseButtonDown(0))
+    {
+        UserInputStarted?.Invoke();
+    }
+
     if (IsBoardBusy())
     {
         CancelActiveDrag();
@@ -49,15 +83,34 @@ void Update()
             selectedBlock = hit.collider.GetComponent<Block>();
 
             // === YENİ KONTROL: Eğer seçilen blok varsa ve KAYA DEĞİLSE hareketine izin ver! ===
-            if (selectedBlock != null && !selectedBlock.isRock && !selectedBlock.isChained)
+            if (selectedBlock != null &&
+                !selectedBlock.isRock &&
+                !selectedBlock.isChained &&
+                CanSelectBlock(selectedBlock))
             {
                 touchStartPos = mousePos;
                 blockStartGridPos = selectedBlock.transform.position;
                 isDragging = false;
                 originalGridX = selectedBlock.x;
                 blockStartWorldPos = selectedBlock.transform.position;
+                if (TutorialInputHooksEnabled &&
+                    firstTimeTutorial != null &&
+                    firstTimeTutorial.ShouldUsePreviewDrag(selectedBlock))
+                {
+                    tutorialPreviewDragOffset = selectedBlock.transform.position -
+                        new Vector3(mousePos.x, mousePos.y, selectedBlock.transform.position.z);
+                    isTutorialPreviewDrag = true;
+                    HidePlacementGuide();
+                    firstTimeTutorial.NotifyDragStarted();
+                    return;
+                }
+
+                isTutorialPreviewDrag = false;
+                CacheHeldBlockOriginCells(selectedBlock);
                 CalculateDragLimits(selectedBlock);
                 selectedBlock.SetHighlight(true);
+                UpdatePlacementGuide();
+                firstTimeTutorial?.NotifyDragStarted();
                 
             }
             else
@@ -73,20 +126,34 @@ void Update()
         {
             Vector2 currentMousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-            float deltaX = currentMousePos.x - touchStartPos.x;
+            if (isTutorialPreviewDrag)
+            {
+                selectedBlock.transform.position = new Vector3(
+                    currentMousePos.x + tutorialPreviewDragOffset.x,
+                    currentMousePos.y + tutorialPreviewDragOffset.y,
+                    blockStartWorldPos.z
+                );
 
-            float minWorldX = minAllowedX + (selectedBlock.width - 1) * 0.5f;
-            float maxWorldX = maxAllowedX + (selectedBlock.width - 1) * 0.5f;
+                isDragging = Vector2.Distance(currentMousePos, touchStartPos) > 0.05f;
+            }
+            else
+            {
+                float deltaX = currentMousePos.x - touchStartPos.x;
 
-            float targetWorldX = Mathf.Clamp(blockStartWorldPos.x + deltaX, minWorldX, maxWorldX);
+                float minWorldX = minAllowedX + (selectedBlock.width - 1) * 0.5f;
+                float maxWorldX = maxAllowedX + (selectedBlock.width - 1) * 0.5f;
 
-            selectedBlock.transform.position = new Vector3(
-                targetWorldX,
-                blockStartWorldPos.y,
-                blockStartWorldPos.z
-            );
+                float targetWorldX = Mathf.Clamp(blockStartWorldPos.x + deltaX, minWorldX, maxWorldX);
 
-            isDragging = Mathf.Abs(deltaX) > 0.05f;
+                selectedBlock.transform.position = new Vector3(
+                    targetWorldX,
+                    blockStartWorldPos.y,
+                    blockStartWorldPos.z
+                );
+
+                isDragging = Mathf.Abs(deltaX) > 0.05f;
+                UpdatePlacementGuide();
+            }
             
         }
 
@@ -103,9 +170,46 @@ void Update()
         //if (selectedBlock != null && isDragging)
         if (selectedBlock != null)
         {
+            if (isTutorialPreviewDrag)
+            {
+                HidePlacementGuide();
+                bool committed = firstTimeTutorial != null &&
+                    firstTimeTutorial.TryCommitActivePreviewBlock(selectedBlock.transform.position);
+
+                if (committed)
+                {
+                    SuccessfulPlacement?.Invoke();
+                    StartCoroutine(FinishMovementRoutine());
+                }
+                else
+                {
+                    firstTimeTutorial?.ResetActivePreviewBlock();
+                }
+
+                selectedBlock = null;
+                isDragging = false;
+                isTutorialPreviewDrag = false;
+                ClearHeldBlockOriginCells();
+                HidePlacementGuide();
+                return;
+            }
+
             selectedBlock.SetHighlight(false); // <--- YENİ: Parmağı çekince parlaklık normale dönsün
+            HidePlacementGuide();
             
             int snappedX = GetSnappedX(selectedBlock);
+
+            if (!IsAllowedPlacement(selectedBlock, snappedX))
+            {
+                selectedBlock.transform.position = blockStartWorldPos;
+                selectedBlock.MoveTo(originalGridX, selectedBlock.y);
+                selectedBlock = null;
+                isDragging = false;
+                ClearHeldBlockOriginCells();
+                HidePlacementGuide();
+                return;
+            }
+
             grid.UpdateBlockInGrid(selectedBlock, snappedX, selectedBlock.y);
             selectedBlock.MoveTo(snappedX, selectedBlock.y);
             
@@ -120,6 +224,7 @@ void Update()
                 // ==============================================
                 
                 // Sadece blok farklı bir karedeyse yeni satır ekle ve kontrol yap
+                SuccessfulPlacement?.Invoke();
                 StartCoroutine(FinishMovementRoutine());
             }
             else
@@ -130,6 +235,9 @@ void Update()
 
         selectedBlock = null;
         isDragging = false;
+        isTutorialPreviewDrag = false;
+        ClearHeldBlockOriginCells();
+        HidePlacementGuide();
     }
 
 }
@@ -144,16 +252,49 @@ private bool IsBoardBusy()
     return grid != null && grid.IsBoardBusy;
 }
 
+private bool CanSelectBlock(Block block)
+{
+    if (firstTimeTutorial == null)
+    {
+        if (!TutorialInputHooksEnabled)
+            return true;
+
+        firstTimeTutorial = FindFirstObjectByType<FirstTimeTutorial>();
+    }
+
+    return firstTimeTutorial == null || firstTimeTutorial.CanSelectBlock(block);
+}
+
+private bool IsAllowedPlacement(Block block, int snappedX)
+{
+    if (firstTimeTutorial == null)
+    {
+        if (!TutorialInputHooksEnabled)
+            return true;
+
+        firstTimeTutorial = FindFirstObjectByType<FirstTimeTutorial>();
+    }
+
+    return firstTimeTutorial == null || firstTimeTutorial.IsCorrectPlacement(block, snappedX);
+}
+
 private void CancelActiveDrag()
 {
     if (selectedBlock != null)
     {
         selectedBlock.SetHighlight(false);
-        selectedBlock.transform.position = blockStartWorldPos;
+
+        if (TutorialInputHooksEnabled && isTutorialPreviewDrag)
+            firstTimeTutorial?.ResetActivePreviewBlock();
+        else
+            selectedBlock.transform.position = blockStartWorldPos;
     }
 
     selectedBlock = null;
     isDragging = false;
+    isTutorialPreviewDrag = false;
+    ClearHeldBlockOriginCells();
+    HidePlacementGuide();
 }
 
 
@@ -161,6 +302,12 @@ private void CancelActiveDrag()
 // Yolun boş olup olmadığını kontrol eden yardımcı fonksiyon
 bool IsPathClear(Block b, int targetX)
 {
+    if (b == null || grid == null)
+        return false;
+
+    if (targetX < 0 || targetX + b.width > grid.width || b.y < 0 || b.y >= grid.height)
+        return false;
+
     for (int i = 0; i < b.width; i++)
     {
         Block other = grid.gridArray[targetX + i, b.y];
@@ -169,6 +316,52 @@ bool IsPathClear(Block b, int targetX)
     return true;
 }
 
+private void UpdatePlacementGuide()
+{
+    if (placementGuide == null || selectedBlock == null || grid == null)
+        return;
+
+    int snappedX = GetSnappedX(selectedBlock);
+    bool canPlaceAtSnappedPosition =
+        snappedX >= minAllowedX &&
+        snappedX <= maxAllowedX &&
+        IsPathClear(selectedBlock, snappedX);
+
+    if (canPlaceAtSnappedPosition)
+    {
+        placementGuide.Show(grid, selectedBlock, snappedX, selectedBlock.y, heldBlockOriginCells);
+    }
+    else
+    {
+        placementGuide.Hide();
+    }
+}
+
+private void HidePlacementGuide()
+{
+    if (placementGuide != null)
+    {
+        placementGuide.Hide();
+    }
+}
+
+private void CacheHeldBlockOriginCells(Block block)
+{
+    heldBlockOriginCells.Clear();
+
+    if (block == null)
+        return;
+
+    for (int i = 0; i < block.width; i++)
+    {
+        heldBlockOriginCells.Add(new Vector2Int(block.x + i, block.y));
+    }
+}
+
+private void ClearHeldBlockOriginCells()
+{
+    heldBlockOriginCells.Clear();
+}
 
 void CalculateDragLimits(Block block)
 {
@@ -252,9 +445,20 @@ System.Collections.IEnumerator FinishMovementRoutine()
     // Satır patladıkça yerçekimi tekrar çalışmalı (Özyinelemeli kontrol)
     grid.ChangeState(GameState.CHECKING);
     yield return StartCoroutine(grid.CheckAndClearRowsRoutine(true));
+
+    if (TutorialInputHooksEnabled && firstTimeTutorial != null && firstTimeTutorial.IsRunning)
+    {
+        yield return StartCoroutine(firstTimeTutorial.PlaySuccessBeforePushUp());
+    }
     
     // 4. BOARD'U YUKARI İT VE SÜRECİ BİTİR
     yield return StartCoroutine(grid.PushBoardUpRoutine());
+
+    if (TutorialInputHooksEnabled && firstTimeTutorial != null && firstTimeTutorial.IsRunning)
+    {
+        yield return StartCoroutine(firstTimeTutorial.CompleteAfterPushUp());
+    }
+
     grid.ChangeState(GameState.IDLE);
     
     // === YENİ EKLENEN KISIM ===
