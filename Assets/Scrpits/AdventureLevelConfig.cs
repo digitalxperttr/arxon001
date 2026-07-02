@@ -1,4 +1,54 @@
+using System.Collections.Generic;
 using UnityEngine;
+
+public enum AdventureObjectiveAction
+{
+    ClearRows,
+    ReachScore,
+    CollectItem,
+    DestroyObstacle,
+    BreakChain,
+    ComboTarget
+}
+
+public enum AdventureObjectiveTarget
+{
+    None,
+    Score,
+    Rows,
+    Collectible,
+    Ice,
+    Rock,
+    Chain,
+    AnyObstacle,
+    Combo
+}
+
+[System.Serializable]
+public class AdventureObjectiveDefinition
+{
+    [Header("Hedef Kuralı")]
+    [Tooltip("Bu hedefin oyuncudan istediği ana aksiyon.")]
+    public AdventureObjectiveAction action = AdventureObjectiveAction.ClearRows;
+
+    [Tooltip("Hedefin hangi tür veriye veya objeye baktığını belirtir.")]
+    public AdventureObjectiveTarget target = AdventureObjectiveTarget.Rows;
+
+    [Min(1)]
+    [Tooltip("Hedefin tamamlanması için gereken miktar. Örnek: 8 satır, 2500 skor, 10 collectible.")]
+    public int requiredAmount = 1;
+
+    [Header("Collectible")]
+    [Tooltip("Sadece CollectItem aksiyonu için kullanılır. Kalıcı CollectibleDefinition id değeri girin. Örnek: CR_BLUE_01")]
+    public string collectibleId;
+
+    [Header("Görsel Sunum")]
+    [Tooltip("Editör ve gelecek UI için okunabilir hedef etiketi. Boş bırakılabilir.")]
+    public string displayLabel;
+
+    [Tooltip("Opsiyonel görsel ikon. Şimdilik runtime zorunluluğu yoktur.")]
+    public Sprite displayIcon;
+}
 
 [System.Serializable]
 public class AdventureLevelOverrides
@@ -106,7 +156,11 @@ public class AdventureLevelConfig : ScriptableObject
     [Tooltip("Tahtanın üstten ne kadarının sisle kaplanacağını belirler. 0.25 = üst %25.")]
     [Range(0f, 1f)] public float fogCoveragePercent = 0f;
 
-    [Header("Hedefler")]
+    [Header("Hedefler V2")]
+    [Tooltip("Boşsa eski hedef alanları kullanılır. Doluysa Adventure Objective V2 tasarım kaynağı olarak kabul edilir.")]
+    public List<AdventureObjectiveDefinition> objectives = new List<AdventureObjectiveDefinition>();
+
+    [Header("Eski Hedefler")]
     [InspectorName("Hedef Satır")]
     [Tooltip("Satır temizleme odaklı içerikte doğrudan kullanılır ve desteklenmeyen hedeflerde yedek hedef olarak davranır.")]
     [Min(0)] public int targetLines = 6;
@@ -140,4 +194,52 @@ public class AdventureLevelConfig : ScriptableObject
     public bool useHandcraftedOverrides = false;
     [InspectorName("El Yapımı Ayarlar")]
     public AdventureLevelOverrides handcraftedOverrides = new AdventureLevelOverrides();
+
+    public bool HasObjectiveV2()
+    {
+        return objectives != null && objectives.Count > 0;
+    }
+
+    private void OnValidate()
+    {
+        ValidateObjectives();
+    }
+
+    private void ValidateObjectives()
+    {
+        if (objectives == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < objectives.Count; i++)
+        {
+            AdventureObjectiveDefinition objectiveDefinition = objectives[i];
+            if (objectiveDefinition == null)
+            {
+                continue;
+            }
+
+            string label = string.IsNullOrWhiteSpace(objectiveDefinition.displayLabel)
+                ? "Objective " + i
+                : objectiveDefinition.displayLabel;
+
+            if (objectiveDefinition.requiredAmount <= 0)
+            {
+                Debug.LogWarning($"{name}: {label} requiredAmount 0'dan büyük olmalı.", this);
+            }
+
+            if (objectiveDefinition.action == AdventureObjectiveAction.CollectItem)
+            {
+                if (string.IsNullOrWhiteSpace(objectiveDefinition.collectibleId))
+                {
+                    Debug.LogWarning($"{name}: {label} CollectItem hedefi için collectibleId boş olmamalı.", this);
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(objectiveDefinition.collectibleId))
+            {
+                Debug.LogWarning($"{name}: {label} CollectItem değil, collectibleId boş bırakılmalı.", this);
+            }
+        }
+    }
 }

@@ -81,6 +81,12 @@ public static class AdventureLevelGenerator
                 break;
         }
 
+        if (config.HasObjectiveV2())
+        {
+            ApplyObjectiveV2Fallback(config, target, ref profile, defaultLines, defaultScore);
+            return;
+        }
+
         switch (config.objective)
         {
             case ObjectiveType.ReachScore:
@@ -105,6 +111,97 @@ public static class AdventureLevelGenerator
                 target.targetLines = config.targetLines > 0 ? config.targetLines : defaultLines;
                 break;
         }
+    }
+
+    private static void ApplyObjectiveV2Fallback(
+        AdventureLevelConfig config,
+        LevelData target,
+        ref LevelProfile profile,
+        int defaultLines,
+        int defaultScore)
+    {
+        ResetLegacyTargets(target);
+
+        AdventureObjectiveDefinition fallbackObjective = GetFirstRuntimeCompatibleObjective(config);
+        if (fallbackObjective == null)
+        {
+            target.objectiveType = ObjectiveType.ClearRows;
+            target.targetLines = UnsupportedObjectiveFallbackLines;
+            target.targetScore = 0;
+            return;
+        }
+
+        int requiredAmount = Mathf.Max(1, fallbackObjective.requiredAmount);
+
+        switch (fallbackObjective.action)
+        {
+            case AdventureObjectiveAction.ReachScore:
+                target.objectiveType = ObjectiveType.ReachScore;
+                target.targetScore = requiredAmount > 0 ? requiredAmount : defaultScore;
+                target.targetLines = UnsupportedObjectiveFallbackLines;
+                break;
+            case AdventureObjectiveAction.DestroyObstacle:
+                target.objectiveType = ObjectiveType.DestroyObstacles;
+                target.targetObstacleCount = requiredAmount;
+                target.targetLines = UnsupportedObjectiveFallbackLines;
+                profile.rockBlockChance += 0.04f;
+                profile.frozenBlockChance += 0.04f;
+                profile.chainedBlockChance += 0.04f;
+                break;
+            case AdventureObjectiveAction.BreakChain:
+                target.objectiveType = ObjectiveType.DestroyObstacles;
+                target.targetObstacleCount = requiredAmount;
+                target.targetLines = UnsupportedObjectiveFallbackLines;
+                profile.chainedBlockChance += 0.08f;
+                break;
+            case AdventureObjectiveAction.ComboTarget:
+                target.objectiveType = ObjectiveType.ComboTarget;
+                target.targetComboCount = requiredAmount;
+                target.targetScore = config.targetScore > 0 ? config.targetScore : defaultScore;
+                target.targetLines = Mathf.Max(1, defaultLines - 1);
+                profile.largeBlockChance += 0.05f;
+                profile.baseGapChance -= 0.03f;
+                break;
+            default:
+                target.objectiveType = ObjectiveType.ClearRows;
+                target.targetLines = requiredAmount > 0 ? requiredAmount : defaultLines;
+                target.targetScore = 0;
+                break;
+        }
+    }
+
+    private static AdventureObjectiveDefinition GetFirstRuntimeCompatibleObjective(AdventureLevelConfig config)
+    {
+        if (config.objectives == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < config.objectives.Count; i++)
+        {
+            AdventureObjectiveDefinition objectiveDefinition = config.objectives[i];
+            if (objectiveDefinition == null)
+            {
+                continue;
+            }
+
+            if (objectiveDefinition.action == AdventureObjectiveAction.CollectItem)
+            {
+                continue;
+            }
+
+            return objectiveDefinition;
+        }
+
+        return null;
+    }
+
+    private static void ResetLegacyTargets(LevelData target)
+    {
+        target.targetScore = 0;
+        target.targetLines = 0;
+        target.targetObstacleCount = 0;
+        target.targetComboCount = 0;
     }
 
     private static void ApplyOverrides(AdventureLevelConfig config, LevelData target)

@@ -1,0 +1,183 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f0a72d0472b4e2a9a1b4f3e7d6c5b90, type: 3}
+  m_Name: CollectibleDatabase_V1
+  m_EditorClassIdentifier: Assembly-CSharp::CollectibleDatabase
+  collectibles:
+  - id: CR_BLUE_01
+    displayName: Blue Crystal
+    category: 0
+    color: 2
+    icon: {fileID: -3019556392169379218, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: CR_PURPLE_01
+    displayName: Purple Crystal
+    category: 0
+    color: 5
+    icon: {fileID: -2804545180472501753, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: CR_PINK_01
+    displayName: Pink Crystal
+    category: 0
+    color: 7
+    icon: {fileID: -6860945349618135327, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: CR_YELLOW_01
+    displayName: Yellow Crystal
+    category: 0
+    color: 4
+    icon: {fileID: 7664304707875481012, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: CR_ORANGE_01
+    displayName: Orange Crystal
+    category: 0
+    color: 6
+    icon: {fileID: -5900805509820777181, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: CR_GREEN_01
+    displayName: Green Crystal
+    category: 0
+    color: 3
+    icon: {fileID: -9038727930395559552, guid: b4ca47616320e43a8b3b1a8f1caf9573, type: 3}
+    availableInGenerator: 0
+  - id: GM_RED_01
+    displayName: Red Gem
+    category: 1
+    color: 1
+    icon: {fileID: -7505598527512772597, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_BLUE_01
+    displayName: Blue Gem
+    category: 1
+    color: 2
+    icon: {fileID: -5013187895617325363, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_YELLOW_01
+    displayName: Yellow Gem
+    category: 1
+    color: 4
+    icon: {fileID: -2766460032087512428, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_GREEN_01
+    displayName: Green Gem
+    category: 1
+    color: 3
+    icon: {fileID: -7092817236191687456, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_RED_02
+    displayName: Red Gem II
+    category: 1
+    color: 1
+    icon: {fileID: 3964587603934239221, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_BLUE_02
+    displayName: Blue Gem II
+    category: 1
+    color: 2
+    icon: {fileID: -1595361696591463399, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_YELLOW_02
+    displayName: Yellow Gem II
+    category: 1
+    color: 4
+    icon: {fileID: 7682304998423241559, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_GREEN_02
+    displayName: Green Gem II
+    category: 1
+    color: 3
+    icon: {fileID: -4585417692240692964, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_RED_03
+    displayName: Red Gem III
+    category: 1
+    color: 1
+    icon: {fileID: 3370936091853502348, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_BLUE_03
+    displayName: Blue Gem III
+    category: 1
+    color: 2
+    icon: {fileID: -7844249277610704735, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: GM_GREEN_03
+    displayName: Green Gem III
+    category: 1
+    color: 3
+    icon: {fileID: 3353661116373054565, guid: 612e7149faac344e3afb7e031c593088, type: 3}
+    availableInGenerator: 0
+  - id: CN_CYAN_01
+    displayName: Cyan Coin
+    category: 2
+    color: 8
+    icon: {fileID: -4255053647725866949, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_LIME_01
+    displayName: Lime Coin
+    category: 2
+    color: 3
+    icon: {fileID: -4847383111771094014, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_NAVY_01
+    displayName: Navy Coin
+    category: 2
+    color: 2
+    icon: {fileID: 1019788981566000950, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_EMERALD_01
+    displayName: Emerald Coin
+    category: 2
+    color: 3
+    icon: {fileID: 8747219830462562080, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_BRONZE_01
+    displayName: Bronze Coin
+    category: 2
+    color: 9
+    icon: {fileID: -1710246033724463733, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_BLUE_01
+    displayName: Blue Coin
+    category: 2
+    color: 2
+    icon: {fileID: 6236276641306224617, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_PURPLE_01
+    displayName: Purple Coin
+    category: 2
+    color: 5
+    icon: {fileID: -1150914393231172820, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_PINK_01
+    displayName: Pink Coin
+    category: 2
+    color: 7
+    icon: {fileID: 3741691043518315183, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_YELLOW_01
+    displayName: Yellow Coin
+    category: 2
+    color: 4
+    icon: {fileID: 7312797163689782948, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_TURQUOISE_01
+    displayName: Turquoise Coin
+    category: 2
+    color: 8
+    icon: {fileID: -905318844303339958, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
+  - id: CN_ORANGE_01
+    displayName: Orange Coin
+    category: 2
+    color: 6
+    icon: {fileID: 1469195769620847375, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
+    availableInGenerator: 0
