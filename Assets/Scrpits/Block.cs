@@ -27,6 +27,13 @@ public class Block : MonoBehaviour
     public bool isFrozen = false;
     public bool isRock = false;
     public bool isChained = false;
+
+    [Header("Collectible Carrier")]
+    public bool hasCollectible = false;
+    public string collectibleId;
+    [SerializeField] private SpriteRenderer collectibleVisualRenderer;
+    private bool collectibleCollected = false;
+
     [Header("Chain System")]
     [SerializeField] private Sprite chainStage1Sprite;
     [SerializeField] private Sprite chainStage2Sprite;
@@ -80,6 +87,7 @@ void Awake()
         sr = GetComponent<SpriteRenderer>();
         trail = GetComponent<TrailRenderer>();
         ResolveChainOverlayReferences();
+        ResolveCollectibleVisualReferences();
     }
 
 private void Start()
@@ -125,6 +133,7 @@ public void SetHighlight(bool isHighlighted)
         }
 
         RefreshChainOverlays();
+        RefreshCollectibleVisual();
 
         // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
         if (trail == null) trail = GetComponent<TrailRenderer>();
@@ -252,7 +261,86 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         UpdateSpecialVisualState();
         UpdateTrailColor(colorData);
         RefreshChainOverlays();
+        RefreshCollectibleVisual();
     }
+
+public void AssignCollectible(string newCollectibleId, Sprite sprite, bool logAssignment = true)
+{
+    ResolveCollectibleVisualReferences();
+
+    collectibleId = newCollectibleId;
+    hasCollectible = true;
+    collectibleCollected = false;
+
+    if (collectibleVisualRenderer != null)
+    {
+        collectibleVisualRenderer.sprite = sprite;
+        collectibleVisualRenderer.enabled = true;
+        RefreshCollectibleVisual();
+    }
+
+    if (logAssignment)
+    {
+        Debug.Log($"Assigned collectible: [{collectibleId}]");
+    }
+}
+
+public void ClearCollectible(bool logClear = true)
+{
+    string clearedId = collectibleId;
+
+    collectibleId = string.Empty;
+    hasCollectible = false;
+
+    if (collectibleVisualRenderer != null)
+    {
+        collectibleVisualRenderer.sprite = null;
+        collectibleVisualRenderer.enabled = false;
+    }
+
+    if (logClear && !string.IsNullOrWhiteSpace(clearedId))
+    {
+        Debug.Log($"Cleared collectible: [{clearedId}]");
+    }
+}
+
+public bool TryCollectCollectible()
+{
+    if (collectibleCollected ||
+        !hasCollectible ||
+        string.IsNullOrWhiteSpace(collectibleId))
+    {
+        return false;
+    }
+
+    string collectedId = collectibleId;
+    collectibleCollected = true;
+
+    if (ObjectiveManager.Instance != null)
+    {
+        ObjectiveManager.Instance.ReportCollectibleCollected(collectedId, 1);
+    }
+
+    ClearCollectible(false);
+    Debug.Log($"Collected collectible: {collectedId}");
+    return true;
+}
+
+public bool HasCollectible()
+{
+    return hasCollectible;
+}
+
+public string GetCollectibleId()
+{
+    return collectibleId;
+}
+
+public SpriteRenderer GetCollectibleRenderer()
+{
+    ResolveCollectibleVisualReferences();
+    return collectibleVisualRenderer;
+}
 
 public void SetGameOverGreyed(bool greyed)
 {
@@ -673,6 +761,86 @@ private void ResolveChainOverlayReferences()
             chainOverlayPrefab = existingOverlay.gameObject;
             chainOverlayPrefab.SetActive(false);
         }
+    }
+}
+
+private void ResolveCollectibleVisualReferences()
+{
+    if (collectibleVisualRenderer == null)
+    {
+        Transform existingVisual = transform.Find("CollectibleVisual");
+        if (existingVisual == null && sr != null)
+            existingVisual = sr.transform.Find("CollectibleVisual");
+
+        if (existingVisual != null)
+        {
+            collectibleVisualRenderer = existingVisual.GetComponent<SpriteRenderer>();
+            if (collectibleVisualRenderer == null)
+                collectibleVisualRenderer = existingVisual.gameObject.AddComponent<SpriteRenderer>();
+        }
+        else
+        {
+            GameObject visualObject = new GameObject("CollectibleVisual");
+            Transform parent = sr != null ? sr.transform : transform;
+            visualObject.transform.SetParent(parent, false);
+            collectibleVisualRenderer = visualObject.AddComponent<SpriteRenderer>();
+        }
+    }
+
+    RefreshCollectibleVisual();
+}
+
+private void RefreshCollectibleVisual()
+{
+    if (collectibleVisualRenderer == null)
+        return;
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    Transform visualTransform = collectibleVisualRenderer.transform;
+    Transform parent = sr != null ? sr.transform : transform;
+    if (visualTransform.parent != parent)
+        visualTransform.SetParent(parent, false);
+
+    visualTransform.localPosition = Vector3.zero;
+    visualTransform.localRotation = Quaternion.identity;
+
+    if (sr != null)
+    {
+        collectibleVisualRenderer.sortingLayerID = sr.sortingLayerID;
+        collectibleVisualRenderer.sortingOrder = sr.sortingOrder + 3;
+    }
+
+    collectibleVisualRenderer.drawMode = SpriteDrawMode.Simple;
+    collectibleVisualRenderer.color = Color.white;
+
+    Sprite sprite = collectibleVisualRenderer.sprite;
+    if (sprite != null)
+    {
+        collectibleVisualRenderer.enabled = hasCollectible;
+
+        Vector2 spriteSize = sprite.bounds.size;
+        if (spriteSize.x > 0f && spriteSize.y > 0f)
+        {
+            Vector2 blockSize = originalSize;
+            if ((blockSize.x <= 0f || blockSize.y <= 0f) && sr != null)
+                blockSize = sr.size;
+
+            float targetSize = Mathf.Min(blockSize.x, blockSize.y) * 0.5f;
+            float largestSpriteSide = Mathf.Max(spriteSize.x, spriteSize.y);
+            float scale = largestSpriteSide > 0f ? targetSize / largestSpriteSide : 1f;
+            visualTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+        else
+        {
+            visualTransform.localScale = Vector3.one;
+        }
+    }
+    else
+    {
+        visualTransform.localScale = Vector3.one;
+        collectibleVisualRenderer.enabled = false;
     }
 }
 

@@ -9,6 +9,7 @@ public class ProgressManager : MonoBehaviour
     public AdventureLevelConfig[] generatedAdventureLevels; // Yeni designer-facing config assetleri
 
     public LevelData currentSelectedLevel { get; private set; } // Runtime'da çözümlenmiş seviye
+    public AdventureLevelConfig currentSelectedAdventureConfig { get; private set; }
     public int currentSelectedLevelNumber { get; private set; }
     
     public static ProgressManager Instance;
@@ -79,11 +80,13 @@ public class ProgressManager : MonoBehaviour
         if (levelIndex < 0 || levelIndex >= GetAdventureLevelCount())
             return false;
 
-        LevelData resolvedLevel = ResolveAdventureLevel(levelIndex);
+        AdventureLevelConfig resolvedConfig;
+        LevelData resolvedLevel = ResolveAdventureLevel(levelIndex, out resolvedConfig);
         if (resolvedLevel == null)
             return false;
 
         currentSelectedLevel = resolvedLevel;
+        currentSelectedAdventureConfig = resolvedConfig;
         currentSelectedLevelNumber = levelNumber;
         return true;
     }
@@ -110,17 +113,21 @@ public class ProgressManager : MonoBehaviour
     public void ClearAdventureSelection()
     {
         currentSelectedLevel = null;
+        currentSelectedAdventureConfig = null;
         currentSelectedLevelNumber = 0;
     }
 
-    private LevelData ResolveAdventureLevel(int levelIndex)
+    private LevelData ResolveAdventureLevel(int levelIndex, out AdventureLevelConfig resolvedConfig)
     {
+        resolvedConfig = null;
+
         if (generatedAdventureLevels != null &&
             levelIndex >= 0 &&
             levelIndex < generatedAdventureLevels.Length &&
             generatedAdventureLevels[levelIndex] != null)
         {
-            return AdventureLevelGenerator.GenerateRuntimeLevel(generatedAdventureLevels[levelIndex]);
+            resolvedConfig = generatedAdventureLevels[levelIndex];
+            return AdventureLevelGenerator.GenerateRuntimeLevel(resolvedConfig);
         }
 
         if (allLevels != null && levelIndex >= 0 && levelIndex < allLevels.Length)

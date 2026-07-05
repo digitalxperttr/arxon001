@@ -27,6 +27,9 @@ public class GridManager : MonoBehaviour
     public Sprite fireSprite;
     public Sprite sliceSprite;
 
+    [Header("Collectibles")]
+    [SerializeField] private CollectibleDatabase collectibleDatabase;
+
     [Range(0f, 1f)] public float classicFireChance = 0.03f;
     [Range(0f, 1f)] public float classicSliceChance = 0.02f;
     
@@ -121,6 +124,7 @@ public class GridManager : MonoBehaviour
 
     public Block[,] gridArray;
     public Block blockPrefab;
+    public CollectibleDatabase CollectibleDatabase => collectibleDatabase;
     public GameState currentState = GameState.IDLE;
     public bool IsBoardBusy =>
         isGameOver ||
@@ -326,6 +330,8 @@ void Start()
             SetupInitialBoard(4);
         }
 
+        SpawnInitialCollectibles();
+
         // 3. Durumu IDLE yapalım ki oyuncu dokunabilsin
         currentState = GameState.IDLE;
 
@@ -338,22 +344,30 @@ void Start()
 
 private void Update()
 {
-    if (isGameOver)
-        return;
-
-    if (currentState != GameState.IDLE)
-        return;
-
-    if (isResolvingNoMove)
-        return;
-
-    if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+    if (!CanResolveNoMoveSoftlock())
         return;
 
     if (!HasAnyLegalPlayerMove())
     {
         StartCoroutine(ResolveNoMoveRoutine());
     }
+}
+
+private bool CanResolveNoMoveSoftlock()
+{
+    if (isGameOver)
+        return false;
+
+    if (isResolvingNoMove)
+        return false;
+
+    if (currentState != GameState.IDLE)
+        return false;
+
+    if (IsBoardBusy)
+        return false;
+
+    return true;
 }
 
 private bool HasAnyLegalPlayerMove()
@@ -388,11 +402,13 @@ private IEnumerator ResolveNoMoveRoutine()
 
     yield return new WaitForSeconds(0.25f);
 
-    if (!isGameOver && currentState == GameState.IDLE && !HasAnyLegalPlayerMove())
+    if (CanResolveNoMoveSoftlock() && !HasAnyLegalPlayerMove())
     {
         ChangeState(GameState.SPAWNING);
         yield return StartCoroutine(PushBoardUpRoutine());
-        ChangeState(GameState.IDLE);
+
+        if (!isGameOver && currentState == GameState.SPAWNING)
+            ChangeState(GameState.IDLE);
     }
 
     isResolvingNoMove = false;
@@ -414,6 +430,90 @@ void SetupInitialBoard(int startingRowCount)
         RebuildGridMemory();
         GenerateNextRowData();
     }
+
+private void SpawnInitialCollectibles()
+{
+    if (ProgressManager.Instance == null ||
+        ProgressManager.Instance.currentSelectedAdventureConfig == null ||
+        collectibleDatabase == null)
+    {
+        return;
+    }
+
+    AdventureLevelConfig config = ProgressManager.Instance.currentSelectedAdventureConfig;
+    if (config.objectives == null || config.objectives.Count == 0)
+    {
+        return;
+    }
+
+    List<Block> availableBlocks = GetCollectibleSpawnCandidates();
+
+    for (int i = 0; i < config.objectives.Count; i++)
+    {
+        AdventureObjectiveDefinition objective = config.objectives[i];
+        if (objective == null ||
+            objective.action != AdventureObjectiveAction.CollectItem ||
+            string.IsNullOrWhiteSpace(objective.collectibleId))
+        {
+            continue;
+        }
+
+        CollectibleDefinition collectible = collectibleDatabase.GetById(objective.collectibleId);
+        if (collectible == null)
+        {
+            Debug.LogWarning($"Collectible spawn skipped. ID not found: {objective.collectibleId}");
+            continue;
+        }
+
+        int spawnCount = Mathf.Min(Mathf.Max(0, objective.requiredAmount), availableBlocks.Count);
+        for (int spawnIndex = 0; spawnIndex < spawnCount; spawnIndex++)
+        {
+            int randomIndex = Random.Range(0, availableBlocks.Count);
+            Block targetBlock = availableBlocks[randomIndex];
+            availableBlocks.RemoveAt(randomIndex);
+
+            if (targetBlock != null)
+            {
+                targetBlock.AssignCollectible(objective.collectibleId, collectible.icon, false);
+            }
+        }
+
+        Debug.Log($"Spawned collectibles:\n{objective.collectibleId}\nCount:\n{spawnCount}");
+    }
+}
+
+private List<Block> GetCollectibleSpawnCandidates()
+{
+    List<Block> candidates = new List<Block>();
+
+    for (int i = 0; i < activeBlocks.Count; i++)
+    {
+        Block block = activeBlocks[i];
+        if (CanSpawnCollectibleOnBlock(block))
+        {
+            candidates.Add(block);
+        }
+    }
+
+    return candidates;
+}
+
+private bool CanSpawnCollectibleOnBlock(Block block)
+{
+    if (block == null || block.HasCollectible())
+    {
+        return false;
+    }
+
+    if (block.blockType != BlockType.Normal)
+    {
+        return false;
+    }
+
+    return !block.isRock &&
+           !block.isFrozen &&
+           !block.isChained;
+}
 
 public int NormalGemCount
 {
@@ -1743,6 +1843,7 @@ public void SafeDestroyBlock(Block block, GameObject destroyFxPrefab = null, boo
         return;
 
     block.isBeingDestroyed = true;
+    block.TryCollectCollectible();
 
     activeBlocks.Remove(block);
 

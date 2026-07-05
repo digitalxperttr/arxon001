@@ -16,3 +16,69 @@ MonoBehaviour:
   - key: score
     tr: Puan
     en: Score
+  - key: goal_title
+    tr: HEDEF
+    en: GOAL
+  - key: level_title
+    tr: Seviye
+    en: Level
+  - key: objective_clear_rows
+    tr: "Sat\u0131r temizle"
+    en: Clear Rows
+  - key: objective_reach_score
+    tr: "Puana ula\u015F"
+    en: Reach Score
+  - key: objective_collect
+    tr: Topla
+    en: Collect
+  - key: objective_description_default
+    tr: Hedefi Tamamla
+    en: Complete Objective
+  - key: objective_description_multiple
+    tr: Hedefleri Tamamla
+    en: Complete Objectives
+  - key: objective_description_reach_score
+    tr: Puan Topla
+    en: Collect Points
+  - key: objective_description_clear_rows
+    tr: "Sat\u0131r Temizle"
+    en: Clear Rows
+  - key: objective_description_collect_blue_crystals
+    tr: Mavi Kristalleri Topla
+    en: Collect Blue Crystals
+  - key: objective_description_collect_purple_crystals
+    tr: Mor Kristalleri Topla
+    en: Collect Purple Crystals
+  - key: objective_description_collect_pink_crystals
+    tr: Pembe Kristalleri Topla
+    en: Collect Pink Crystals
+  - key: objective_description_collect_yellow_crystals
+    tr: "Sar\u0131 Kristalleri Topla"
+    en: Collect Yellow Crystals
+  - key: objective_description_collect_orange_crystals
+    tr: Turuncu Kristalleri Topla
+    en: Collect Orange Crystals
+  - key: objective_description_collect_green_crystals
+    tr: "Ye\u015Fil Kristalleri Topla"
+    en: Collect Green Crystals
+  - key: objective_description_collect_crystals
+    tr: Kristalleri Topla
+    en: Collect Crystals
+  - key: objective_description_collect_items
+    tr: Objeleri Topla
+    en: Collect Items
+  - key: objective_description_destroy_rocks
+    tr: "Kayalar\u0131 K\u0131r"
+    en: Break Rocks
+  - key: objective_description_destroy_ice
+    tr: "Buzlar\u0131 Temizle"
+    en: Clear Ice
+  - key: objective_description_destroy_obstacles
+    tr: Engelleri Temizle
+    en: Clear Obstacles
+  - key: objective_description_break_chains
+    tr: "Zincirleri K\u0131r"
+    en: Break Chains
+  - key: objective_description_combo
+    tr: Kombo Yap
+    en: Make Combos

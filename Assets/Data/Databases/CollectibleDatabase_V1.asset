@@ -124,25 +124,25 @@ MonoBehaviour:
   - id: CN_LIME_01
     displayName: Lime Coin
     category: 2
-    color: 3
+    color: 11
     icon: {fileID: -4847383111771094014, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
     availableInGenerator: 0
   - id: CN_NAVY_01
     displayName: Navy Coin
     category: 2
-    color: 2
+    color: 13
     icon: {fileID: 1019788981566000950, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
     availableInGenerator: 0
   - id: CN_EMERALD_01
     displayName: Emerald Coin
     category: 2
-    color: 3
+    color: 12
     icon: {fileID: 8747219830462562080, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
     availableInGenerator: 0
   - id: CN_BRONZE_01
     displayName: Bronze Coin
     category: 2
-    color: 9
+    color: 14
     icon: {fileID: -1710246033724463733, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
     availableInGenerator: 0
   - id: CN_BLUE_01
@@ -172,7 +172,7 @@ MonoBehaviour:
   - id: CN_TURQUOISE_01
     displayName: Turquoise Coin
     category: 2
-    color: 8
+    color: 10
     icon: {fileID: -905318844303339958, guid: cf792914c16264e30ad8d0ed94793c05, type: 3}
     availableInGenerator: 0
   - id: CN_ORANGE_01

@@ -63,7 +63,7 @@ public class LevelGridGenerator : MonoBehaviour
         if (ProgressManager.Instance != null && ProgressManager.Instance.TrySelectAdventureLevel(levelNumber))
         {
             // Veriyi hafızaya attık, şimdi oyun sahnesine geçiyoruz!
-            if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode(); // (GameScene sahnesini yüklüyor)
+            if (SceneLoader.Instance != null) SceneLoader.Instance.LoadAdventureGameScene();
         }
         else
         {

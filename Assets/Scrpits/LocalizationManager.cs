@@ -47,7 +47,20 @@ public class LocalizationManager : MonoBehaviour
     public void ChangeLanguage(Language newLang)
     {
         currentLanguage = newLang;
+        LocalizedTMPText[] localizedTexts = FindObjectsByType<LocalizedTMPText>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        for (int i = 0; i < localizedTexts.Length; i++)
+        {
+            if (localizedTexts[i] != null)
+            {
+                localizedTexts[i].ApplyLocalization();
+            }
+        }
+
         // Puan yazısını hemen güncellemesi için ScoreManager'a haber verilebilir
         if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
+        if(ObjectiveHUD.Instance != null) ObjectiveHUD.Instance.RefreshLocalizedText();
     }
 }

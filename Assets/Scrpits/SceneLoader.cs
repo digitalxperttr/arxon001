@@ -6,6 +6,11 @@ public class SceneLoader : MonoBehaviour
 {
     public static SceneLoader Instance;
 
+    private const string MainMenuSceneName = "MainMenu";
+    private const string ClassicGameSceneName = "GameScene";
+    private const string AdventureMapSceneName = "AdventureMap";
+    private const string AdventureGameSceneName = "AdventureGameScene";
+
     public GameObject loadingScreen; // Yükleme ekranı paneli (opsiyonel ama şık)
     public float minLoadTime = 1f; // Yüklemenin çok hızlı bitmesi durumunda en az bekleme süresi
 
@@ -24,17 +29,22 @@ public class SceneLoader : MonoBehaviour
 
     public void LoadMainMenu()
     {
-        LoadScene("MainMenu");
+        LoadScene(MainMenuSceneName);
     }
 
     public void LoadClassicMode()
     {
-        LoadScene("GameScene"); // Klasik Mod'un olduğu sahnenin adı
+        LoadScene(ClassicGameSceneName); // Klasik Mod'un olduğu sahnenin adı
+    }
+
+    public void LoadAdventureGameScene()
+    {
+        LoadScene(AdventureGameSceneName);
     }
 
     public void LoadAdventureMap()
     {
-        LoadScene("AdventureMap"); // Seviye seçim haritasının olduğu sahne
+        LoadScene(AdventureMapSceneName); // Seviye seçim haritasının olduğu sahne
     }
     
     // Belli bir seviyeyi yüklemek için (Örn: "Level_5")

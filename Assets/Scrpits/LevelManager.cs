@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class LevelManager : MonoBehaviour
 {
@@ -13,6 +14,8 @@ public class LevelManager : MonoBehaviour
     private int remainingMoves;
     private int currentTargetLines;
     private int currentTargetScore;
+    private bool hasFinishedLevel;
+    private bool shouldWriteLegacyHud;
     
 
     void Awake() 
@@ -22,6 +25,8 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
+        shouldWriteLegacyHud = SceneManager.GetActiveScene().name == "GameScene";
+
         if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null)
         {
             // --- MACERA MODU ---
@@ -29,6 +34,29 @@ public class LevelManager : MonoBehaviour
             remainingMoves = currentLevel.moveLimit;
             currentTargetLines = currentLevel.targetLines;
             currentTargetScore = currentLevel.targetScore;
+            hasFinishedLevel = false;
+
+            AdventureLevelConfig objectiveConfig = ProgressManager.Instance.currentSelectedAdventureConfig;
+            if (objectiveConfig == null)
+            {
+                objectiveConfig = CreateLegacyObjectiveConfig(currentLevel);
+            }
+
+            if (objectiveConfig != null)
+            {
+                ObjectiveManager.EnsureInstance().Initialize(objectiveConfig, currentLevel);
+                if (ScoreManager.Instance != null)
+                {
+                    ObjectiveManager.Instance.ReportScoreChanged(ScoreManager.Instance.CurrentScore);
+                }
+
+                ObjectiveHUD objectiveHUD = ObjectiveHUD.EnsureInstance();
+                if (objectiveHUD != null)
+                {
+                    objectiveHUD.BuildFromObjectiveManager();
+                }
+            }
+
             UpdateUI();
         }
         else
@@ -50,9 +78,32 @@ public class LevelManager : MonoBehaviour
 
     }
 
+    private AdventureLevelConfig CreateLegacyObjectiveConfig(LevelData levelData)
+    {
+        if (levelData == null)
+        {
+            return null;
+        }
+
+        AdventureLevelConfig config = ScriptableObject.CreateInstance<AdventureLevelConfig>();
+        config.hideFlags = HideFlags.DontSave;
+        config.name = $"LegacyAdventureObjectiveConfig_{levelData.levelNumber}";
+        config.objective = levelData.objectiveType;
+        config.targetLines = levelData.targetLines;
+        config.targetScore = levelData.targetScore;
+        config.targetObstacleCount = levelData.targetObstacleCount;
+        config.targetComboCount = levelData.targetComboCount;
+        return config;
+    }
+
     public void LinesCleared(int count)
     {
         if (currentLevel == null) return;
+
+        if (ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.ReportRowsCleared(count);
+        }
 
         currentTargetLines -= count;
         if (currentTargetLines < 0) currentTargetLines = 0; // Eksiye düşmesin
@@ -63,6 +114,11 @@ public class LevelManager : MonoBehaviour
 
     private void UpdateUI()
     {
+        if (!shouldWriteLegacyHud)
+        {
+            return;
+        }
+
         if (movesText != null) movesText.text = $"Hamle: {remainingMoves}";
         if (targetText != null)
         {
@@ -80,6 +136,21 @@ public class LevelManager : MonoBehaviour
 
     private void CheckWinLoss()
     {
+        if (hasFinishedLevel)
+        {
+            return;
+        }
+
+        if (ObjectiveManager.Instance != null && ObjectiveManager.Instance.IsActive)
+        {
+            if (ObjectiveManager.Instance.AreAllObjectivesComplete())
+            {
+                CompleteLevel();
+            }
+
+            return;
+        }
+
         bool scoreGoalReached =
             currentLevel.objectiveType == ObjectiveType.ReachScore &&
             currentTargetScore > 0 &&
@@ -92,15 +163,37 @@ public class LevelManager : MonoBehaviour
 
         if (scoreGoalReached || lineGoalReached)
         {
-            Debug.Log("<color=green>BÖLÜM GEÇİLDİ! KAZANDIN!</color>");
-            ProgressManager.Instance.UnlockNextLevel();
-            
-            // Şimdilik oyunu durduruyoruz, ileride buraya "KAZANDIN" paneli açtıracağız
-            StartCoroutine(WinRoutine()); 
+            CompleteLevel();
             return;
         }
 
 
+    }
+
+    public void EvaluateObjectiveCompletion()
+    {
+        if (currentLevel == null) return;
+
+        CheckWinLoss();
+    }
+
+    private void CompleteLevel()
+    {
+        if (hasFinishedLevel)
+        {
+            return;
+        }
+
+        hasFinishedLevel = true;
+        Debug.Log("<color=green>BÖLÜM GEÇİLDİ! KAZANDIN!</color>");
+
+        if (ProgressManager.Instance != null)
+        {
+            ProgressManager.Instance.UnlockNextLevel();
+        }
+
+        // Şimdilik oyunu durduruyoruz, ileride buraya "KAZANDIN" paneli açtıracağız
+        StartCoroutine(WinRoutine());
     }
 
     // === YENİ EKLENEN COROUTINE ===
@@ -128,6 +221,24 @@ public class LevelManager : MonoBehaviour
 public void EvaluateEndOfTurn()
 {
     if (currentLevel == null) return;
+    if (hasFinishedLevel) return;
+
+    if (ObjectiveManager.Instance != null && ObjectiveManager.Instance.IsActive)
+    {
+        if (ObjectiveManager.Instance.AreAllObjectivesComplete())
+        {
+            CompleteLevel();
+            return;
+        }
+
+        if (remainingMoves <= 0)
+        {
+            Debug.Log("<color=red>Hamle Bitti! KAYBETTİN.</color>");
+            if (GridManager.Instance != null) GridManager.Instance.TriggerGameOver();
+        }
+
+        return;
+    }
     
     // Eğer o el içinde patlayan bloklarla zaten kazandıysak, kaybetme kontrolüne girme
     bool scoreGoalReached =

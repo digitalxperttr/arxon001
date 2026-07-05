@@ -17,7 +17,17 @@ public class GameSceneUI : MonoBehaviour
                 GridManager.Instance.ResetClassicRunState();
         }
 
-        if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode(); // GameScene'i yeniden yükler (Macera verisi hafızada kalır, aynı bölüm baştan açılır)
+        if (SceneLoader.Instance != null)
+        {
+            if (isClassicRun)
+            {
+                SceneLoader.Instance.LoadClassicMode();
+            }
+            else
+            {
+                SceneLoader.Instance.LoadAdventureGameScene();
+            }
+        }
     }
 
     // "Ana Menü" butonuna bağlanacak
@@ -47,7 +57,7 @@ public class GameSceneUI : MonoBehaviour
                 ProgressManager.Instance.TrySelectAdventureLevel(currentLevelNum + 1))
             {
                 // Oyunu yeniden başlat (Yeni verilerle açılacaktır)
-                if (SceneLoader.Instance != null) SceneLoader.Instance.LoadClassicMode();
+                if (SceneLoader.Instance != null) SceneLoader.Instance.LoadAdventureGameScene();
             }
             else
             {

@@ -22,6 +22,7 @@ public class ScoreManager : MonoBehaviour
     private GameObject targetTextObject;
     private GameObject movesTextObject;
     private LevelUpFXUI levelUpFXUI;
+    private bool shouldUseClassicHud;
     public int bestScore { get; private set; } // Hafızada tutacağımız rekor
     public int PreviousBestScoreAtRunStart { get; private set; }
     private int currentScore = 0;
@@ -107,7 +108,10 @@ public class ScoreManager : MonoBehaviour
     // Herhangi bir sahne yüklendiğinde bu fonksiyon otomatik olarak çalışır
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "GameScene")
+        ClearClassicHudReferences();
+        shouldUseClassicHud = scene.name == "GameScene";
+
+        if (shouldUseClassicHud)
         {
             GameObject scoreTextObject = GameObject.FindWithTag("ScoreText");
             if (scoreTextObject != null) scoreText = scoreTextObject.GetComponent<TextMeshProUGUI>();
@@ -137,18 +141,6 @@ public class ScoreManager : MonoBehaviour
             bool isClassicMode = ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null;
             SetClassicHudState(isClassicMode);
         }
-        else
-        {
-            scoreText = null;
-            bestScoreText = null;
-            levelText = null;
-            xpText = null;
-            levelProgressBarFill = null;
-            levelProgressBarBG = null;
-            targetTextObject = null;
-            movesTextObject = null;
-            levelUpFXUI = null;
-        }
         
         // YENİ: Oyuncu oyuna girdiğinde veya sahne değiştiğinde rekorunu hafızadan çek!
         bestScore = PlayerPrefs.GetInt("ClassicBestScore", 0);
@@ -161,6 +153,11 @@ public class ScoreManager : MonoBehaviour
         
 public void UpdateScoreUI()
     {
+        if (!shouldUseClassicHud)
+        {
+            return;
+        }
+
         if (scoreText != null)
         {
             scoreText.text = currentScore.ToString();
@@ -191,6 +188,16 @@ public void UpdateScoreUI()
         }
 
         UpdateScoreUI();
+
+        if (ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.ReportScoreChanged(currentScore);
+
+            if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+            {
+                LevelManager.Instance.EvaluateObjectiveCompletion();
+            }
+        }
         
         StopAllCoroutines();
         StartCoroutine(PulseScoreText());
@@ -198,6 +205,8 @@ public void UpdateScoreUI()
 
     IEnumerator PulseScoreText()
     {
+        if (!shouldUseClassicHud) yield break;
+
         // Bu fonksiyon aynı kalabilir, bir sorun yok.
         if (scoreText == null) yield break;
 
@@ -229,7 +238,7 @@ public void UpdateScoreUI()
         int previousLevel = currentLevel;
         currentLevel = GetLevelForScore(currentScore);
 
-        if (currentLevel > previousLevel)
+        if (shouldUseClassicHud && currentLevel > previousLevel)
         {
             Debug.Log($"<color=cyan>SEVİYE ATLADIN! YENİ SEVİYE: {currentLevel}</color>");
             if (levelUpFXUI != null)
@@ -319,6 +328,11 @@ public void UpdateScoreUI()
 
     private void SetClassicHudState(bool isClassicMode)
     {
+        if (!shouldUseClassicHud)
+        {
+            return;
+        }
+
         if (levelText != null)
         {
             levelText.gameObject.SetActive(isClassicMode);
@@ -336,12 +350,25 @@ public void UpdateScoreUI()
 
         if (targetTextObject != null)
         {
-            targetTextObject.SetActive(!isClassicMode);
+            targetTextObject.SetActive(false);
         }
 
         if (movesTextObject != null)
         {
-            movesTextObject.SetActive(!isClassicMode);
+            movesTextObject.SetActive(false);
         }
+    }
+
+    private void ClearClassicHudReferences()
+    {
+        scoreText = null;
+        bestScoreText = null;
+        levelText = null;
+        xpText = null;
+        levelProgressBarFill = null;
+        levelProgressBarBG = null;
+        targetTextObject = null;
+        movesTextObject = null;
+        levelUpFXUI = null;
     }
 }

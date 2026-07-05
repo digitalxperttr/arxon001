@@ -20,7 +20,16 @@ MonoBehaviour:
   objective: 0
   obstacleTheme: 0
   specialMechanicFocus: 0
-  targetLines: 6
+  fogDensity: 0
+  fogCoveragePercent: 0
+  objectives:
+  - action: 1
+    target: 1
+    requiredAmount: 200
+    collectibleId: 
+    displayLabel: 
+    displayIcon: {fileID: 0}
+  targetLines: 0
   targetScore: 0
   targetObstacleCount: 0
   targetComboCount: 0
@@ -52,5 +61,9 @@ MonoBehaviour:
     sliceBlockChance: 0
     overrideFireChance: 0
     fireBlockChance: 0
+    overrideFogDensity: 0
+    fogDensity: 0
+    overrideFogCoveragePercent: 0
+    fogCoveragePercent: 0
     overrideFogStartingRow: 0
     fogStartingRow: -1
