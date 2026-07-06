@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class ProgressManager : MonoBehaviour
 {
+    private const int FallbackMaxAdventureLevel = 50;
+
     [Header("Legacy Adventure Levels")]
     public LevelData[] allLevels; // Eski el yapımı Adventure level assetleri
 
@@ -34,10 +36,24 @@ public class ProgressManager : MonoBehaviour
 
     public void UnlockNextLevel()
     {
-        // Bir sonraki seviyenin kilidini açar
-        if (highestLevelUnlocked < 999) // 999 seviye limiti (istediğin gibi ayarla)
+        int selectedLevel = Mathf.Max(1, currentSelectedLevelNumber);
+        int oldHighestLevelUnlocked = Mathf.Max(1, highestLevelUnlocked);
+        int maxAdventureLevel = GetMaxAdventureLevel();
+        int newHighestLevelUnlocked = oldHighestLevelUnlocked;
+
+        if (selectedLevel >= oldHighestLevelUnlocked)
         {
-            highestLevelUnlocked++;
+            newHighestLevelUnlocked = Mathf.Min(selectedLevel + 1, maxAdventureLevel);
+        }
+
+        bool changed = newHighestLevelUnlocked != oldHighestLevelUnlocked;
+        highestLevelUnlocked = Mathf.Max(1, newHighestLevelUnlocked);
+
+        Debug.Log(
+            $"[ProgressManager] UnlockNextLevel selectedLevel={selectedLevel} oldHighestLevelUnlocked={oldHighestLevelUnlocked} newHighestLevelUnlocked={highestLevelUnlocked} changed={changed}");
+
+        if (changed)
+        {
             SaveProgress();
         }
     }
@@ -53,6 +69,7 @@ public class ProgressManager : MonoBehaviour
 
     private void SaveProgress()
     {
+        highestLevelUnlocked = Mathf.Clamp(highestLevelUnlocked, 1, GetMaxAdventureLevel());
         PlayerPrefs.SetInt(HighestLevelUnlockedKey, highestLevelUnlocked);
         PlayerPrefs.Save();
         Debug.Log($"İlerleme kaydedildi. En yüksek açık seviye: {highestLevelUnlocked}");
@@ -62,7 +79,7 @@ public class ProgressManager : MonoBehaviour
     {
         // Telefonun hafızasında kayıtlı bir veri var mı diye kontrol et
         // Eğer yoksa, oyuncu ilk defa oynuyor demektir, Seviye 1'den başlasın.
-        highestLevelUnlocked = PlayerPrefs.GetInt(HighestLevelUnlockedKey, 1);
+        highestLevelUnlocked = Mathf.Clamp(PlayerPrefs.GetInt(HighestLevelUnlockedKey, 1), 1, GetMaxAdventureLevel());
         Debug.Log($"İlerleme yüklendi. En yüksek açık seviye: {highestLevelUnlocked}");
     }
 
@@ -134,5 +151,11 @@ public class ProgressManager : MonoBehaviour
             return allLevels[levelIndex];
 
         return null;
+    }
+
+    private int GetMaxAdventureLevel()
+    {
+        int adventureLevelCount = GetAdventureLevelCount();
+        return Mathf.Max(1, adventureLevelCount > 0 ? adventureLevelCount : FallbackMaxAdventureLevel);
     }
 }

@@ -51,6 +51,12 @@ public class GameSceneUI : MonoBehaviour
         if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null)
         {
             int currentLevelNum = ProgressManager.Instance.currentSelectedLevelNumber;
+
+            if (currentLevelNum > 0 && currentLevelNum % 10 == 0)
+            {
+                GoToMap();
+                return;
+            }
             
             // Sonraki bölüm listede var mı diye kontrol et
             if (currentLevelNum < ProgressManager.Instance.GetAdventureLevelCount() &&

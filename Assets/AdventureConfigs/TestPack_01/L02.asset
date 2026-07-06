@@ -29,6 +29,12 @@ MonoBehaviour:
     collectibleId: CR_BLUE_01
     displayLabel: 
     displayIcon: {fileID: 0}
+  - action: 2
+    target: 3
+    requiredAmount: 4
+    collectibleId: CR_PURPLE_01
+    displayLabel: 
+    displayIcon: {fileID: 0}
   targetLines: 6
   targetScore: 0
   targetObstacleCount: 0

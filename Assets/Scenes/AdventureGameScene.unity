@@ -267,6 +267,7 @@ GameObject:
   - component: {fileID: 151910161}
   - component: {fileID: 151910163}
   - component: {fileID: 151910162}
+  - component: {fileID: 151910164}
   m_Layer: 5
   m_Name: WinPanel
   m_TagString: Untagged
@@ -326,6 +327,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &151910164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151910160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec98f21e8a8c4d749f30d8abc34d5b29, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::AdventureVictoryPanelUI
+  panelRoot: {fileID: 151910161}
+  titleText: {fileID: 594057221}
+  nextLevelButton: {fileID: 281203381}
+  mapButton: {fileID: 1097688140}
+  popStartScale: 0.9
+  popDuration: 0.2
+  buttonStagger: 0.05
 --- !u!222 &151910163
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -554,9 +574,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 951010822}
-        m_TargetAssemblyTypeName: GameSceneUI, Assembly-CSharp
-        m_MethodName: NextLevel
+      - m_Target: {fileID: 151910164}
+        m_TargetAssemblyTypeName: AdventureVictoryPanelUI, Assembly-CSharp
+        m_MethodName: OnNextLevelPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -661,7 +681,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -2989834107177774532, guid: d0b02853974f149d8b79df94a0203cd6, type: 3}
+  m_Sprite: {fileID: 9163382638843267429, guid: 046df4ca851244730b974f6dab957fdb, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -1542,7 +1562,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 307746397}
-  - {fileID: 1497814561}
   m_Father: {fileID: 951010821}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -3976,9 +3995,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 951010822}
-        m_TargetAssemblyTypeName: GameSceneUI, Assembly-CSharp
-        m_MethodName: GoToMap
+      - m_Target: {fileID: 151910164}
+        m_TargetAssemblyTypeName: AdventureVictoryPanelUI, Assembly-CSharp
+        m_MethodName: OnMapPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4379,81 +4398,6 @@ MonoBehaviour:
   - {fileID: 0}
   adventureOnlyObjects:
   - {fileID: 910000000}
---- !u!1 &1497814560
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1497814561}
-  - component: {fileID: 1497814563}
-  - component: {fileID: 1497814562}
-  m_Layer: 5
-  m_Name: BoardArea
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!224 &1497814561
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1497814560}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 620365437}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1497814562
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1497814560}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 150505824199e401cb95b301ada9e9e1, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1497814563
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1497814560}
-  m_CullTransparentMesh: 1
 --- !u!1 &1900020101
 GameObject:
   m_ObjectHideFlags: 0

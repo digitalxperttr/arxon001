@@ -211,7 +211,14 @@ public class LevelManager : MonoBehaviour
         // 3. Her şey durulduktan sonra oyunu durdur ve Kazanma Panelini aç
         Time.timeScale = 0;
         
-        if (winPanel != null) winPanel.SetActive(true); // <--- YENİ EKLENDİ
+        if (winPanel != null)
+        {
+            winPanel.SetActive(true);
+
+            AdventureVictoryPanelUI adventureVictoryPanel = winPanel.GetComponent<AdventureVictoryPanelUI>();
+            if (adventureVictoryPanel != null)
+                adventureVictoryPanel.Show();
+        }
         
         // İleride buraya: winPanel.SetActive(true); gibi Kazandın ekranını açan bir kod ekleyeceğiz.
     }
