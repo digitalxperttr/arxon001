@@ -47,9 +47,7 @@ public class LocalizationManager : MonoBehaviour
     public void ChangeLanguage(Language newLang)
     {
         currentLanguage = newLang;
-        LocalizedTMPText[] localizedTexts = FindObjectsByType<LocalizedTMPText>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
+        LocalizedTMPText[] localizedTexts = FindObjectsByType<LocalizedTMPText>(FindObjectsInactive.Include);
 
         for (int i = 0; i < localizedTexts.Length; i++)
         {

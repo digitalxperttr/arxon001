@@ -5,7 +5,7 @@ using System;
 
 public class InputManager : MonoBehaviour
 {
-    private const bool TutorialInputHooksEnabled = false;
+    private static readonly bool TutorialInputHooksEnabled = false;
 
     public static event Action UserInputStarted;
     public static event Action SuccessfulPlacement;
@@ -38,7 +38,7 @@ public class InputManager : MonoBehaviour
 
         if (placementGuide == null)
         {
-            placementGuide = FindFirstObjectByType<PlacementGuide>();
+            placementGuide = FindAnyObjectByType<PlacementGuide>();
         }
 
         if (placementGuide == null)
@@ -48,7 +48,7 @@ public class InputManager : MonoBehaviour
         }
 
         firstTimeTutorial = TutorialInputHooksEnabled
-            ? FindFirstObjectByType<FirstTimeTutorial>()
+            ? FindAnyObjectByType<FirstTimeTutorial>()
             : null;
         placementGuide.ConfigureFromGrid(grid);
         placementGuide.Hide();
@@ -259,7 +259,7 @@ private bool CanSelectBlock(Block block)
         if (!TutorialInputHooksEnabled)
             return true;
 
-        firstTimeTutorial = FindFirstObjectByType<FirstTimeTutorial>();
+        firstTimeTutorial = FindAnyObjectByType<FirstTimeTutorial>();
     }
 
     return firstTimeTutorial == null || firstTimeTutorial.CanSelectBlock(block);
@@ -272,7 +272,7 @@ private bool IsAllowedPlacement(Block block, int snappedX)
         if (!TutorialInputHooksEnabled)
             return true;
 
-        firstTimeTutorial = FindFirstObjectByType<FirstTimeTutorial>();
+        firstTimeTutorial = FindAnyObjectByType<FirstTimeTutorial>();
     }
 
     return firstTimeTutorial == null || firstTimeTutorial.IsCorrectPlacement(block, snappedX);

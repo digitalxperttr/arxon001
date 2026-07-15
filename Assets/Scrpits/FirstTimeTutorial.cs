@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class FirstTimeTutorial : MonoBehaviour
 {
     private const string TutorialCompletedKey = "TutorialCompleted";
-    private const bool TutorialSystemEnabled = false;
+    private static readonly bool TutorialSystemEnabled = false;
 
     [SerializeField] private TMP_FontAsset tutorialFont;
     [SerializeField] private float startDelay = 0.35f;
@@ -649,7 +649,7 @@ public class FirstTimeTutorial : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;
-        label.enableWordWrapping = false;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
 
         if (tutorialFont != null)
             label.font = tutorialFont;
@@ -663,7 +663,7 @@ public class FirstTimeTutorial : MonoBehaviour
         if (hudCanvasObject != null)
             return hudCanvasObject.GetComponent<Canvas>();
 
-        return FindFirstObjectByType<Canvas>();
+        return FindAnyObjectByType<Canvas>();
     }
 
     private void HideTutorialUI()

@@ -1,11 +1,14 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class InGameConfirmDialog : MonoBehaviour
 {
     private const string RestartMessage = "Oyunu yeniden başlatırsan mevcut ilerleme kaybedilecek.";
     private const string HomeMessage = "Ana menüye dönersen mevcut ilerleme kaybedilecek.";
+    private const string SettingsOverlayName = "SettingsConfirmOverlay";
+    private const float SettingsOverlayAlpha = 0.5f;
 
     private enum ConfirmAction
     {
@@ -22,6 +25,10 @@ public class InGameConfirmDialog : MonoBehaviour
     [SerializeField] private InputManager inputManager;
     [SerializeField] private GameSceneUI gameSceneUI;
     [SerializeField] private string mainMenuSceneName = "MainMenu";
+    [SerializeField] private bool useAdventureRestartLayout;
+    [SerializeField] private TextMeshProUGUI cancelButtonText;
+    [SerializeField] private GameObject closeButton;
+    [SerializeField] private Image settingsConfirmOverlay;
 
     private ConfirmAction pendingAction = ConfirmAction.None;
 
@@ -41,6 +48,7 @@ public class InGameConfirmDialog : MonoBehaviour
     private void Start()
     {
         SetVisible(false);
+        ApplyButtonLabels();
     }
 
     public void ShowRestartConfirm()
@@ -59,8 +67,20 @@ public class InGameConfirmDialog : MonoBehaviour
 
     public void Cancel()
     {
+        if (useAdventureRestartLayout && pendingAction == ConfirmAction.Restart)
+        {
+            GoToAdventureMap();
+            return;
+        }
+
+        Close();
+    }
+
+    public void Close()
+    {
         pendingAction = ConfirmAction.None;
         SetPanelVisible(false);
+        SetSettingsConfirmOverlayVisible(false);
 
         bool keepModalOpen = IsPanelOpen(settingsPanel) || IsPanelOpen(resultPanel);
         if (confirmDim != null)
@@ -77,6 +97,7 @@ public class InGameConfirmDialog : MonoBehaviour
         ConfirmAction action = pendingAction;
         pendingAction = ConfirmAction.None;
         SetVisible(false);
+        SetSettingsConfirmOverlayVisible(false);
         Time.timeScale = 1f;
         SetGameplayInputEnabled(true);
 
@@ -103,9 +124,17 @@ public class InGameConfirmDialog : MonoBehaviour
 
     private void Show()
     {
+        ApplyButtonLabels();
+        SetCloseButtonVisible(useAdventureRestartLayout && pendingAction == ConfirmAction.Restart);
         Time.timeScale = 0f;
         SetGameplayInputEnabled(false);
         SetVisible(true);
+        SetSettingsConfirmOverlayVisible(IsPanelOpen(settingsPanel));
+
+        if (confirmPanel != null)
+        {
+            confirmPanel.transform.SetAsLastSibling();
+        }
     }
 
     private void SetVisible(bool isVisible)
@@ -124,6 +153,70 @@ public class InGameConfirmDialog : MonoBehaviour
         {
             confirmPanel.SetActive(isVisible);
         }
+
+        if (!isVisible)
+        {
+            SetCloseButtonVisible(false);
+        }
+    }
+
+    private void SetSettingsConfirmOverlayVisible(bool isVisible)
+    {
+        Image overlay = GetSettingsConfirmOverlay();
+        if (overlay == null)
+        {
+            return;
+        }
+
+        overlay.gameObject.SetActive(isVisible);
+
+        if (isVisible)
+        {
+            overlay.transform.SetAsLastSibling();
+        }
+    }
+
+    private Image GetSettingsConfirmOverlay()
+    {
+        if (settingsConfirmOverlay != null)
+        {
+            return settingsConfirmOverlay;
+        }
+
+        if (settingsPanel == null)
+        {
+            return null;
+        }
+
+        Transform existingOverlay = settingsPanel.transform.Find(SettingsOverlayName);
+        if (existingOverlay != null && existingOverlay.TryGetComponent(out settingsConfirmOverlay))
+        {
+            ConfigureSettingsConfirmOverlay(settingsConfirmOverlay);
+            return settingsConfirmOverlay;
+        }
+
+        GameObject overlayObject = new GameObject(SettingsOverlayName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        overlayObject.layer = settingsPanel.layer;
+        overlayObject.transform.SetParent(settingsPanel.transform, false);
+
+        RectTransform overlayRect = overlayObject.GetComponent<RectTransform>();
+        overlayRect.anchorMin = Vector2.zero;
+        overlayRect.anchorMax = Vector2.one;
+        overlayRect.anchoredPosition = Vector2.zero;
+        overlayRect.sizeDelta = Vector2.zero;
+        overlayRect.pivot = new Vector2(0.5f, 0.5f);
+
+        settingsConfirmOverlay = overlayObject.GetComponent<Image>();
+        ConfigureSettingsConfirmOverlay(settingsConfirmOverlay);
+        overlayObject.SetActive(false);
+
+        return settingsConfirmOverlay;
+    }
+
+    private void ConfigureSettingsConfirmOverlay(Image overlay)
+    {
+        overlay.color = new Color(0f, 0f, 0f, SettingsOverlayAlpha);
+        overlay.raycastTarget = true;
     }
 
     private bool IsPanelOpen(GameObject panel)
@@ -137,5 +230,45 @@ public class InGameConfirmDialog : MonoBehaviour
         {
             inputManager.enabled = isEnabled;
         }
+    }
+
+    private void ApplyButtonLabels()
+    {
+        if (cancelButtonText != null)
+        {
+            bool isAdventureRestart = useAdventureRestartLayout && pendingAction == ConfirmAction.Restart;
+            cancelButtonText.text = isAdventureRestart ? "HARİTA" : "İPTAL";
+        }
+    }
+
+    private void SetCloseButtonVisible(bool isVisible)
+    {
+        if (closeButton != null)
+        {
+            closeButton.SetActive(isVisible);
+        }
+    }
+
+    private void GoToAdventureMap()
+    {
+        pendingAction = ConfirmAction.None;
+        SetVisible(false);
+        SetSettingsConfirmOverlayVisible(false);
+        Time.timeScale = 1f;
+        SetGameplayInputEnabled(true);
+
+        if (gameSceneUI != null && SceneLoader.Instance != null)
+        {
+            gameSceneUI.GoToMap();
+            return;
+        }
+
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadAdventureMap();
+            return;
+        }
+
+        SceneManager.LoadScene("AdventureMap");
     }
 }

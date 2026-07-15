@@ -1,0 +1,520 @@
+fileFormatVersion: 2
+guid: 54277eda3830c4be4ae8c970913b0662
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -434535014777238565
+    second: gems5_0
+  - first:
+      213: -1610190704384560926
+    second: gems5_1
+  - first:
+      213: -6953605587395534386
+    second: gems5_2
+  - first:
+      213: -2324498421314628387
+    second: gems5_3
+  - first:
+      213: -9135554542460149537
+    second: gems5_4
+  - first:
+      213: 6094231534787271380
+    second: gems5_5
+  - first:
+      213: -4947569923839329075
+    second: gems5_6
+  - first:
+      213: -166273016629100320
+    second: gems5_7
+  - first:
+      213: 619861069690359343
+    second: gems5_8
+  - first:
+      213: 1338011854497743687
+    second: gems5_9
+  - first:
+      213: -8146011288210639836
+    second: gems5_10
+  - first:
+      213: -6258854042687532500
+    second: gems5_11
+  - first:
+      213: -6875143902701234323
+    second: gems5_12
+  - first:
+      213: -7679816748687068547
+    second: gems5_13
+  - first:
+      213: -5015708092498153368
+    second: gems5_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 512
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: gems5_S_kirmizi
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 799
+        width: 161
+        height: 160
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bdbcbb1d4b838f9f0800000000000000
+      internalID: -434535014777238565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_M_kirmizi
+      rect:
+        serializedVersion: 2
+        x: 316
+        y: 798
+        width: 365
+        height: 162
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e0b584e51477a9e0800000000000000
+      internalID: -1610190704384560926
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_L_kirmizi
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 798
+        width: 513
+        height: 163
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec12e1f5f84df7f90800000000000000
+      internalID: -6953605587395534386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_S_mor
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 610
+        width: 161
+        height: 160
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dd4d5946009bdbfd0800000000000000
+      internalID: -2324498421314628387
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_M_mor
+      rect:
+        serializedVersion: 2
+        x: 317
+        y: 609
+        width: 364
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd0e47ebb8df73180800000000000000
+      internalID: -9135554542460149537
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_L_mor
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 609
+        width: 513
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4da9af1da4f039450800000000000000
+      internalID: 6094231534787271380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_S_turuncu
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 425
+        width: 161
+        height: 160
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dcc762c1e53b65bb0800000000000000
+      internalID: -4947569923839329075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_M_turuncu
+      rect:
+        serializedVersion: 2
+        x: 317
+        y: 424
+        width: 364
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0e00714829741bdf0800000000000000
+      internalID: -166273016629100320
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_L_turuncu
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 424
+        width: 513
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2eccf4db503a9800800000000000000
+      internalID: 619861069690359343
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_S_yesil
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 234
+        width: 161
+        height: 159
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 743899c41b2919210800000000000000
+      internalID: 1338011854497743687
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_M_yesil
+      rect:
+        serializedVersion: 2
+        x: 317
+        y: 233
+        width: 364
+        height: 160
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 424f1ed84ed83fe80800000000000000
+      internalID: -8146011288210639836
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_L_yesil
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 233
+        width: 513
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c229794b8651429a0800000000000000
+      internalID: -6258854042687532500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_S_mavi
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 38
+        width: 161
+        height: 159
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d67dccbeb059690a0800000000000000
+      internalID: -6875143902701234323
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_M_mavi
+      rect:
+        serializedVersion: 2
+        x: 316
+        y: 37
+        width: 365
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d7279624b5fcb6590800000000000000
+      internalID: -7679816748687068547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gems5_L_mavi
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 37
+        width: 513
+        height: 161
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 86078917010a46ab0800000000000000
+      internalID: -5015708092498153368
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: ef73f0a4cab294fee918f2bbbf37cef2
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      gems5_L_kirmizi: -6953605587395534386
+      gems5_L_mavi: -5015708092498153368
+      gems5_L_mor: 6094231534787271380
+      gems5_L_turuncu: 619861069690359343
+      gems5_L_yesil: -6258854042687532500
+      gems5_M_kirmizi: -1610190704384560926
+      gems5_M_mavi: -7679816748687068547
+      gems5_M_mor: -9135554542460149537
+      gems5_M_turuncu: -166273016629100320
+      gems5_M_yesil: -8146011288210639836
+      gems5_S_kirmizi: -434535014777238565
+      gems5_S_mavi: -6875143902701234323
+      gems5_S_mor: -2324498421314628387
+      gems5_S_turuncu: -4947569923839329075
+      gems5_S_yesil: 1338011854497743687
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

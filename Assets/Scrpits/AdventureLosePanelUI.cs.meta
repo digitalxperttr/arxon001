@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ec98f21e8a8c4d749f30d8abc34d5b29
+guid: d32ed31a8b4045f8bba6610c8ebc4a2c
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -9,13 +9,11 @@ MonoImporter:
   - panelSprite: {instanceID: 0}
   - titleText: {instanceID: 0}
   - objectiveListRoot: {instanceID: 0}
-  - nextLevelButton: {instanceID: 0}
-  - mapButton: {instanceID: 0}
   - collectibleDatabase: {instanceID: 0}
   - genericRowIcon: {instanceID: 0}
   - genericScoreIcon: {instanceID: 0}
-  - completedStatusSprite: {instanceID: 0}
-  - incompleteStatusSprite: {instanceID: 0}
+  - completedStatusSprite: {fileID: 4252903504084570160, guid: 63959072d6dba4934a748308e1f5adf4, type: 3}
+  - incompleteStatusSprite: {fileID: 4756836735585339975, guid: 63959072d6dba4934a748308e1f5adf4, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

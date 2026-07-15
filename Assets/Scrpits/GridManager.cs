@@ -9,7 +9,7 @@ public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 
 public class GridManager : MonoBehaviour
 {
-    private const bool TutorialBoardOverrideEnabled = false;
+    private static readonly bool TutorialBoardOverrideEnabled = false;
 
     [System.Serializable]
     public struct GemVisual
@@ -298,7 +298,7 @@ private int GetPerfectClearBonus(int level)
 
         blockTestSpawner = GetComponent<BlockTestSpawner>();
         firstTimeTutorial = TutorialBoardOverrideEnabled
-            ? FindFirstObjectByType<FirstTimeTutorial>()
+            ? FindAnyObjectByType<FirstTimeTutorial>()
             : null;
         gridArray = new Block[width, height];
     }

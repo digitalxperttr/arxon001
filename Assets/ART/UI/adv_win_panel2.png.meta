@@ -1,19 +1,10 @@
 fileFormatVersion: 2
-guid: 4b571f58e803f48218b35b1de52d31e8
+guid: 563477da2d1854401b994209198ebc04
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4747719849659315698
-    second: gems2_0
-  - first:
-      213: -7217486491163703835
-    second: gems2_1
-  - first:
-      213: 6938619753876512744
-    second: gems2_2
-  - first:
-      213: 8479757875929971715
-    second: gems2_3
+      213: -7000649780896185717
+    second: adv_win_panel2_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -55,14 +46,14 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 512
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 1
+  spriteGenerateFallbackPhysicsShape: 0
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -81,10 +72,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -122,89 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: gems2_mavi
+      name: adv_win_panel2_0
       rect:
         serializedVersion: 2
-        x: 69
-        y: 539
-        width: 396
-        height: 392
+        x: 71
+        y: 48
+        width: 882
+        height: 1457
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 41, y: 41, z: 41, w: 41}
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 2f5b30c7c0a43e140800000000000000
-      internalID: 4747719849659315698
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: gems2_turunc
-      rect:
-        serializedVersion: 2
-        x: 586
-        y: 539
-        width: 396
-        height: 392
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 41, y: 41, z: 41, w: 41}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 5e5c103b64656db90800000000000000
-      internalID: -7217486491163703835
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: gems2_yesil
-      rect:
-        serializedVersion: 2
-        x: 69
-        y: 65
-        width: 396
-        height: 391
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 41, y: 41, z: 41, w: 41}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 8ef515d57edea4060800000000000000
-      internalID: 6938619753876512744
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: gems2_penbe
-      rect:
-        serializedVersion: 2
-        x: 586
-        y: 65
-        width: 396
-        height: 391
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 41, y: 41, z: 41, w: 41}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 30c70284cd62ea570800000000000000
-      internalID: 8479757875929971715
+      spriteID: b8244c48d12b8de90800000000000000
+      internalID: -7000649780896185717
       vertices: []
       indices: 
       edges: []
@@ -213,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 7c948630984bb4775b2770f0f4b85a08
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -223,10 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      gems2_mavi: 4747719849659315698
-      gems2_penbe: 8479757875929971715
-      gems2_turunc: -7217486491163703835
-      gems2_yesil: 6938619753876512744
+      adv_win_panel2_0: -7000649780896185717
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

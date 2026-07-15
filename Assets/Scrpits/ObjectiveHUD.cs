@@ -393,7 +393,7 @@ public class ObjectiveHUD : MonoBehaviour
         text.fontSize = fontSize;
         text.color = Color.white;
         text.alignment = alignment;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
         return text;
     }
 
@@ -531,7 +531,7 @@ public class ObjectiveHUD : MonoBehaviour
         text.raycastTarget = false;
         text.fontSize = 24;
         text.alignment = TextAlignmentOptions.Center;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
         return text;
     }
 
@@ -618,9 +618,7 @@ public class ObjectiveHUD : MonoBehaviour
 
     private static ObjectiveHUD FindSceneAuthoredInstance()
     {
-        ObjectiveHUD[] huds = FindObjectsByType<ObjectiveHUD>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
+        ObjectiveHUD[] huds = FindObjectsByType<ObjectiveHUD>(FindObjectsInactive.Include);
 
         for (int i = 0; i < huds.Length; i++)
         {
@@ -863,7 +861,7 @@ public class ObjectiveHUD : MonoBehaviour
 
     private static RectTransform FindInactiveRectTransformByName(string objectName)
     {
-        RectTransform[] rectTransforms = FindObjectsByType<RectTransform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        RectTransform[] rectTransforms = FindObjectsByType<RectTransform>(FindObjectsInactive.Include);
         for (int i = 0; i < rectTransforms.Length; i++)
         {
             RectTransform rectTransform = rectTransforms[i];

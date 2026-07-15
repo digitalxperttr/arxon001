@@ -42,7 +42,6 @@ public class Block : MonoBehaviour
     [SerializeField] private GameObject chainBreakFXPrefab;
     [SerializeField] private SpriteRenderer flashOverlayRenderer;
     [SerializeField] private Transform vfxAnchor;
-    [SerializeField] private float chainBreakFlashDuration = 0.10f;
     [SerializeField] private float chainBreakShakeDuration = 0.15f;
     [SerializeField] private float chainBreakShakeStrength = 0.04f;
     [SerializeField] private float chainBreakPunchScale = 1.06f;

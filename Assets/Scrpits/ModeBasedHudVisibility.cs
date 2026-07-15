@@ -38,9 +38,7 @@ public class ModeBasedHudVisibility : MonoBehaviour
 
     public static void RegisterAdventureOnlyObjectInScene(GameObject target)
     {
-        ModeBasedHudVisibility[] visibilityComponents = FindObjectsByType<ModeBasedHudVisibility>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
+        ModeBasedHudVisibility[] visibilityComponents = FindObjectsByType<ModeBasedHudVisibility>(FindObjectsInactive.Include);
 
         for (int i = 0; i < visibilityComponents.Length; i++)
         {
