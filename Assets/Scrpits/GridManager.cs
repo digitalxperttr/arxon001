@@ -10,18 +10,65 @@ public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 public class GridManager : MonoBehaviour
 {
     private static readonly bool TutorialBoardOverrideEnabled = false;
+    private const int PreviewSortingOrder = -5;
+
+    [System.Serializable]
+    public struct LengthSpriteSet
+    {
+        public Sprite small;
+        public Sprite medium;
+        public Sprite longSprite;
+
+        public Sprite GetSpriteForLength(int logicalLength, Sprite fallback)
+        {
+            switch (GetSizeGroupForLength(logicalLength))
+            {
+                case BlockVisualSizeGroup.Small:
+                    return small != null ? small : fallback;
+                case BlockVisualSizeGroup.Medium:
+                    return medium != null ? medium : fallback;
+                case BlockVisualSizeGroup.Long:
+                    return longSprite != null ? longSprite : fallback;
+                default:
+                    return fallback;
+            }
+        }
+    }
+
+    private enum BlockVisualSizeGroup
+    {
+        Small,
+        Medium,
+        Long
+    }
+
+    private static BlockVisualSizeGroup GetSizeGroupForLength(int logicalLength)
+    {
+        if (logicalLength <= 1)
+            return BlockVisualSizeGroup.Small;
+
+        if (logicalLength == 2)
+            return BlockVisualSizeGroup.Medium;
+
+        return BlockVisualSizeGroup.Long;
+    }
 
     [System.Serializable]
     public struct GemVisual
     {
         public Sprite sprite;
+        public LengthSpriteSet lengthSprites;
         public Color particleColor; // O mücevher patladığında çıkacak renk
     }
 
     [Header("Mücevher Koleksiyonu")]
     public GemVisual[] normalGems; // 1, 2, 3, 7, 8. sıradaki renkli taşlar
     public Sprite rockSprite;      // 2. sıradaki gri taş
+    [Header("Rock Length Sprites")]
+    public LengthSpriteSet rockLengthSprites;
     public Sprite iceSprite;       // 4. sıradaki buz
+    [Header("Ice Length Sprites")]
+    public LengthSpriteSet iceLengthSprites;
     public Sprite lavaSprite;      // 6. sıradaki lavlı taş (Yeni mekanik!)
     [Header("Özel Blok Ayarları")]
     public Sprite fireSprite;
@@ -402,7 +449,17 @@ private IEnumerator ResolveNoMoveRoutine()
 
     yield return new WaitForSeconds(0.25f);
 
-    if (CanResolveNoMoveSoftlock() && !HasAnyLegalPlayerMove())
+    bool canStillResolve =
+        !isGameOver &&
+        currentState == GameState.IDLE &&
+        !isRunningDifficultyPush &&
+        !isSliceResolving &&
+        !isFireResolving &&
+        activeSliceOperations <= 0 &&
+        !AreBlocksMoving() &&
+        !HasAnyLegalPlayerMove();
+
+    if (canStillResolve)
     {
         ChangeState(GameState.SPAWNING);
         yield return StartCoroutine(PushBoardUpRoutine());
@@ -536,7 +593,7 @@ public BlockData CreateSingleCellBlockData(int x, BlockType blockType, int norma
     {
         case BlockType.Rock:
             data.isRock = true;
-            data.visualSprite = rockSprite;
+            data.visualSprite = GetRockSpriteForLength(data.width);
             data.color = Color.gray;
             break;
         case BlockType.Ice:
@@ -572,10 +629,10 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
     newBlock.y = y;
     newBlock.blockType = data.blockType;
 
-    newBlock.SetVisual(data.visualSprite, data.color, data.width);
+    newBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
 
     if (data.isRock) newBlock.SetRock(true);
-    if (data.isFrozen) newBlock.SetFrozen(true, iceSprite);
+    if (data.isFrozen) newBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
     if (data.isChained) newBlock.SetChained(newBlock.width);
 
     activeBlocks.Add(newBlock);
@@ -631,6 +688,27 @@ private void SetPreviewVisualAlpha(GameObject previewObject, float alpha)
     }
 }
 
+public bool CanFitBlockAt(int x, int y, int blockWidth, Block ignoredBlock = null)
+{
+    if (gridArray == null)
+        return false;
+
+    if (y < 0 || y >= height)
+        return false;
+
+    if (x < 0 || x + blockWidth > width)
+        return false;
+
+    for (int i = 0; i < blockWidth; i++)
+    {
+        Block occupyingBlock = gridArray[x + i, y];
+        if (occupyingBlock != null && occupyingBlock != ignoredBlock)
+            return false;
+    }
+
+    return true;
+}
+
 private void ApplyNormalGemVisual(ref BlockData data, int normalGemIndex, bool useRandomNormalGem)
 {
     if (normalGems == null || normalGems.Length == 0)
@@ -646,6 +724,63 @@ private void ApplyNormalGemVisual(ref BlockData data, int normalGemIndex, bool u
 
     data.visualSprite = normalGems[resolvedIndex].sprite;
     data.color = normalGems[resolvedIndex].particleColor;
+}
+
+public Sprite GetVisualSpriteForBlockData(BlockData data)
+{
+    if (data.isRock || data.blockType == BlockType.Rock)
+        return GetRockSpriteForLength(data.width);
+
+    if (data.isFrozen || data.blockType == BlockType.Ice)
+        return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+
+    if (data.blockType != BlockType.Normal || data.isChained)
+        return data.visualSprite;
+
+    return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+}
+
+public Sprite GetRockSpriteForLength(int logicalLength)
+{
+    return rockLengthSprites.GetSpriteForLength(logicalLength, rockSprite);
+}
+
+public Sprite GetIceSpriteForLength(int logicalLength)
+{
+    return iceLengthSprites.GetSpriteForLength(logicalLength, iceSprite);
+}
+
+public Sprite GetNormalGemSpriteForLength(int normalGemIndex, int logicalLength, Sprite fallback = null)
+{
+    if (normalGems == null || normalGems.Length == 0)
+        return fallback;
+
+    int resolvedIndex = Mathf.Clamp(normalGemIndex, 0, normalGems.Length - 1);
+    Sprite resolvedFallback = fallback != null ? fallback : normalGems[resolvedIndex].sprite;
+
+    return normalGems[resolvedIndex].lengthSprites.GetSpriteForLength(logicalLength, resolvedFallback);
+}
+
+private Sprite GetNormalGemSpriteForColorAndLength(Color color, int logicalLength, Sprite fallback)
+{
+    if (normalGems == null || normalGems.Length == 0)
+        return fallback;
+
+    for (int i = 0; i < normalGems.Length; i++)
+    {
+        if (ApproximatelySameColor(normalGems[i].particleColor, color))
+            return GetNormalGemSpriteForLength(i, logicalLength, fallback);
+    }
+
+    return fallback;
+}
+
+private static bool ApproximatelySameColor(Color a, Color b)
+{
+    return Mathf.Approximately(a.r, b.r) &&
+           Mathf.Approximately(a.g, b.g) &&
+           Mathf.Approximately(a.b, b.b) &&
+           Mathf.Approximately(a.a, b.a);
 }
 
 
@@ -1612,7 +1747,7 @@ public void GenerateNextRowData()
                     Debug.Log("ROCK GENERATED at level " + level);
 
                 newData.blockType = BlockType.Rock;
-                newData.visualSprite = rockSprite;
+                newData.visualSprite = GetRockSpriteForLength(newData.width);
                 newData.color = Color.gray;
             }
             if (!newData.isRock && !newData.isFrozen && !newData.isChained)
@@ -1639,13 +1774,17 @@ public void GenerateNextRowData()
             }
 }
 
-            newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
+            bool canApplyObstacle = newData.blockType == BlockType.Normal && !newData.isRock;
+
+            newData.isChained = canApplyObstacle && (Random.value < currentChainedChance);
             if (newData.isChained)
             {
                 newData.blockType = BlockType.Chained;
             }
 
-            newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
+            canApplyObstacle = newData.blockType == BlockType.Normal && !newData.isRock && !newData.isChained;
+
+            newData.isFrozen = canApplyObstacle && (Random.value < currentFreezeChance);
             if (newData.isFrozen)
             {
                 newData.blockType = BlockType.Ice;
@@ -1683,7 +1822,7 @@ public void GenerateNextRowData()
                    Debug.Log("ROCK GENERATED at level " + level);
 
                newData.blockType = BlockType.Rock;
-               newData.visualSprite = rockSprite;
+               newData.visualSprite = GetRockSpriteForLength(newData.width);
                newData.color = Color.gray;
            }
 
@@ -1711,13 +1850,17 @@ public void GenerateNextRowData()
                }
            }
 
-           newData.isChained = !newData.isRock && (Random.value < currentChainedChance);
+           bool canApplyObstacle = newData.blockType == BlockType.Normal && !newData.isRock;
+
+           newData.isChained = canApplyObstacle && (Random.value < currentChainedChance);
            if (newData.isChained)
            {
                newData.blockType = BlockType.Chained;
            }
 
-           newData.isFrozen = !newData.isRock && !newData.isChained && (Random.value < currentFreezeChance);
+           canApplyObstacle = newData.blockType == BlockType.Normal && !newData.isRock && !newData.isChained;
+
+           newData.isFrozen = canApplyObstacle && (Random.value < currentFreezeChance);
            if (newData.isFrozen)
            {
                newData.blockType = BlockType.Ice;
@@ -1800,24 +1943,25 @@ private void UpdatePreviewVisuals()
     foreach (BlockData data in nextRowData)
     {
         Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, -1.0f, 0);
-        Block previewBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
-        previewBlock.gameObject.name = "PreviewBlock";
-        previewBlock.enabled = false;
-        if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) col.enabled = false;
-
-        // Görseli ayarla (Yeni width parametresiyle)
-        previewBlock.SetVisual(data.visualSprite, data.color, data.width);
-        
-        // 1. Önce rengi ve boyutu ayarla (Parent)
-        SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
-        sr.size = new Vector2(data.width - 0.1f, 0.5f); 
-        sr.color = new Color(0.3f, 0.3f, 0.3f, 1f); // Gölge rengi
-        sr.sortingOrder = -5;
-        if (data.isFrozen) previewBlock.SetFrozen(true, iceSprite);
-
-
-        previewVisuals.Add(previewBlock.gameObject);
+        previewVisuals.Add(BuildDetailedBlockPreview(data, spawnPos));
     }
+}
+
+private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
+{
+    Block previewBlock = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+    previewBlock.gameObject.name = "PreviewBlock";
+    previewBlock.enabled = false;
+    if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) col.enabled = false;
+
+    previewBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
+
+    SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
+    sr.sortingOrder = PreviewSortingOrder;
+
+    if (data.isFrozen) previewBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
+
+    return previewBlock.gameObject;
 }
 
 public void SpawnRowFromData(int y)
@@ -2226,7 +2370,9 @@ private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color colo
     Block newBlock = Instantiate(blockPrefab);
     GameObject obj = newBlock.gameObject;
 
-    newBlock.SetVisual(sprite, color, widthValue);
+    Sprite resolvedSprite = GetNormalGemSpriteForColorAndLength(color, widthValue, sprite);
+
+    newBlock.SetVisual(resolvedSprite, color, widthValue);
 
     newBlock.width = widthValue;
     newBlock.x = x;
@@ -2240,8 +2386,8 @@ private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color colo
     {
         sr.color = color;
 
-        if (sprite != null)
-            sr.sprite = sprite;
+        if (resolvedSprite != null)
+            sr.sprite = resolvedSprite;
     }
 
     float worldX = x + (widthValue - 1) * 0.5f;
@@ -2295,7 +2441,9 @@ void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)
     Block newBlock = Instantiate(blockPrefab);
     GameObject obj = newBlock.gameObject;
 
-    newBlock.SetVisual(sprite, color, widthValue);
+    Sprite resolvedSprite = GetNormalGemSpriteForColorAndLength(color, widthValue, sprite);
+
+    newBlock.SetVisual(resolvedSprite, color, widthValue);
 
     newBlock.width = widthValue;
     newBlock.x = x;
@@ -2308,8 +2456,8 @@ void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)
 
     sr.color = color;
 
-    if (sprite != null)
-        sr.sprite = sprite;
+    if (resolvedSprite != null)
+        sr.sprite = resolvedSprite;
 
         float worldX = x + (widthValue - 1) * 0.5f;
 

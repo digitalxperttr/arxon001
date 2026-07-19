@@ -1,84 +1,171 @@
-# ARXON UI Slicing Spec
+Evet, doğru yakaladın. 🙂 O prompt **tek katman** üretmek için yazılmıştı.
 
-Bu dokuman `Assets/Textures/ARXON_UI.png` icin ilk slicing referansidir.
+Yani üretici büyük ihtimalle şunu yapacak:
 
-Kapsam:
+```text
+[ Taş platform ]
+[ Enerji ]
+```
 
-- sadece atlas analizi
-- sprite isimlendirme
-- kullanim amaci
-- slice tipi
+ikisini tek PNG içinde birleştirecek.
 
-Kapsam disi:
+---
 
-- scene degisikligi
-- script degisikligi
-- prefab implementasyonu
+Benim sonradan aklıma gelen fikir ise farklı.
 
-Kaynak atlas:
+Bunu Unity'de çok daha kaliteli yapabiliriz.
 
-- `Assets/Textures/ARXON_UI.png`
+## Layer 1
 
-## Import Varsayimi
+Sadece taş platform.
 
-| Alan | Deger |
-| --- | --- |
-| Texture Type | `Sprite (2D and UI)` |
-| Sprite Mode | `Multiple` |
-| Mesh Type | `Full Rect` |
-| Mip Maps | `Off` |
-| Filter Mode | `Bilinear` |
-| Compression | UI kalitesini bozmayacak sekilde dusuk / yok |
+```text
+██████████████████████
+██████████████████████
+██████████████████████
+```
 
-## Slicing Kurali
+PNG
 
-Bu asamada tum sprite'lar `Single` mantiginda ayrilacak.
+Transparan BG
 
-- `9-slice` yok
-- yeniden boyutlandirma beklentisi yok
-- Illustrator'da final ebatlar hazirlandigi icin sprite'lar dogrudan kullanilacak
+Enerji YOK.
 
-Not:
+---
 
-- Ileride panel veya buton boyutlari degisecekse yeniden export gerekebilir.
+## Layer 2
 
-## Sprite Listesi
+Sadece enerji.
 
-| Sprite Name | Kullanim | Slice Type | Not |
-| --- | --- | --- | --- |
-| `panel_pause` | Pause overlay ana paneli | `Single` | Buyuk dikey tas panel varyanti |
-| `panel_settings` | Settings overlay ana paneli | `Single` | Buyuk dikey tas panel varyanti |
-| `hud_classic` | Classic mode ust HUD bar'i | `Single` | Yatay tas bar |
-| `hud_adventure` | Adventure mode ust HUD bar'i | `Single` | Yatay tas bar |
-| `btn_green` | Ana yesil aksiyon butonu govdesi | `Single` | Text TMP ile ustte gelecek |
-| `btn_home` | Ana menu / home aksiyon butonu | `Single` | Ikon baked |
-| `btn_restart` | Yeniden baslat aksiyon butonu | `Single` | Ikon baked |
-| `btn_menu` | Menu / liste aksiyon butonu | `Single` | Ikon baked |
-| `btn_level` | Kare ikon tabanli level / secim butonu | `Single` | Base buton gibi dusunulebilir |
-| `icon_music` | Muzik ayari ikonu | `Single` | Settings icinde |
-| `icon_sound` | Ses ayari ikonu | `Single` | Settings icinde |
-| `icon_hint` | Ipucu ayari veya yardim ikonu | `Single` | Settings icinde |
-| `icon_vibration` | Titresim ayari ikonu | `Single` | Settings icinde |
-| `icon_purchases` | Satin almayi geri yukle / purchases alani | `Single` | Settings icinde |
-| `icon_contact` | Iletisim / sosyal medya / bize ulasin alani | `Single` | Settings icinde |
-| `toggle_off` | Pasif toggle durumu | `Single` | Baked `OFF` iceriyor |
-| `toggle_on` | Aktif toggle durumu | `Single` | Baked `ON` iceriyor |
-| `progress_bar` | Segmentli ilerleme cubugu | `Single` | Mavi segmentli gorunum |
+```text
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~  glow  ~~~~~~~~~~
+~~~~ particles ~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+```
 
-## Uygulama Notlari
+PNG
 
-- `btn_green` uzerine tum lokalize metinler TMP ile gelecek.
-- `btn_home`, `btn_restart`, `btn_menu` ikonlu buton gibi kullanilacak.
-- `btn_level` kare form faktorlu secim butonu olarak dusunulmeli.
-- `toggle_off` ve `toggle_on` dogrudan state swap ile kullanilabilir.
-- `panel_pause` ve `panel_settings` su an tek parca panel olarak ele alinacak.
-- `hud_classic` ve `hud_adventure` su an tek parca HUD parcalari olarak ele alinacak.
+Transparan BG
 
-## Acik Notlar
+Taş YOK.
 
-- Atlas icinde `OK` yazili ayrica bir yesil buton bulunuyor, fakat mevcut naming listesinde yer almiyor.
-- Eger bu asset kullanilacaksa sonradan ayrica adlandirilmali:
-  - onerilen ad: `btn_ok_baked`
-- Mevcut atlas adlandirmasinda `icon_contact`, iletisim ve sosyal linkleri temsil eden ikon olarak yorumlaniyor.
-- `icon_purchases`, satin almayi geri yukle amaciyla kullanilacak.
+---
 
+Sonra Unity'de
+
+```
+Stone Platform
+
+↓
+
+Energy
+
+↓
+
+Preview Blocks
+
+↓
+
+Mask
+```
+
+şeklinde dizeriz.
+
+Bunun avantajları çok büyük.
+
+---
+
+### Enerjiyi hareket ettirebiliriz
+
+* alpha pulse
+* UV scroll
+* noise
+* hafif shimmer
+* hafif particle
+
+---
+
+### Taş hiç oynamaz.
+
+---
+
+### İstediğin zaman
+
+enerjinin rengini
+
+turkuaz
+
+↓
+
+mor
+
+↓
+
+altın
+
+↓
+
+yeşil
+
+yapabilirsin.
+
+Event sisteminde bile kullanılır.
+
+---
+
+### Performans
+
+Neredeyse ücretsiz.
+
+---
+
+## Ben artık bunu öneririm.
+
+Yani iki ayrı prompt yazalım.
+
+### Prompt 1
+
+Stone Platform
+
+---
+
+### Prompt 2
+
+Mystic Energy
+
+---
+
+Bence bu çok daha profesyonel olur.
+
+Çünkü oyun geliştirmede sanatçılar da zaten böyle çalışıyor:
+
+* Base
+* Overlay
+* Glow
+* FX
+
+ayrı katmanlar.
+
+---
+
+### Hatta bir fikir daha...
+
+Stone Platform'u **9-slice** mantığına uygun üretelim.
+
+Çünkü ileride preview alanının yüksekliğini değiştirmek istersek tekrar görsel üretmek zorunda kalmayız.
+
+Yani ben artık bunu "tek dekoratif PNG" olarak değil, **gerçek bir UI bileşeni** olarak tasarlardım.
+
+Bu arada, bir şey daha fark ettim.
+
+Biz buna sürekli **"kuyu"** diyoruz ama aslında çizdirmek istediğimiz şey bir kuyu değil. 😄
+
+Ben buna artık **Mystic Forge** demeyi tercih ederim.
+
+Çünkü:
+
+* Kuyu → su çağrıştırıyor.
+* Forge → üretim, oluşum, dönüşüm çağrıştırıyor.
+
+ARXON'da bloklar "çıkarılmıyor", **üretiliyor**. Mistik enerji içinde şekillenip oyuncuya sunuluyor. Bu yüzden "Forge" kavramı temaya bence çok daha iyi oturuyor.

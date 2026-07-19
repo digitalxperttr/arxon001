@@ -305,15 +305,7 @@ bool IsPathClear(Block b, int targetX)
     if (b == null || grid == null)
         return false;
 
-    if (targetX < 0 || targetX + b.width > grid.width || b.y < 0 || b.y >= grid.height)
-        return false;
-
-    for (int i = 0; i < b.width; i++)
-    {
-        Block other = grid.gridArray[targetX + i, b.y];
-        if (other != null && other != b) return false;
-    }
-    return true;
+    return grid.CanFitBlockAt(targetX, b.y, b.width, b);
 }
 
 private void UpdatePlacementGuide()

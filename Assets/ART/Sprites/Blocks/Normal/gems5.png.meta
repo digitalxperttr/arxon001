@@ -155,7 +155,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: gems5_S_kirmizi
+      name: gems5_S_red
       rect:
         serializedVersion: 2
         x: 52
@@ -177,7 +177,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_M_kirmizi
+      name: gems5_M_red
       rect:
         serializedVersion: 2
         x: 316
@@ -199,7 +199,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_L_kirmizi
+      name: gems5_L_red
       rect:
         serializedVersion: 2
         x: 795
@@ -221,7 +221,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_S_mor
+      name: gems5_S_purple
       rect:
         serializedVersion: 2
         x: 52
@@ -243,7 +243,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_M_mor
+      name: gems5_M_purple
       rect:
         serializedVersion: 2
         x: 317
@@ -265,7 +265,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_L_mor
+      name: gems5_L_purple
       rect:
         serializedVersion: 2
         x: 795
@@ -287,7 +287,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_S_turuncu
+      name: gems5_S_gold
       rect:
         serializedVersion: 2
         x: 52
@@ -309,7 +309,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_M_turuncu
+      name: gems5_M_gold
       rect:
         serializedVersion: 2
         x: 317
@@ -331,7 +331,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_L_turuncu
+      name: gems5_L_gold
       rect:
         serializedVersion: 2
         x: 795
@@ -353,7 +353,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_S_yesil
+      name: gems5_S_green
       rect:
         serializedVersion: 2
         x: 52
@@ -375,7 +375,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_M_yesil
+      name: gems5_M_green
       rect:
         serializedVersion: 2
         x: 317
@@ -397,11 +397,11 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_L_yesil
+      name: gems5_L_green
       rect:
         serializedVersion: 2
         x: 795
-        y: 233
+        y: 235
         width: 513
         height: 161
       alignment: 0
@@ -419,7 +419,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_S_mavi
+      name: gems5_S_blue
       rect:
         serializedVersion: 2
         x: 52
@@ -441,7 +441,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_M_mavi
+      name: gems5_M_blue
       rect:
         serializedVersion: 2
         x: 316
@@ -463,7 +463,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: gems5_L_mavi
+      name: gems5_L_blue
       rect:
         serializedVersion: 2
         x: 795
@@ -498,21 +498,21 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      gems5_L_kirmizi: -6953605587395534386
-      gems5_L_mavi: -5015708092498153368
-      gems5_L_mor: 6094231534787271380
-      gems5_L_turuncu: 619861069690359343
-      gems5_L_yesil: -6258854042687532500
-      gems5_M_kirmizi: -1610190704384560926
-      gems5_M_mavi: -7679816748687068547
-      gems5_M_mor: -9135554542460149537
-      gems5_M_turuncu: -166273016629100320
-      gems5_M_yesil: -8146011288210639836
-      gems5_S_kirmizi: -434535014777238565
-      gems5_S_mavi: -6875143902701234323
-      gems5_S_mor: -2324498421314628387
-      gems5_S_turuncu: -4947569923839329075
-      gems5_S_yesil: 1338011854497743687
+      gems5_L_blue: -5015708092498153368
+      gems5_L_gold: 619861069690359343
+      gems5_L_green: -6258854042687532500
+      gems5_L_purple: 6094231534787271380
+      gems5_L_red: -6953605587395534386
+      gems5_M_blue: -7679816748687068547
+      gems5_M_gold: -166273016629100320
+      gems5_M_green: -8146011288210639836
+      gems5_M_purple: -9135554542460149537
+      gems5_M_red: -1610190704384560926
+      gems5_S_blue: -6875143902701234323
+      gems5_S_gold: -4947569923839329075
+      gems5_S_green: 1338011854497743687
+      gems5_S_purple: -2324498421314628387
+      gems5_S_red: -434535014777238565
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

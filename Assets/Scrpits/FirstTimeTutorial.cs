@@ -319,7 +319,7 @@ public class FirstTimeTutorial : MonoBehaviour
             Block previewBlock = Instantiate(gridManager.blockPrefab, position, Quaternion.identity);
             previewBlock.gameObject.name = $"TutorialPreviewBlock_{i + 1}";
             previewBlock.enabled = false;
-            previewBlock.SetVisual(data.visualSprite, data.color, data.width);
+            previewBlock.SetVisual(gridManager.GetVisualSpriteForBlockData(data), data.color, data.width);
             previewBlock.transform.localScale = new Vector3(visualScaleX, visualScaleY, 1f);
 
             if (previewBlock.TryGetComponent<Collider2D>(out Collider2D collider))
