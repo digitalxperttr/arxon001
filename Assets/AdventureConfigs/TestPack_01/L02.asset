@@ -18,7 +18,7 @@ MonoBehaviour:
   difficulty: 0
   pressure: 1
   objective: 0
-  obstacleTheme: 0
+  obstacleTheme: 2
   specialMechanicFocus: 0
   fogDensity: 0
   fogCoveragePercent: 0

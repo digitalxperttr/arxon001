@@ -524,6 +524,7 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
         // Boyutları ana blokla birebir eşitle
         iceSr.size = sr.size; 
         iceSr.color = sr.color;
+        iceSr.sortingLayerID = sr.sortingLayerID;
         iceSr.sortingOrder = sr.sortingOrder + 1;
         
         iceVisual.SetActive(true);
@@ -531,6 +532,42 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
     else
     {
         if (iceVisual != null) iceVisual.SetActive(false);
+    }
+}
+
+public void ApplyPreviewRendererSorting(int sortingOrder)
+{
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    if (sr == null)
+        return;
+
+    int sortingLayerId = sr.sortingLayerID;
+    sr.sortingOrder = sortingOrder;
+
+    if (iceVisual != null)
+    {
+        SpriteRenderer iceSr = iceVisual.GetComponent<SpriteRenderer>();
+        if (iceSr != null)
+        {
+            iceSr.sortingLayerID = sortingLayerId;
+            iceSr.sortingOrder = sortingOrder;
+        }
+    }
+
+    for (int i = 0; i < spawnedChainOverlays.Count; i++)
+    {
+        GameObject overlay = spawnedChainOverlays[i];
+        if (overlay == null)
+            continue;
+
+        SpriteRenderer overlayRenderer = overlay.GetComponent<SpriteRenderer>();
+        if (overlayRenderer == null)
+            continue;
+
+        overlayRenderer.sortingLayerID = sortingLayerId;
+        overlayRenderer.sortingOrder = sortingOrder;
     }
 }
 

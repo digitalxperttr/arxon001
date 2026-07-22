@@ -11,6 +11,9 @@ public class GridManager : MonoBehaviour
 {
     private static readonly bool TutorialBoardOverrideEnabled = false;
     private const int PreviewSortingOrder = -5;
+    [SerializeField] private float previewVisualYOffset = -0.25f;
+    [SerializeField] private float previewVisualScale = 0.93f;
+    [SerializeField] private float previewHorizontalCompression = 0.93f;
 
     [System.Serializable]
     public struct LengthSpriteSet
@@ -1942,7 +1945,10 @@ private void UpdatePreviewVisuals()
 
     foreach (BlockData data in nextRowData)
     {
-        Vector3 spawnPos = new Vector3(data.x + (data.width - 1) * 0.5f, -1.0f, 0);
+        float previewCenterX = (width - 1) * 0.5f;
+        float logicalBlockCenterX = data.x + (data.width - 1) * 0.5f;
+        float visualX = previewCenterX + (logicalBlockCenterX - previewCenterX) * previewHorizontalCompression;
+        Vector3 spawnPos = new Vector3(visualX, previewYPosition + previewVisualYOffset, 0);
         previewVisuals.Add(BuildDetailedBlockPreview(data, spawnPos));
     }
 }
@@ -1956,10 +1962,10 @@ private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
 
     previewBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
 
-    SpriteRenderer sr = previewBlock.GetComponent<SpriteRenderer>();
-    sr.sortingOrder = PreviewSortingOrder;
-
     if (data.isFrozen) previewBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
+    if (data.isChained) previewBlock.SetChained(previewBlock.width);
+    previewBlock.ApplyPreviewRendererSorting(PreviewSortingOrder);
+    previewBlock.transform.localScale = new Vector3(previewVisualScale, previewVisualScale, 1f);
 
     return previewBlock.gameObject;
 }
