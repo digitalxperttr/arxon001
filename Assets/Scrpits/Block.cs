@@ -552,7 +552,7 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
         if (iceSr != null)
         {
             iceSr.sortingLayerID = sortingLayerId;
-            iceSr.sortingOrder = sortingOrder;
+            iceSr.sortingOrder = sortingOrder + 1;
         }
     }
 
@@ -567,7 +567,7 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
             continue;
 
         overlayRenderer.sortingLayerID = sortingLayerId;
-        overlayRenderer.sortingOrder = sortingOrder;
+        overlayRenderer.sortingOrder = sortingOrder + 2;
     }
 }
 

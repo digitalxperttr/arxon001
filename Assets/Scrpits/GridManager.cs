@@ -14,6 +14,7 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float previewVisualYOffset = -0.25f;
     [SerializeField] private float previewVisualScale = 0.93f;
     [SerializeField] private float previewHorizontalCompression = 0.93f;
+    [SerializeField] private ForgeTeleportController forgeTeleportController;
 
     [System.Serializable]
     public struct LengthSpriteSet
@@ -347,6 +348,7 @@ private int GetPerfectClearBonus(int level)
         }
 
         blockTestSpawner = GetComponent<BlockTestSpawner>();
+        ResolveForgeTeleportController();
         firstTimeTutorial = TutorialBoardOverrideEnabled
             ? FindAnyObjectByType<FirstTimeTutorial>()
             : null;
@@ -946,6 +948,11 @@ public IEnumerator PushBoardUpRoutine()
     // EMNİYET KİLİDİ: Oyun bittiyse asla yeni satır ekleme ve yukarı itme
     if (isGameOver) yield break;
 
+    if (forgeTeleportController != null)
+    {
+        yield return StartCoroutine(forgeTeleportController.PlayDepartureRoutine(previewVisuals));
+    }
+
     // 1. ÖNCE HER ŞEYİ AYNI ANDA YAP (Zıplama olmasın)
     // Mevcutları yukarı it
     foreach (Block b in activeBlocks) 
@@ -958,10 +965,21 @@ public IEnumerator PushBoardUpRoutine()
     RebuildGridMemory();
 
     // HİÇ BEKLEMEDEN: Rastgele satır doğurma! Onun yerine önizlemedeki satırı oyuna al.
-    SpawnRowFromData(0); 
+    List<Block> spawnedRowBlocks = SpawnRowFromData(0);
+
+    if (forgeTeleportController != null)
+    {
+        forgeTeleportController.PrepareArrival(spawnedRowBlocks);
+    }
 
     // HEMEN ARDINDAN: Bir sonraki hamle için yeni bir önizleme (taslak) oluştur.
     GenerateNextRowData(); 
+
+    if (forgeTeleportController != null)
+    {
+        forgeTeleportController.ClearCompletedDepartureState();
+        yield return StartCoroutine(forgeTeleportController.PlayArrivalRoutine(spawnedRowBlocks));
+    }
 
     // 2. ŞİMDİ OYUNCUYA SÜRE TANI (Hızı buradan kontrol et)
     // "Hızlı gibi" dediğin yer burası, bu süreyi artırabilirsin.
@@ -978,6 +996,16 @@ public IEnumerator PushBoardUpRoutine()
     
     ChangeState(GameState.CHECKING);
     yield return StartCoroutine(CheckAndClearRowsRoutine());
+}
+
+private void ResolveForgeTeleportController()
+{
+    if (forgeTeleportController != null)
+        return;
+
+    GameObject forgeRoot = GameObject.Find("MysticForgeRoot");
+    if (forgeRoot != null)
+        forgeTeleportController = forgeRoot.GetComponent<ForgeTeleportController>();
 }
 
 private bool ShouldUseClassicDifficultyPush()
@@ -1970,13 +1998,19 @@ private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
     return previewBlock.gameObject;
 }
 
-public void SpawnRowFromData(int y)
+public List<Block> SpawnRowFromData(int y)
 {
+    List<Block> spawnedBlocks = new List<Block>(nextRowData.Count);
+
     foreach (BlockData data in nextRowData)
     {
-        SpawnConfiguredBlock(data, y, true, -1f);
+        Block spawnedBlock = SpawnConfiguredBlock(data, y, true, -1f);
+        if (spawnedBlock != null)
+            spawnedBlocks.Add(spawnedBlock);
     }
+
     RebuildGridMemory();
+    return spawnedBlocks;
 }
 
 //---------------------//ÖN İZLEME FONKSİYONLARI-----------------------

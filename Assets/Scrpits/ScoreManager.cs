@@ -35,6 +35,8 @@ public class ScoreManager : MonoBehaviour
 
     // SEVİYE (LEVEL) DEĞİŞKENLERİ
     [SerializeField] private int[] scoreLevelThresholds = { 0, 250, 600, 1000, 1300, 1800, 2600, 3200, 4000, 5000 };
+    [SerializeField] private int postThresholdBaseGap = 1200;
+    [SerializeField] private int postThresholdGapIncrease = 200;
     public int currentLevel = 1;
 
     public void IncrementCombo()
@@ -81,6 +83,8 @@ public class ScoreManager : MonoBehaviour
 
     void Awake()
     {
+        ValidateLevelProgressionSettings();
+
         // Doğru Singleton Deseni: Eğer bir tane zaten varsa, yenisini yok et.
         if (Instance == null)
         {
@@ -174,9 +178,13 @@ public void UpdateScoreUI()
     public void AddScore(int amount)
     {
         if (this == null) return;
-        
+
+        int previousScore = currentScore;
+        int previousLevel = currentLevel;
         currentScore += amount;
         UpdateLevelFromScore();
+
+        LogClassicProgressionDiagnostics(previousScore, currentScore, previousLevel, currentLevel);
 
         // YENİ: Eğer skorumuz rekoru geçtiyse ve KLASİK MODDAYSAK rekoru kaydet!
         // (LevelManager kapalıysa veya currentLevel null ise Klasik moddayız demektir)
@@ -250,50 +258,117 @@ public void UpdateScoreUI()
 
     private int GetLevelForScore(int score)
     {
+        int sanitizedScore = Mathf.Max(0, score);
+
         if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
         {
-            return 1;
+            return GetGeneratedLevelForScore(sanitizedScore, 0, 0);
         }
 
         int level = 1;
         for (int i = 0; i < scoreLevelThresholds.Length; i++)
         {
-            if (score >= scoreLevelThresholds[i])
+            if (sanitizedScore >= scoreLevelThresholds[i])
             {
                 level = i + 1;
             }
+            else
+            {
+                return Mathf.Max(1, level);
+            }
         }
 
-        return Mathf.Max(1, level);
+        int lastSerializedThreshold = scoreLevelThresholds[scoreLevelThresholds.Length - 1];
+        return GetGeneratedLevelForScore(sanitizedScore, scoreLevelThresholds.Length, lastSerializedThreshold);
     }
 
     private int GetNextLevelThreshold()
     {
-        if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
+        int currentLevelStartThreshold = GetCurrentLevelStartThreshold();
+        int nextLevel = currentLevel < int.MaxValue ? currentLevel + 1 : int.MaxValue;
+        int nextLevelThreshold = GetThresholdForLevelStart(nextLevel);
+
+        if (nextLevelThreshold <= currentLevelStartThreshold)
         {
-            return Mathf.Max(1, currentScore);
+            long fallbackThreshold = (long)currentLevelStartThreshold + postThresholdBaseGap;
+            return fallbackThreshold >= int.MaxValue ? int.MaxValue : (int)fallbackThreshold;
         }
 
-        for (int i = 0; i < scoreLevelThresholds.Length; i++)
-        {
-            if (scoreLevelThresholds[i] > currentScore)
-            {
-                return scoreLevelThresholds[i];
-            }
-        }
-
-        return Mathf.Max(currentScore, scoreLevelThresholds[scoreLevelThresholds.Length - 1]);
+        return nextLevelThreshold;
     }
 
     private int GetCurrentLevelStartThreshold()
     {
+        return GetThresholdForLevelStart(currentLevel);
+    }
+
+    private int GetThresholdForLevelStart(int level)
+    {
+        int sanitizedLevel = Mathf.Max(1, level);
+
         if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
         {
-            return 0;
+            return GetGeneratedThresholdForLevel(sanitizedLevel, 0, 0);
         }
 
-        int index = Mathf.Clamp(currentLevel - 1, 0, scoreLevelThresholds.Length - 1);
-        return scoreLevelThresholds[index];
+        int serializedIndex = sanitizedLevel - 1;
+        if (serializedIndex < scoreLevelThresholds.Length)
+        {
+            return scoreLevelThresholds[serializedIndex];
+        }
+
+        int lastSerializedThreshold = scoreLevelThresholds[scoreLevelThresholds.Length - 1];
+        return GetGeneratedThresholdForLevel(sanitizedLevel, scoreLevelThresholds.Length, lastSerializedThreshold);
+    }
+
+    private int GetGeneratedLevelForScore(int score, int serializedLevelCount, int lastSerializedThreshold)
+    {
+        int minimumLevel = Mathf.Max(1, serializedLevelCount);
+        int lowLevel = minimumLevel;
+        int highLevel = minimumLevel + 1;
+        int highThreshold = GetGeneratedThresholdForLevel(highLevel, serializedLevelCount, lastSerializedThreshold);
+
+        while (score >= highThreshold && highThreshold < int.MaxValue && highLevel < int.MaxValue)
+        {
+            lowLevel = highLevel;
+            highLevel = highLevel <= int.MaxValue / 2 ? highLevel * 2 : int.MaxValue;
+            highThreshold = GetGeneratedThresholdForLevel(highLevel, serializedLevelCount, lastSerializedThreshold);
+        }
+
+        while (lowLevel + 1 < highLevel)
+        {
+            int midLevel = lowLevel + (highLevel - lowLevel) / 2;
+            int midThreshold = GetGeneratedThresholdForLevel(midLevel, serializedLevelCount, lastSerializedThreshold);
+
+            if (score >= midThreshold)
+            {
+                lowLevel = midLevel;
+            }
+            else
+            {
+                highLevel = midLevel;
+            }
+        }
+
+        return lowLevel;
+    }
+
+    private int GetGeneratedThresholdForLevel(int level, int serializedLevelCount, int lastSerializedThreshold)
+    {
+        int generatedGapCount = serializedLevelCount > 0
+            ? Mathf.Max(0, level - serializedLevelCount)
+            : Mathf.Max(0, level - 1);
+        long generatedGapTotal =
+            (long)generatedGapCount * postThresholdBaseGap +
+            (long)postThresholdGapIncrease * generatedGapCount * (generatedGapCount - 1) / 2;
+        long threshold = (long)lastSerializedThreshold + generatedGapTotal;
+
+        if (threshold >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        return Mathf.Max(0, (int)threshold);
     }
 
     private void GetCurrentLevelProgress(out int progressScore, out int requiredScore)
@@ -303,6 +378,54 @@ public void UpdateScoreUI()
 
         requiredScore = Mathf.Max(1, nextLevelScore - currentLevelStartScore);
         progressScore = Mathf.Clamp(currentScore - currentLevelStartScore, 0, requiredScore);
+    }
+
+    private void ValidateLevelProgressionSettings()
+    {
+        postThresholdBaseGap = Mathf.Max(1, postThresholdBaseGap);
+        postThresholdGapIncrease = Mathf.Max(0, postThresholdGapIncrease);
+
+#if UNITY_EDITOR
+        if (scoreLevelThresholds == null || scoreLevelThresholds.Length == 0)
+        {
+            Debug.LogWarning("[ScoreManager] scoreLevelThresholds is empty. Classic score progression will use generated thresholds from 0.");
+            return;
+        }
+
+        if (scoreLevelThresholds[0] != 0)
+        {
+            Debug.LogWarning($"[ScoreManager] scoreLevelThresholds should start at 0 for Level 1. Current first threshold: {scoreLevelThresholds[0]}.");
+        }
+
+        for (int i = 1; i < scoreLevelThresholds.Length; i++)
+        {
+            if (scoreLevelThresholds[i] <= scoreLevelThresholds[i - 1])
+            {
+                Debug.LogWarning(
+                    $"[ScoreManager] scoreLevelThresholds must be strictly ascending. Invalid pair at indices {i - 1}/{i}: {scoreLevelThresholds[i - 1]} >= {scoreLevelThresholds[i]}.");
+                return;
+            }
+        }
+#endif
+    }
+
+    private void LogClassicProgressionDiagnostics(int previousScore, int newScore, int previousLevel, int newLevel)
+    {
+#if UNITY_EDITOR
+        bool isClassicMode = LevelManager.Instance == null || LevelManager.Instance.currentLevel == null;
+        if (!isClassicMode)
+        {
+            return;
+        }
+
+        int currentLevelStartScore = GetCurrentLevelStartThreshold();
+        int nextLevelScore = GetNextLevelThreshold();
+        GetCurrentLevelProgress(out int progressScore, out int requiredScore);
+
+        Debug.Log(
+            $"[ClassicProgression] score {previousScore}->{newScore} | level {previousLevel}->{newLevel} | " +
+            $"levelStart={currentLevelStartScore} | nextThreshold={nextLevelScore} | progress={progressScore}/{requiredScore}");
+#endif
     }
 
     private void UpdateClassicLevelUI()
