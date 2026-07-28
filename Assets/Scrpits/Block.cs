@@ -1126,7 +1126,7 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
         yield return StartCoroutine(CrunchAndDestroy(explosionPrefab, null, true));
     }
 
-public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab, GameObject overrideFxPrefab, bool useDefaultFxIfNull)
+public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab, GameObject overrideFxPrefab, bool useDefaultFxIfNull, float duration = 0.15f)
     {
         // 1. Patlama Efekti (Partiküller)
         GameObject effectPrefab = overrideFxPrefab;
@@ -1156,7 +1156,6 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
         // 2. Temiz İçe Çökme (Pürüzsüz Küçülme)
         Vector3 originalScale = transform.localScale;
         float elapsed = 0f;
-        float duration = 0.15f; // Çok hızlı bir erime
 
         while (elapsed < duration)
         {

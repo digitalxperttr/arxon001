@@ -15,13 +15,16 @@ MonoBehaviour:
   levelNumber: 4
   displayName: Adventure Level
   designerNotes: Medium / ObstacleDense / ClearRows / Ice
-  difficulty: 1
+  difficulty: 2
   pressure: 2
-  objective: 0
-  obstacleTheme: 1
-  specialMechanicFocus: 0
-  targetLines: 14
-  targetScore: 0
+  objective: 1
+  obstacleTheme: 2
+  specialMechanicFocus: 1
+  fogDensity: 0
+  fogCoveragePercent: 0
+  objectives: []
+  targetLines: 0
+  targetScore: 500
   targetObstacleCount: 0
   targetComboCount: 0
   moveOffset: 0
@@ -52,5 +55,9 @@ MonoBehaviour:
     sliceBlockChance: 0
     overrideFireChance: 0
     fireBlockChance: 0
+    overrideFogDensity: 0
+    fogDensity: 0
+    overrideFogCoveragePercent: 0
+    fogCoveragePercent: 0
     overrideFogStartingRow: 0
     fogStartingRow: -1

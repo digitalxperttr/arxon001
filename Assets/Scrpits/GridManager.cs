@@ -11,6 +11,10 @@ public class GridManager : MonoBehaviour
 {
     private static readonly bool TutorialBoardOverrideEnabled = false;
     private const int PreviewSortingOrder = -5;
+    private const float SpecialRowClearGravityStartDelay = 0.2f;
+    private const float NormalRowClearGravityStartDelay = 0f;
+    private const float DefaultRowClearCrunchDuration = 0.15f;
+    private const float NormalRowClearCrunchDuration = 0.09f;
     [SerializeField] private float previewVisualYOffset = -0.25f;
     [SerializeField] private float previewVisualScale = 0.93f;
     [SerializeField] private float previewHorizontalCompression = 0.93f;
@@ -189,6 +193,8 @@ public class GridManager : MonoBehaviour
     private bool isResolvingNoMove = false;
     private bool isRunningDifficultyPush = false;
     private bool isSliceResolving = false;
+    private bool isTrackingClassicPlayerResolution = false;
+    private int pendingClassicClearedRowsForPush = 0;
     private bool chainBreakImpactPausePending = false;
     private bool slowGravityAfterChainBreakPending = false;
     private bool useSlowGravityThisPass = false;
@@ -358,6 +364,8 @@ private int GetPerfectClearBonus(int level)
 
 void Start()
     {
+        ResetClassicPushResolutionState();
+
         GenerateBackgroundGrid();
         GenerateFog(); // <--- YENİ EKLENDİ (Oyuna başlarken sisi basar)
 
@@ -809,6 +817,7 @@ public void TriggerGameOver()
     {
         if (isGameOver) return;
         isGameOver = true;
+        ResetClassicPushResolutionState();
 
         StartCoroutine(GameOverNoSpaceRoutine());
     }
@@ -1033,17 +1042,35 @@ private IEnumerator PushBoardUpByDifficultyRoutine()
     isRunningDifficultyPush = true;
 
     int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+    int clearedRows = pendingClassicClearedRowsForPush;
+    ResetClassicPushResolutionState();
+
     int pushCount = 1;
+    int randomPushCount = 1;
+    int minimumPushCount = GetClassicClearedRowsMinimumPushCount(level, clearedRows);
 
     if (enableClassicDoubleRowSpawn)
     {
         ClassicDifficultyProfile profile = GetClassicDifficultyProfile(level);
+        float rowSpawnRoll = Random.value;
+        float tripleRowChance = profile.allowTripleRowSpawn ? profile.tripleRowChance : 0f;
+        float doubleRowChance = profile.allowDoubleRowSpawn ? profile.doubleRowChance : 0f;
 
-        if (profile.allowDoubleRowSpawn && Random.value < profile.doubleRowChance)
+        if (rowSpawnRoll < tripleRowChance)
         {
-            pushCount = 2;
+            randomPushCount = 3;
+        }
+        else if (rowSpawnRoll < tripleRowChance + doubleRowChance)
+        {
+            randomPushCount = 2;
             Debug.Log("DOUBLE ROW SPAWN!");
         }
+
+        pushCount = Mathf.Max(randomPushCount, minimumPushCount);
+
+#if UNITY_EDITOR
+        Debug.Log($"[Classic Push Diagnostics] Level={level}, ClearedRows={clearedRows}, RandomPushRows={randomPushCount}, MinimumPushRows={minimumPushCount}, FinalPushRows={pushCount}, DoubleChance={doubleRowChance:0.###}, TripleChance={tripleRowChance:0.###}");
+#endif
     }
 
     for (int i = 0; i < pushCount; i++)
@@ -1062,6 +1089,23 @@ private IEnumerator PushBoardUpByDifficultyRoutine()
     }
 
     isRunningDifficultyPush = false;
+}
+
+private static int GetClassicClearedRowsMinimumPushCount(int level, int clearedRows)
+{
+    if (level < 6 || clearedRows < 2)
+        return 1;
+
+    if (level >= 15 && clearedRows >= 3)
+        return 3;
+
+    return 2;
+}
+
+private void ResetClassicPushResolutionState()
+{
+    isTrackingClassicPlayerResolution = false;
+    pendingClassicClearedRowsForPush = 0;
 }
 
 public void RestartGame()
@@ -1087,6 +1131,7 @@ public void ResetClassicRunState()
 {
     isResolvingNoMove = false;
     isRunningDifficultyPush = false;
+    ResetClassicPushResolutionState();
 }
 
 public bool IsClassicRun()
@@ -1129,7 +1174,10 @@ public IEnumerator ApplyGravityRoutine()
                 }
             }
         }
-        if (movedAny) yield return new WaitForSeconds(gravityStepDelay);
+        if (movedAny)
+        {
+            yield return new WaitForSeconds(gravityStepDelay);
+        }
     } while (movedAny);
 }
 
@@ -1148,6 +1196,12 @@ bool CanFall(Block b) {
 
 public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chainDepth = 0)
     {
+        if (isPlayerMove && chainDepth == 0 && IsClassicRun())
+        {
+            isTrackingClassicPlayerResolution = true;
+            pendingClassicClearedRowsForPush = 0;
+        }
+
         // 1. EMNİYET KONTROLÜ VE PERFECT CLEAR (BONUS BURAYA TAŞINDI)
         if (activeBlocks == null || activeBlocks.Count == 0)
         {
@@ -1172,6 +1226,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
         }
 
         int clearedRowCount = 0; 
+        bool rowClearUsedSpecialResolution = false;
         int lowestClearedY = -1; // YENİ: Yazının çıkacağı pozisyonu bulmak için
 
         for (int y = 0; y < height; y++)
@@ -1179,7 +1234,8 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             if (IsRowFull(y))
             {
                 if (lowestClearedY == -1) lowestClearedY = y; // Patlayan ilk satırın yerini kaydet
-                ClearRow(y);
+                bool rowUsedSpecialResolution = ClearRow(y, out string specialResolutionTypes);
+                rowClearUsedSpecialResolution |= rowUsedSpecialResolution;
                 clearedRowCount++; 
                 y--; 
             }
@@ -1187,6 +1243,11 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
 
         if (clearedRowCount > 0)
         {
+            if (isTrackingClassicPlayerResolution && IsClassicRun())
+            {
+                pendingClassicClearedRowsForPush += clearedRowCount;
+            }
+
             if (clearedRowCount >= 2)
             {
                 StartCoroutine(FreezeFrameRoutine());
@@ -1272,6 +1333,11 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
                 yield return null;
             }
 
+            bool useSpecialRowClearDelay =
+                rowClearUsedSpecialResolution ||
+                chainBreakImpactPausePending ||
+                slowGravityAfterChainBreakPending;
+
             if (chainBreakImpactPausePending)
             {
                 chainBreakImpactPausePending = false;
@@ -1285,7 +1351,15 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             }
 
             RebuildGridMemory();
-            yield return new WaitForSeconds(0.2f);
+            float gravityStartDelay = useSpecialRowClearDelay
+                ? SpecialRowClearGravityStartDelay
+                : NormalRowClearGravityStartDelay;
+
+            if (gravityStartDelay > 0f)
+            {
+                yield return new WaitForSeconds(gravityStartDelay);
+            }
+
             yield return StartCoroutine(RebuildAndApplyGravityRoutine());
             
             // Zincirleme reaksiyonları kontrol et
@@ -1479,8 +1553,10 @@ bool IsRowFull(int y)
     return true;
 }
 
-void ClearRow(int y)
+bool ClearRow(int y, out string specialResolutionTypes)
     {
+        bool usedSpecialResolution = false;
+        List<string> specialResolutionReasons = new List<string>();
         System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToHoldSlice = new System.Collections.Generic.List<Block>();
@@ -1494,6 +1570,9 @@ void ClearRow(int y)
                 bool wasChainedAtClearStart = b.IsChained();
 
                 if (wasChainedAtClearStart) {
+                    usedSpecialResolution = true;
+                    AddSpecialResolutionReason(specialResolutionReasons, "Chain");
+
                     if (!processedChainedBlocks.Contains(b))
                     {
                         if (b.BreakOneChain())
@@ -1512,9 +1591,22 @@ void ClearRow(int y)
                     continue;
                 }
                 else if (b.isFrozen && !b.IsChained() && !blocksToUnfreeze.Contains(b)) {
+                    usedSpecialResolution = true;
+                    AddSpecialResolutionReason(specialResolutionReasons, "Ice");
                     blocksToUnfreeze.Add(b); // Sadece buzluysa buzu kırılacak
                 }
                 else if (!b.isFrozen && !b.IsChained() && !blocksToDestroy.Contains(b) && !blocksToUnfreeze.Contains(b)) {
+                    if (b.blockType == BlockType.Fire)
+                    {
+                        usedSpecialResolution = true;
+                        AddSpecialResolutionReason(specialResolutionReasons, "Fire");
+                    }
+                    else if (b.blockType == BlockType.Slice)
+                    {
+                        usedSpecialResolution = true;
+                        AddSpecialResolutionReason(specialResolutionReasons, "Slice");
+                    }
+
                     if (b.blockType == BlockType.Slice)
                     {
                         if (!blocksToHoldSlice.Contains(b))
@@ -1542,11 +1634,24 @@ void ClearRow(int y)
         // 3. Normal blokları patlat ve yok et
         foreach (Block b in blocksToDestroy)
             {
-                SafeDestroyBlock(b);
+                float crunchDuration = usedSpecialResolution
+                    ? DefaultRowClearCrunchDuration
+                    : NormalRowClearCrunchDuration;
+                SafeDestroyBlock(b, null, true, crunchDuration);
             }
 
         RebuildGridMemory(); 
+        specialResolutionTypes = specialResolutionReasons.Count > 0
+            ? string.Join("|", specialResolutionReasons)
+            : "None";
+        return usedSpecialResolution;
     }
+
+private static void AddSpecialResolutionReason(List<string> reasons, string reason)
+{
+    if (!reasons.Contains(reason))
+        reasons.Add(reason);
+}
 
 public bool AreBlocksMoving()
     {
@@ -2015,7 +2120,7 @@ public List<Block> SpawnRowFromData(int y)
 
 //---------------------//ÖN İZLEME FONKSİYONLARI-----------------------
 
-public void SafeDestroyBlock(Block block, GameObject destroyFxPrefab = null, bool useDefaultFxIfNull = true)
+public void SafeDestroyBlock(Block block, GameObject destroyFxPrefab = null, bool useDefaultFxIfNull = true, float crunchDuration = DefaultRowClearCrunchDuration)
 {
     if (block == null)
         return;
@@ -2042,7 +2147,7 @@ public void SafeDestroyBlock(Block block, GameObject destroyFxPrefab = null, boo
         }
     }
 
-    block.StartCoroutine(block.CrunchAndDestroy(explosionPrefab, destroyFxPrefab, useDefaultFxIfNull));
+    block.StartCoroutine(block.CrunchAndDestroy(explosionPrefab, destroyFxPrefab, useDefaultFxIfNull, crunchDuration));
 }
 
 public void DestroyBlocksByColor(Color targetColor)

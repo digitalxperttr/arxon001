@@ -682,6 +682,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b9d588af79a74dd19efff4864aa4c59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
+  previewVisualYOffset: -0.25
+  previewVisualScale: 0.93
+  previewHorizontalCompression: 0.93
+  forgeTeleportController: {fileID: 0}
   normalGems:
   - sprite: {fileID: 3951364350766183815, guid: 9ca7d71c2fc2b40d0b61ba8b4ccbd4b8, type: 3}
     lengthSprites:
@@ -727,8 +731,8 @@ MonoBehaviour:
   fireSprite: {fileID: -5509541731536557800, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
   sliceSprite: {fileID: -8413030977811616270, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
   collectibleDatabase: {fileID: 0}
-  classicFireChance: 0
-  classicSliceChance: 0.877
+  classicFireChance: 0.528
+  classicSliceChance: 0.528
   blockColors:
   - {r: 1, g: 0, b: 0, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}
