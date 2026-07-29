@@ -204,6 +204,18 @@ public class GridManager : MonoBehaviour
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private struct GravityPlanEntry
+    {
+        public Block block;
+        public int sourceX;
+        public int sourceY;
+        public int targetY;
+        public bool willMove;
+        public bool isFixed;
+    }
+#endif
+
     public bool isGameOver = false;
     public GameObject losePanel; // Unity'den atayacağımız panel
     [SerializeField] private GameObject noSpaceWarningPanel;
@@ -1141,6 +1153,277 @@ public bool IsClassicRun()
         LevelManager.Instance.currentLevel == null;
 }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+private List<GravityPlanEntry> BuildGravityPlan(out List<string> validationFailures)
+{
+    validationFailures = new List<string>();
+
+    List<Block> fixedBlocks = new List<Block>();
+    List<Block> movableBlocks = new List<Block>();
+    HashSet<Block> seenBlocks = new HashSet<Block>();
+
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (!seenBlocks.Add(block))
+        {
+            validationFailures.Add($"Duplicate active block reference: {block.name}");
+            continue;
+        }
+
+        if (IsFixedGravityOccupant(block))
+        {
+            fixedBlocks.Add(block);
+            continue;
+        }
+
+        if (IsBlockEligibleForGravityPlan(block))
+        {
+            movableBlocks.Add(block);
+            continue;
+        }
+
+        fixedBlocks.Add(block);
+    }
+
+    Block[,] temporaryOccupancy = new Block[width, height];
+    List<GravityPlanEntry> plan = new List<GravityPlanEntry>(fixedBlocks.Count + movableBlocks.Count);
+
+    foreach (Block block in fixedBlocks)
+    {
+        GravityPlanEntry entry = CreateGravityPlanEntry(block, block.y, false, true);
+        plan.Add(entry);
+
+        if (!PlaceFootprint(temporaryOccupancy, block, block.x, block.y, validationFailures, "fixed"))
+        {
+            validationFailures.Add(
+                $"Fixed occupant placement failed: block={GetGravityPlanBlockLabel(block)}, width={block.width}, source=({block.x},{block.y})");
+        }
+    }
+
+    movableBlocks.Sort(CompareBlocksForGravityPlan);
+
+    foreach (Block block in movableBlocks)
+    {
+        int targetY = block.y;
+
+        while (targetY > 0 && CanOccupyFootprint(temporaryOccupancy, block, block.x, targetY - 1))
+        {
+            targetY--;
+        }
+
+        GravityPlanEntry entry = CreateGravityPlanEntry(block, targetY, targetY != block.y, false);
+        plan.Add(entry);
+
+        if (!PlaceFootprint(temporaryOccupancy, block, block.x, targetY, validationFailures, "movable"))
+        {
+            validationFailures.Add(
+                $"Movable placement failed: block={GetGravityPlanBlockLabel(block)}, width={block.width}, source=({block.x},{block.y}), plannedTargetY={targetY}");
+        }
+    }
+
+    return plan;
+}
+
+private GravityPlanEntry CreateGravityPlanEntry(Block block, int targetY, bool willMove, bool isFixed)
+{
+    return new GravityPlanEntry
+    {
+        block = block,
+        sourceX = block.x,
+        sourceY = block.y,
+        targetY = targetY,
+        willMove = willMove,
+        isFixed = isFixed
+    };
+}
+
+private bool IsFixedGravityOccupant(Block block)
+{
+    if (block == null)
+        return false;
+
+    if (block.isBeingDestroyed)
+        return true;
+
+    return block == heldFireSourceBlock && isFireResolving;
+}
+
+private bool IsBlockEligibleForGravityPlan(Block block)
+{
+    return block != null && !IsFixedGravityOccupant(block);
+}
+
+private int CompareBlocksForGravityPlan(Block a, Block b)
+{
+    if (a == b)
+        return 0;
+
+    if (a == null)
+        return 1;
+
+    if (b == null)
+        return -1;
+
+    int yComparison = a.y.CompareTo(b.y);
+    if (yComparison != 0)
+        return yComparison;
+
+    int xComparison = a.x.CompareTo(b.x);
+    if (xComparison != 0)
+        return xComparison;
+
+    return a.GetEntityId().CompareTo(b.GetEntityId());
+}
+
+private bool CanOccupyFootprint(Block[,] occupancy, Block block, int targetX, int targetY)
+{
+    if (occupancy == null || block == null)
+        return false;
+
+    if (targetY < 0 || targetY >= height)
+        return false;
+
+    if (targetX < 0 || targetX + block.width > width)
+        return false;
+
+    for (int i = 0; i < block.width; i++)
+    {
+        if (occupancy[targetX + i, targetY] != null)
+            return false;
+    }
+
+    return true;
+}
+
+private bool PlaceFootprint(
+    Block[,] occupancy,
+    Block block,
+    int targetX,
+    int targetY,
+    List<string> validationFailures,
+    string placementPhase)
+{
+    if (!CanOccupyFootprint(occupancy, block, targetX, targetY))
+    {
+        if (validationFailures != null)
+        {
+            validationFailures.Add(
+                $"Cannot occupy footprint during {placementPhase}: block={GetGravityPlanBlockLabel(block)}, width={(block != null ? block.width : -1)}, target=({targetX},{targetY})");
+        }
+
+        return false;
+    }
+
+    for (int i = 0; i < block.width; i++)
+    {
+        occupancy[targetX + i, targetY] = block;
+    }
+
+    return true;
+}
+
+private void ValidateGravityPlanAgainstCurrentResult(List<GravityPlanEntry> plan, List<string> validationFailures)
+{
+    if (plan == null)
+        return;
+
+    int movingCount = 0;
+    int mismatchCount = 0;
+
+    if (validationFailures == null)
+        validationFailures = new List<string>();
+
+    for (int i = 0; i < plan.Count; i++)
+    {
+        GravityPlanEntry entry = plan[i];
+        Block block = entry.block;
+
+        if (entry.willMove)
+            movingCount++;
+
+        if (block == null)
+            continue;
+
+        if (!activeBlocks.Contains(block))
+            continue;
+
+        int expectedY = entry.targetY;
+        bool mismatch =
+            block.x != entry.sourceX ||
+            block.y != expectedY;
+
+        if (!mismatch)
+            continue;
+
+        mismatchCount++;
+        validationFailures.Add(
+            $"Gravity plan mismatch: block={GetGravityPlanBlockLabel(block)}, width={block.width}, classification={(entry.isFixed ? "fixed" : "movable")}, source=({entry.sourceX},{entry.sourceY}), plannedTarget=({entry.sourceX},{entry.targetY}), actual=({block.x},{block.y}), willMove={entry.willMove}");
+    }
+
+    ValidateCurrentGravityOccupancy(validationFailures);
+
+    if (validationFailures.Count <= 0)
+        return;
+
+    Debug.LogWarning(
+        $"Gravity planner validation found {validationFailures.Count} issue(s). planCount={plan.Count}, movingCount={movingCount}, mismatchCount={mismatchCount}\n" +
+        string.Join("\n", validationFailures));
+}
+
+private void ValidateCurrentGravityOccupancy(List<string> validationFailures)
+{
+    if (validationFailures == null)
+        return;
+
+    Block[,] occupancy = new Block[width, height];
+
+    foreach (Block block in activeBlocks)
+    {
+        if (block == null)
+            continue;
+
+        if (block.width <= 0)
+        {
+            validationFailures.Add($"Invalid block width after gravity: block={GetGravityPlanBlockLabel(block)}, width={block.width}");
+            continue;
+        }
+
+        if (block.y < 0 || block.y >= height || block.x < 0 || block.x + block.width > width)
+        {
+            validationFailures.Add(
+                $"Out-of-bounds block after gravity: block={GetGravityPlanBlockLabel(block)}, width={block.width}, actual=({block.x},{block.y})");
+            continue;
+        }
+
+        for (int i = 0; i < block.width; i++)
+        {
+            int cellX = block.x + i;
+            Block occupant = occupancy[cellX, block.y];
+
+            if (occupant != null && occupant != block)
+            {
+                validationFailures.Add(
+                    $"Occupancy overlap after gravity: cell=({cellX},{block.y}), first={GetGravityPlanBlockLabel(occupant)}, second={GetGravityPlanBlockLabel(block)}");
+                continue;
+            }
+
+            occupancy[cellX, block.y] = block;
+        }
+    }
+}
+
+private string GetGravityPlanBlockLabel(Block block)
+{
+    if (block == null)
+        return "null";
+
+    return $"{block.name}#{block.GetEntityId()}";
+}
+#endif
+
     // YERÇEKİMİ MOTORU
 public IEnumerator ApplyGravityRoutine()
 {
@@ -1148,6 +1431,11 @@ public IEnumerator ApplyGravityRoutine()
     {
         yield return null;
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    List<string> gravityPlanValidationFailures;
+    List<GravityPlanEntry> gravityPlan = BuildGravityPlan(out gravityPlanValidationFailures);
+#endif
 
     bool shouldUseSlowGravity = useSlowGravityThisPass;
     useSlowGravityThisPass = false;
@@ -1179,6 +1467,10 @@ public IEnumerator ApplyGravityRoutine()
             yield return new WaitForSeconds(gravityStepDelay);
         }
     } while (movedAny);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    ValidateGravityPlanAgainstCurrentResult(gravityPlan, gravityPlanValidationFailures);
+#endif
 }
 
 // Bloğun altındaki tüm genişliği kontrol eden yardımcı:

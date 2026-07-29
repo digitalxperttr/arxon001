@@ -13429,8 +13429,6 @@ MonoBehaviour:
   arrivalDuration: 0.34
   arrivalStartScale: 0.9
   arrivalOvershootScale: 1.05
-  arrivalGlowIntensity: 0.45
-  arrivalParticleCount: 3
 --- !u!1 &9101000010
 GameObject:
   m_ObjectHideFlags: 0
