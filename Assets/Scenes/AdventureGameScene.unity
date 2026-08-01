@@ -2333,6 +2333,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b9d588af79a74dd19efff4864aa4c59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
+  gravityBaseDuration: 0.17
+  gravityAdditionalCellDuration: 0.035
+  gravityMaxDuration: 0.24
   previewVisualYOffset: -0.25
   previewVisualScale: 0.93
   previewHorizontalCompression: 0.93
@@ -2438,7 +2441,6 @@ MonoBehaviour:
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
   chainBreakImpactPause: 0.16
-  chainBreakGravityStepDelay: 0.12
   firePulseScale: 1.52
   firePulseDuration: 0.1
   enableClassicDoubleRowSpawn: 1

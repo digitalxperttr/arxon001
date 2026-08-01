@@ -787,7 +787,6 @@ MonoBehaviour:
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
   chainBreakImpactPause: 0.16
-  chainBreakGravityStepDelay: 0.12
   firePulseScale: 1.12
   firePulseDuration: 0.12
   enableClassicDoubleRowSpawn: 1
@@ -858,7 +857,7 @@ MonoBehaviour:
   - x: 3
     y: 0
     width: 1
-    blockType: 0
+    blockType: 4
     specialType: 0
     normalGemIndex: 1
   - x: 4

@@ -1128,6 +1128,11 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
 
 public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab, GameObject overrideFxPrefab, bool useDefaultFxIfNull, float duration = 0.15f)
     {
+        yield return StartCoroutine(CrunchAndDestroy(explosionPrefab, overrideFxPrefab, useDefaultFxIfNull, duration, false));
+    }
+
+public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab, GameObject overrideFxPrefab, bool useDefaultFxIfNull, float duration, bool collapseDownward)
+    {
         // 1. Patlama Efekti (Partiküller)
         GameObject effectPrefab = overrideFxPrefab;
 
@@ -1155,18 +1160,33 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
 
         // 2. Temiz İçe Çökme (Pürüzsüz Küçülme)
         Vector3 originalScale = transform.localScale;
+        Vector3 originalPosition = transform.position;
+        float originalVisualHeight = 0f;
+        if (collapseDownward)
+        {
+            if (sr == null) sr = GetComponent<SpriteRenderer>();
+            originalVisualHeight = sr != null ? sr.bounds.size.y : 0f;
+        }
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             // Orijinal boyutundan sıfıra doğru, döndürmeden, temizce küçült
-            transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, elapsed / duration);
+            float progress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
+            float remainingScale = 1f - progress;
+            transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, progress);
+
+            if (collapseDownward && originalVisualHeight > 0f)
+            {
+                transform.position = originalPosition + Vector3.down * (originalVisualHeight * (1f - remainingScale) * 0.5f);
+            }
             
             elapsed += Time.deltaTime;
             yield return null;
         }
 
         // 3. Gerçekten Yok Et
+        transform.localScale = Vector3.zero;
         Destroy(gameObject);
     }
 

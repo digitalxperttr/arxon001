@@ -15,9 +15,24 @@ public class GridManager : MonoBehaviour
     private const float NormalRowClearGravityStartDelay = 0f;
     private const float DefaultRowClearCrunchDuration = 0.15f;
     private const float NormalRowClearCrunchDuration = 0.09f;
+    private const float PushGravityOverlapPushProgressThreshold = 0.75f;
+    private static readonly AnimationCurve GravityMotionCurve = new AnimationCurve(
+        new Keyframe(0f, 0f, 1.8f, 1.8f),
+        new Keyframe(0.12f, 0.23f, 1.55f, 1.25f),
+        new Keyframe(0.55f, 0.72f, 0.95f, 0.75f),
+        new Keyframe(0.85f, 0.94f, 0.55f, 0.35f),
+        new Keyframe(1f, 1f, 0.15f, 0.15f));
+
+    [Header("Gravity")]
+    [SerializeField] private float gravityBaseDuration = 0.1336f;
+    [InspectorName("Gravity Additional Duration")]
+    [SerializeField] private float gravityAdditionalCellDuration = 0.0371f;
+    [SerializeField] private float gravityMaxDuration = 0.2544f;
+    [Header("Preview")]
     [SerializeField] private float previewVisualYOffset = -0.25f;
     [SerializeField] private float previewVisualScale = 0.93f;
     [SerializeField] private float previewHorizontalCompression = 0.93f;
+    [Header("References")]
     [SerializeField] private ForgeTeleportController forgeTeleportController;
 
     [System.Serializable]
@@ -164,7 +179,6 @@ public class GridManager : MonoBehaviour
 
     [Header("Chain Break Feedback")]
     [SerializeField] private float chainBreakImpactPause = 0.16f;
-    [SerializeField] private float chainBreakGravityStepDelay = 0.12f;
 
     [Header("Fire Color Pulse")]
     [SerializeField] private float firePulseScale = 1.12f;
@@ -196,15 +210,15 @@ public class GridManager : MonoBehaviour
     private bool isTrackingClassicPlayerResolution = false;
     private int pendingClassicClearedRowsForPush = 0;
     private bool chainBreakImpactPausePending = false;
-    private bool slowGravityAfterChainBreakPending = false;
-    private bool useSlowGravityThisPass = false;
+    private bool isPushGravityOverlapAnimating = false;
+    private Coroutine pushGravityOverlapAnimationRoutine;
+    private readonly HashSet<Block> pushGravityOverlapAnimatedBlocks = new HashSet<Block>();
     private int activeSliceOperations = 0;
     private FogController fogController;
     private FirstTimeTutorial firstTimeTutorial;
     public GameObject cellPrefab; // Az önce oluşturduğumuz Square'i buraya sürükleyeceğiz
     public Color gridColor = new Color(1f, 1f, 1f, 0.1f); // Hafif transparan beyaz/gri
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
     private struct GravityPlanEntry
     {
         public Block block;
@@ -214,7 +228,22 @@ public class GridManager : MonoBehaviour
         public bool willMove;
         public bool isFixed;
     }
-#endif
+
+    private struct GravityAnimationEntry
+    {
+        public Block block;
+        public Vector3 startPosition;
+        public Vector3 targetPosition;
+        public int fallenCells;
+        public float duration;
+    }
+
+    private struct PushAnimationProgressEntry
+    {
+        public Block block;
+        public Vector3 startPosition;
+        public Vector3 targetPosition;
+    }
 
     public bool isGameOver = false;
     public GameObject losePanel; // Unity'den atayacağımız panel
@@ -976,10 +1005,21 @@ public IEnumerator PushBoardUpRoutine()
 
     // 1. ÖNCE HER ŞEYİ AYNI ANDA YAP (Zıplama olmasın)
     // Mevcutları yukarı it
+    List<PushAnimationProgressEntry> pushProgressEntries = new List<PushAnimationProgressEntry>(activeBlocks.Count);
     foreach (Block b in activeBlocks) 
     {
+        Vector3 startPosition = b.transform.position;
         b.y += 1;
         b.MoveTo(b.x, b.y);
+        pushProgressEntries.Add(new PushAnimationProgressEntry
+        {
+            block = b,
+            startPosition = startPosition,
+            targetPosition = new Vector3(
+                b.x + (b.width - 1) * 0.5f,
+                b.y,
+                0f)
+        });
     }
     
     // Hafızayı güncelle
@@ -992,6 +1032,8 @@ public IEnumerator PushBoardUpRoutine()
     {
         forgeTeleportController.PrepareArrival(spawnedRowBlocks);
     }
+
+    StartPushGravityOverlapExperiment(pushProgressEntries);
 
     // HEMEN ARDINDAN: Bir sonraki hamle için yeni bir önizleme (taslak) oluştur.
     GenerateNextRowData(); 
@@ -1008,11 +1050,16 @@ public IEnumerator PushBoardUpRoutine()
 
     // --- YENİ: GAME OVER KONTROLÜ ---
     CheckGameOver();
-    if (isGameOver) yield break; 
+    if (isGameOver)
+    {
+        ClearPushGravityOverlapExperiment();
+        yield break;
+    }
     // -------------------------------
 
     // 3. SONRA KONTROLLERİ YAP
     ChangeState(GameState.FALLING); 
+    yield return StartCoroutine(WaitForPushGravityOverlapExperimentRoutine());
     yield return StartCoroutine(RebuildAndApplyGravityRoutine());
     
     ChangeState(GameState.CHECKING);
@@ -1080,9 +1127,6 @@ private IEnumerator PushBoardUpByDifficultyRoutine()
 
         pushCount = Mathf.Max(randomPushCount, minimumPushCount);
 
-#if UNITY_EDITOR
-        Debug.Log($"[Classic Push Diagnostics] Level={level}, ClearedRows={clearedRows}, RandomPushRows={randomPushCount}, MinimumPushRows={minimumPushCount}, FinalPushRows={pushCount}, DoubleChance={doubleRowChance:0.###}, TripleChance={tripleRowChance:0.###}");
-#endif
     }
 
     for (int i = 0; i < pushCount; i++)
@@ -1153,7 +1197,6 @@ public bool IsClassicRun()
         LevelManager.Instance.currentLevel == null;
 }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 private List<GravityPlanEntry> BuildGravityPlan(out List<string> validationFailures)
 {
     validationFailures = new List<string>();
@@ -1325,52 +1368,400 @@ private bool PlaceFootprint(
     return true;
 }
 
-private void ValidateGravityPlanAgainstCurrentResult(List<GravityPlanEntry> plan, List<string> validationFailures)
+private bool CommitGravityPlan(List<GravityPlanEntry> plan, List<string> validationFailures)
 {
-    if (plan == null)
-        return;
-
-    int movingCount = 0;
-    int mismatchCount = 0;
-
-    if (validationFailures == null)
-        validationFailures = new List<string>();
+    if (!ValidateGravityPlanForCommit(plan, validationFailures))
+        return false;
 
     for (int i = 0; i < plan.Count; i++)
     {
         GravityPlanEntry entry = plan[i];
         Block block = entry.block;
 
-        if (entry.willMove)
-            movingCount++;
-
-        if (block == null)
+        if (block == null || entry.isFixed)
             continue;
 
-        if (!activeBlocks.Contains(block))
+        if (!activeBlocks.Contains(block) || block.isBeingDestroyed)
             continue;
 
-        int expectedY = entry.targetY;
-        bool mismatch =
-            block.x != entry.sourceX ||
-            block.y != expectedY;
-
-        if (!mismatch)
-            continue;
-
-        mismatchCount++;
-        validationFailures.Add(
-            $"Gravity plan mismatch: block={GetGravityPlanBlockLabel(block)}, width={block.width}, classification={(entry.isFixed ? "fixed" : "movable")}, source=({entry.sourceX},{entry.sourceY}), plannedTarget=({entry.sourceX},{entry.targetY}), actual=({block.x},{block.y}), willMove={entry.willMove}");
+        block.x = entry.sourceX;
+        block.y = entry.targetY;
     }
 
-    ValidateCurrentGravityOccupancy(validationFailures);
+    RebuildGridMemory();
+    return true;
+}
 
-    if (validationFailures.Count <= 0)
+private bool ValidateGravityPlanForCommit(List<GravityPlanEntry> plan, List<string> validationFailures)
+{
+    if (validationFailures == null)
+        validationFailures = new List<string>();
+
+    if (plan == null)
+    {
+        validationFailures.Add("Gravity plan is null.");
+        ReportGravityPlanValidationFailure("commit", validationFailures);
+        return false;
+    }
+
+    for (int i = 0; i < plan.Count; i++)
+    {
+        GravityPlanEntry entry = plan[i];
+        Block block = entry.block;
+
+        if (block == null)
+        {
+            validationFailures.Add($"Gravity plan contains null block at entry {i}.");
+            continue;
+        }
+
+        if (!activeBlocks.Contains(block))
+        {
+            validationFailures.Add($"Gravity plan stale block is no longer active: {GetGravityPlanBlockLabel(block)}.");
+            continue;
+        }
+
+        if (block.isBeingDestroyed && !entry.isFixed)
+            validationFailures.Add($"Moving gravity plan block is being destroyed: {GetGravityPlanBlockLabel(block)}.");
+
+        if (entry.sourceX < 0 || entry.sourceX + block.width > width || entry.targetY < 0 || entry.targetY >= height)
+        {
+            validationFailures.Add(
+                $"Gravity plan target out of bounds: block={GetGravityPlanBlockLabel(block)}, width={block.width}, target=({entry.sourceX},{entry.targetY})");
+        }
+    }
+
+    if (validationFailures.Count > 0)
+    {
+        ReportGravityPlanValidationFailure("commit", validationFailures);
+        return false;
+    }
+
+    return true;
+}
+
+private List<GravityAnimationEntry> BuildGravityAnimationEntries(
+    List<GravityPlanEntry> plan,
+    bool skipCompletedPushOverlapEntries = false)
+{
+    List<GravityAnimationEntry> animationEntries = new List<GravityAnimationEntry>();
+
+    if (plan == null)
+        return animationEntries;
+
+    for (int i = 0; i < plan.Count; i++)
+    {
+        GravityPlanEntry entry = plan[i];
+        Block block = entry.block;
+
+        if (!entry.willMove || entry.isFixed)
+            continue;
+
+        if (block == null || !activeBlocks.Contains(block) || block.isBeingDestroyed)
+            continue;
+
+        Vector3 targetPosition = GetGravityTargetWorldPosition(block, entry.targetY);
+        if (skipCompletedPushOverlapEntries &&
+            pushGravityOverlapAnimatedBlocks.Contains(block) &&
+            Vector3.Distance(block.transform.position, targetPosition) <= 0.01f)
+        {
+            continue;
+        }
+
+        int fallenCells = entry.sourceY - entry.targetY;
+        animationEntries.Add(new GravityAnimationEntry
+        {
+            block = block,
+            startPosition = block.transform.position,
+            targetPosition = targetPosition,
+            fallenCells = fallenCells,
+            duration = GetGravityAnimationDuration(fallenCells)
+        });
+    }
+
+    return animationEntries;
+}
+
+private IEnumerator AnimateGravityPlanRoutine(List<GravityAnimationEntry> animationEntries)
+{
+    if (animationEntries == null || animationEntries.Count == 0)
+    {
+        yield break;
+    }
+
+    float elapsed = 0f;
+    float maxDuration = 0f;
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        maxDuration = Mathf.Max(maxDuration, animationEntries[i].duration);
+    }
+
+    while (elapsed < maxDuration)
+    {
+        elapsed += Time.deltaTime;
+
+        for (int i = 0; i < animationEntries.Count; i++)
+        {
+            GravityAnimationEntry entry = animationEntries[i];
+            Block block = entry.block;
+
+            if (block == null || !activeBlocks.Contains(block) || block.isBeingDestroyed)
+                continue;
+
+            float t = entry.duration > 0f
+                ? Mathf.Clamp01(elapsed / entry.duration)
+                : 1f;
+            float interpolation = EvaluateGravityEasing(t);
+            block.transform.position = Vector3.LerpUnclamped(
+                entry.startPosition,
+                entry.targetPosition,
+                interpolation);
+        }
+
+        yield return null;
+    }
+
+    SnapGravityAnimationEntriesToTarget(animationEntries);
+}
+
+private void SnapGravityAnimationEntriesToTarget(List<GravityAnimationEntry> animationEntries)
+{
+    if (animationEntries == null)
+        return;
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        GravityAnimationEntry entry = animationEntries[i];
+        Block block = entry.block;
+
+        if (block == null || !activeBlocks.Contains(block) || block.isBeingDestroyed)
+            continue;
+
+        block.transform.position = entry.targetPosition;
+        block.isMoving = false;
+    }
+}
+
+private float GetGravityAnimationDuration(int fallenCells)
+{
+    float duration =
+        gravityBaseDuration +
+        Mathf.Max(0, fallenCells - 1) * gravityAdditionalCellDuration;
+
+    return Mathf.Max(0.01f, Mathf.Min(duration, gravityMaxDuration));
+}
+
+private float EvaluateGravityEasing(float t)
+{
+    t = Mathf.Clamp01(t);
+    if (GravityMotionCurve == null || GravityMotionCurve.length == 0)
+        return t;
+
+    return Mathf.Clamp01(GravityMotionCurve.Evaluate(t));
+}
+
+private IEnumerator AnimatePushGravityOverlapRoutine(List<GravityAnimationEntry> animationEntries)
+{
+    if (animationEntries == null || animationEntries.Count == 0)
+    {
+        yield break;
+    }
+
+    float elapsed = 0f;
+    float maxDuration = 0f;
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        maxDuration = Mathf.Max(maxDuration, animationEntries[i].duration);
+    }
+
+    while (elapsed < maxDuration)
+    {
+        elapsed += Time.deltaTime;
+
+        for (int i = 0; i < animationEntries.Count; i++)
+        {
+            GravityAnimationEntry entry = animationEntries[i];
+            Block block = entry.block;
+
+            if (block == null || !activeBlocks.Contains(block) || block.isBeingDestroyed)
+                continue;
+
+            float t = entry.duration > 0f
+                ? Mathf.Clamp01(elapsed / entry.duration)
+                : 1f;
+            float interpolation = EvaluatePushGravityOverlapEasing(t);
+            block.transform.position = Vector3.LerpUnclamped(
+                entry.startPosition,
+                entry.targetPosition,
+                interpolation);
+        }
+
+        yield return null;
+    }
+
+    SnapGravityAnimationEntriesToTarget(animationEntries);
+}
+
+private float EvaluatePushGravityOverlapEasing(float t)
+{
+    t = Mathf.Clamp01(t);
+    return t * t;
+}
+
+private Vector3 GetGravityTargetWorldPosition(Block block)
+{
+    return GetGravityTargetWorldPosition(block, block.y);
+}
+
+private Vector3 GetGravityTargetWorldPosition(Block block, int targetY)
+{
+    return new Vector3(
+        block.x + (block.width - 1) * 0.5f,
+        targetY,
+        block.transform.position.z);
+}
+
+private void StartPushGravityOverlapExperiment(List<PushAnimationProgressEntry> pushProgressEntries)
+{
+    if (isGameOver)
+        return;
+
+    ClearPushGravityOverlapExperiment();
+
+    List<string> validationFailures;
+    List<GravityPlanEntry> gravityPlan = BuildGravityPlan(out validationFailures);
+
+    if (validationFailures.Count > 0)
+    {
+        ReportGravityPlanValidationFailure("push-overlap-build", validationFailures);
+        return;
+    }
+
+    List<GravityAnimationEntry> animationEntries = BuildGravityAnimationEntries(gravityPlan);
+    if (animationEntries.Count == 0)
+        return;
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        Block block = animationEntries[i].block;
+        if (block != null)
+            pushGravityOverlapAnimatedBlocks.Add(block);
+    }
+
+    pushGravityOverlapAnimationRoutine = StartCoroutine(
+        PushGravityOverlapExperimentRoutine(animationEntries, pushProgressEntries));
+}
+
+private IEnumerator PushGravityOverlapExperimentRoutine(
+    List<GravityAnimationEntry> animationEntries,
+    List<PushAnimationProgressEntry> pushProgressEntries)
+{
+    isPushGravityOverlapAnimating = true;
+
+    while (GetPushAnimationProgress(pushProgressEntries) < PushGravityOverlapPushProgressThreshold)
+    {
+        yield return null;
+    }
+
+    animationEntries = RebuildPushGravityOverlapStartPositions(animationEntries);
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        Block block = animationEntries[i].block;
+        if (block != null)
+            block.isMoving = false;
+    }
+
+    yield return StartCoroutine(AnimatePushGravityOverlapRoutine(animationEntries));
+
+    isPushGravityOverlapAnimating = false;
+    pushGravityOverlapAnimationRoutine = null;
+}
+
+private List<GravityAnimationEntry> RebuildPushGravityOverlapStartPositions(
+    List<GravityAnimationEntry> animationEntries)
+{
+    if (animationEntries == null)
+        return animationEntries;
+
+    List<GravityAnimationEntry> updatedEntries =
+        new List<GravityAnimationEntry>(animationEntries.Count);
+
+    for (int i = 0; i < animationEntries.Count; i++)
+    {
+        GravityAnimationEntry entry = animationEntries[i];
+        Block block = entry.block;
+
+        if (block != null && activeBlocks.Contains(block) && !block.isBeingDestroyed)
+            entry.startPosition = block.transform.position;
+
+        updatedEntries.Add(entry);
+    }
+
+    return updatedEntries;
+}
+
+private float GetPushAnimationProgress(List<PushAnimationProgressEntry> pushProgressEntries)
+{
+    if (pushProgressEntries == null || pushProgressEntries.Count == 0)
+        return 1f;
+
+    float boardProgress = 1f;
+
+    for (int i = 0; i < pushProgressEntries.Count; i++)
+    {
+        PushAnimationProgressEntry entry = pushProgressEntries[i];
+        Block block = entry.block;
+
+        if (block == null || !activeBlocks.Contains(block) || block.isBeingDestroyed)
+            continue;
+
+        Vector3 pushVector = entry.targetPosition - entry.startPosition;
+        float pushDistanceSquared = pushVector.sqrMagnitude;
+        if (pushDistanceSquared <= 0.0001f)
+            continue;
+
+        float blockProgress = Vector3.Dot(
+            block.transform.position - entry.startPosition,
+            pushVector) / pushDistanceSquared;
+        boardProgress = Mathf.Min(boardProgress, Mathf.Clamp01(blockProgress));
+    }
+
+    return boardProgress;
+}
+
+private IEnumerator WaitForPushGravityOverlapExperimentRoutine()
+{
+    while (isPushGravityOverlapAnimating)
+    {
+        yield return null;
+    }
+}
+
+private void ClearPushGravityOverlapExperiment()
+{
+    if (pushGravityOverlapAnimationRoutine != null)
+    {
+        StopCoroutine(pushGravityOverlapAnimationRoutine);
+        pushGravityOverlapAnimationRoutine = null;
+    }
+
+    isPushGravityOverlapAnimating = false;
+    pushGravityOverlapAnimatedBlocks.Clear();
+}
+
+private void ReportGravityPlanValidationFailure(string phase, List<string> validationFailures)
+{
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    if (validationFailures == null || validationFailures.Count <= 0)
         return;
 
     Debug.LogWarning(
-        $"Gravity planner validation found {validationFailures.Count} issue(s). planCount={plan.Count}, movingCount={movingCount}, mismatchCount={mismatchCount}\n" +
+        $"Gravity planner {phase} validation found {validationFailures.Count} issue(s).\n" +
         string.Join("\n", validationFailures));
+#endif
 }
 
 private void ValidateCurrentGravityOccupancy(List<string> validationFailures)
@@ -1422,7 +1813,6 @@ private string GetGravityPlanBlockLabel(Block block)
 
     return $"{block.name}#{block.GetEntityId()}";
 }
-#endif
 
     // YERÇEKİMİ MOTORU
 public IEnumerator ApplyGravityRoutine()
@@ -1432,56 +1822,32 @@ public IEnumerator ApplyGravityRoutine()
         yield return null;
     }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
     List<string> gravityPlanValidationFailures;
     List<GravityPlanEntry> gravityPlan = BuildGravityPlan(out gravityPlanValidationFailures);
-#endif
 
-    bool shouldUseSlowGravity = useSlowGravityThisPass;
-    useSlowGravityThisPass = false;
-    float gravityStepDelay = shouldUseSlowGravity ? chainBreakGravityStepDelay : 0.1f;
-
-    bool movedAny;
-    do {
-        movedAny = false;
-        // height-1'den başla (Yukarıdan Aşağı tarama)
-        for (int y = 1; y < height; y++) 
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Block b = gridArray[x, y];
-                // Sadece bloğun 'ana' (sol) hücresini bulduğumuzda işlem yap
-                if (b != null && b.x == x && b.y == y)
-                {
-                    if (CanFall(b))
-                    {
-                        UpdateBlockInGrid(b, b.x, b.y - 1);
-                        b.MoveTo(b.x, b.y);
-                        movedAny = true;
-                    }
-                }
-            }
-        }
-        if (movedAny)
-        {
-            yield return new WaitForSeconds(gravityStepDelay);
-        }
-    } while (movedAny);
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-    ValidateGravityPlanAgainstCurrentResult(gravityPlan, gravityPlanValidationFailures);
-#endif
-}
-
-// Bloğun altındaki tüm genişliği kontrol eden yardımcı:
-bool CanFall(Block b) {
-    if (b == null) return false;
-    if (b == heldFireSourceBlock && isFireResolving) return false;
-
-    for (int i = 0; i < b.width; i++) {
-        if (b.y - 1 < 0 || gridArray[b.x + i, b.y - 1] != null) return false;
+    if (gravityPlanValidationFailures.Count > 0)
+    {
+        ReportGravityPlanValidationFailure("build", gravityPlanValidationFailures);
+        ClearPushGravityOverlapExperiment();
+        yield break;
     }
-    return true;
+
+    if (!CommitGravityPlan(gravityPlan, gravityPlanValidationFailures))
+    {
+        ClearPushGravityOverlapExperiment();
+        yield break;
+    }
+
+    bool skipCompletedPushOverlapEntries = pushGravityOverlapAnimatedBlocks.Count > 0;
+    List<GravityAnimationEntry> animationEntries = BuildGravityAnimationEntries(
+        gravityPlan,
+        skipCompletedPushOverlapEntries);
+    yield return StartCoroutine(AnimateGravityPlanRoutine(animationEntries));
+    ClearPushGravityOverlapExperiment();
+
+    List<string> occupancyValidationFailures = new List<string>();
+    ValidateCurrentGravityOccupancy(occupancyValidationFailures);
+    ReportGravityPlanValidationFailure("occupancy", occupancyValidationFailures);
 }
 
 
@@ -1525,7 +1891,10 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
         {
             if (IsRowFull(y))
             {
-                if (lowestClearedY == -1) lowestClearedY = y; // Patlayan ilk satırın yerini kaydet
+                if (lowestClearedY == -1)
+                {
+                    lowestClearedY = y; // Patlayan ilk satırın yerini kaydet
+                }
                 bool rowUsedSpecialResolution = ClearRow(y, out string specialResolutionTypes);
                 rowClearUsedSpecialResolution |= rowUsedSpecialResolution;
                 clearedRowCount++; 
@@ -1627,8 +1996,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
 
             bool useSpecialRowClearDelay =
                 rowClearUsedSpecialResolution ||
-                chainBreakImpactPausePending ||
-                slowGravityAfterChainBreakPending;
+                chainBreakImpactPausePending;
 
             if (chainBreakImpactPausePending)
             {
@@ -1636,17 +2004,10 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
                 yield return new WaitForSeconds(chainBreakImpactPause);
             }
 
-            if (slowGravityAfterChainBreakPending)
-            {
-                useSlowGravityThisPass = true;
-                slowGravityAfterChainBreakPending = false;
-            }
-
             RebuildGridMemory();
             float gravityStartDelay = useSpecialRowClearDelay
                 ? SpecialRowClearGravityStartDelay
                 : NormalRowClearGravityStartDelay;
-
             if (gravityStartDelay > 0f)
             {
                 yield return new WaitForSeconds(gravityStartDelay);
@@ -1870,7 +2231,6 @@ bool ClearRow(int y, out string specialResolutionTypes)
                         if (b.BreakOneChain())
                         {
                             chainBreakImpactPausePending = true;
-                            slowGravityAfterChainBreakPending = true;
                         }
 
                         processedChainedBlocks.Add(b);
