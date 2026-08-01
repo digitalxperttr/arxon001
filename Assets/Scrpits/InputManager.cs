@@ -10,6 +10,9 @@ public class InputManager : MonoBehaviour
     public static event Action UserInputStarted;
     public static event Action SuccessfulPlacement;
 
+    private const float DragOriginGhostAlpha = 0.45f;
+    private const int DragOriginGhostBaseSortingOrder = 9;
+
     public GridManager grid;
     [SerializeField] private PlacementGuide placementGuide;
     private FirstTimeTutorial firstTimeTutorial;
@@ -27,6 +30,7 @@ public class InputManager : MonoBehaviour
     private bool isTutorialPreviewDrag = false;
     private Vector3 tutorialPreviewDragOffset;
     private readonly List<Vector2Int> heldBlockOriginCells = new List<Vector2Int>();
+    private GameObject dragOriginGhost;
 
     void Awake()
     {
@@ -93,6 +97,8 @@ void Update()
                 isDragging = false;
                 originalGridX = selectedBlock.x;
                 blockStartWorldPos = selectedBlock.transform.position;
+                CreateDragOriginGhost(selectedBlock);
+
                 if (TutorialInputHooksEnabled &&
                     firstTimeTutorial != null &&
                     firstTimeTutorial.ShouldUsePreviewDrag(selectedBlock))
@@ -172,6 +178,7 @@ void Update()
         {
             if (isTutorialPreviewDrag)
             {
+                DestroyDragOriginGhost();
                 HidePlacementGuide();
                 bool committed = firstTimeTutorial != null &&
                     firstTimeTutorial.TryCommitActivePreviewBlock(selectedBlock.transform.position);
@@ -195,6 +202,7 @@ void Update()
             }
 
             selectedBlock.SetHighlight(false); // <--- YENİ: Parmağı çekince parlaklık normale dönsün
+            DestroyDragOriginGhost();
             HidePlacementGuide();
             
             int snappedX = GetSnappedX(selectedBlock);
@@ -236,6 +244,7 @@ void Update()
         selectedBlock = null;
         isDragging = false;
         isTutorialPreviewDrag = false;
+        DestroyDragOriginGhost();
         ClearHeldBlockOriginCells();
         HidePlacementGuide();
     }
@@ -293,6 +302,7 @@ private void CancelActiveDrag()
     selectedBlock = null;
     isDragging = false;
     isTutorialPreviewDrag = false;
+    DestroyDragOriginGhost();
     ClearHeldBlockOriginCells();
     HidePlacementGuide();
 }
@@ -335,6 +345,93 @@ private void HidePlacementGuide()
     {
         placementGuide.Hide();
     }
+}
+
+private void CreateDragOriginGhost(Block sourceBlock)
+{
+    DestroyDragOriginGhost();
+
+    if (sourceBlock == null)
+        return;
+
+    dragOriginGhost = Instantiate(sourceBlock.gameObject, blockStartWorldPos, sourceBlock.transform.rotation);
+    dragOriginGhost.name = $"{sourceBlock.gameObject.name}_DragOriginGhost";
+
+    RemoveGhostInteractionAndLogic(dragOriginGhost);
+    ConfigureGhostRenderers(sourceBlock, dragOriginGhost);
+}
+
+private void DestroyDragOriginGhost()
+{
+    if (dragOriginGhost == null)
+        return;
+
+    Destroy(dragOriginGhost);
+    dragOriginGhost = null;
+}
+
+private void RemoveGhostInteractionAndLogic(GameObject ghost)
+{
+    if (ghost == null)
+        return;
+
+    Collider2D[] colliders = ghost.GetComponentsInChildren<Collider2D>(true);
+    foreach (Collider2D collider in colliders)
+    {
+        collider.enabled = false;
+        Destroy(collider);
+    }
+
+    Rigidbody2D[] rigidbodies = ghost.GetComponentsInChildren<Rigidbody2D>(true);
+    foreach (Rigidbody2D rigidbody in rigidbodies)
+    {
+        Destroy(rigidbody);
+    }
+
+    TrailRenderer[] trails = ghost.GetComponentsInChildren<TrailRenderer>(true);
+    foreach (TrailRenderer trail in trails)
+    {
+        trail.Clear();
+        trail.enabled = false;
+        Destroy(trail);
+    }
+
+    ParticleSystem[] particleSystems = ghost.GetComponentsInChildren<ParticleSystem>(true);
+    foreach (ParticleSystem particleSystem in particleSystems)
+    {
+        particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        Destroy(particleSystem);
+    }
+
+    MonoBehaviour[] behaviours = ghost.GetComponentsInChildren<MonoBehaviour>(true);
+    foreach (MonoBehaviour behaviour in behaviours)
+    {
+        behaviour.enabled = false;
+        Destroy(behaviour);
+    }
+}
+
+private void ConfigureGhostRenderers(Block sourceBlock, GameObject ghost)
+{
+    SpriteRenderer sourceRenderer = sourceBlock.GetComponent<SpriteRenderer>();
+    int sourceBaseSortingOrder = sourceRenderer != null ? sourceRenderer.sortingOrder : 0;
+
+    SpriteRenderer[] renderers = ghost.GetComponentsInChildren<SpriteRenderer>(true);
+    foreach (SpriteRenderer renderer in renderers)
+    {
+        renderer.sortingOrder = DragOriginGhostBaseSortingOrder + (renderer.sortingOrder - sourceBaseSortingOrder);
+        renderer.color = GetGhostColor(renderer.color);
+        renderer.maskInteraction = SpriteMaskInteraction.None;
+    }
+}
+
+private Color GetGhostColor(Color sourceColor)
+{
+    float luminance = sourceColor.r * 0.299f + sourceColor.g * 0.587f + sourceColor.b * 0.114f;
+    Color desaturated = Color.Lerp(sourceColor, new Color(luminance, luminance, luminance, sourceColor.a), 0.35f);
+    desaturated *= 0.8f;
+    desaturated.a = DragOriginGhostAlpha;
+    return desaturated;
 }
 
 private void CacheHeldBlockOriginCells(Block block)
