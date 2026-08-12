@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: ForgeEnergyLeaks
-  m_Shader: {fileID: 4800000, guid: 527512d926f104fc79e7ee545f4689b9, type: 3}
+  m_Name: ForgeAmbientParticles
+  m_Shader: {fileID: 4800000, guid: 0e0601aba1b7b4cd393531d602752eda, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -16,33 +16,20 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 9865bad586c294a7fa00b455db9fc0a8, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats:
-    - _AlphaMax: 1
-    - _AlphaMin: 0.72
-    - _AlphaPulseSpeed: 0.13
-    - _EdgeFade: 0.025
-    - _HighlightIntensityA: 0.42
-    - _HighlightIntensityB: 0.26
-    - _HighlightSpeedA: 0.16
-    - _HighlightSpeedB: 0.095
-    - _HighlightWidthA: 0.085
-    - _HighlightWidthB: 0.055
-    - _LeakIntensity: 1
-    - _LeakTime: 0
-    - _PhaseSpread: 18
+    m_Floats: []
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -17,8 +17,8 @@ MonoBehaviour:
   designerNotes: Easy / TightMoves / ClearRows / None
   difficulty: 0
   pressure: 1
-  objective: 0
-  obstacleTheme: 2
+  objective: 3
+  obstacleTheme: 3
   specialMechanicFocus: 0
   fogDensity: 0
   fogCoveragePercent: 0

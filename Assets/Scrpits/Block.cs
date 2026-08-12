@@ -35,8 +35,6 @@ public class Block : MonoBehaviour
     private bool collectibleCollected = false;
 
     [Header("Chain System")]
-    [SerializeField] private Sprite chainStage1Sprite;
-    [SerializeField] private Sprite chainStage2Sprite;
     [SerializeField] private Transform chainOverlayRoot;
     [SerializeField] private GameObject chainOverlayPrefab;
     [SerializeField] private GameObject chainBreakFXPrefab;
@@ -47,6 +45,8 @@ public class Block : MonoBehaviour
     [SerializeField] private float chainBreakPunchScale = 1.06f;
     private const int MaxChainHealth = 2;
     private int chainHealth = 0;
+    private Sprite chainIntactSprite;
+    private Sprite chainDamagedSprite;
     private readonly List<GameObject> spawnedChainOverlays = new List<GameObject>();
     private static bool hasLoggedMissingChainSpriteWarning = false;
     private GameObject iceVisual; // Üzerine eklenecek buz katmanı
@@ -364,10 +364,13 @@ public void SetGameOverGreyed(bool greyed)
         CacheGameOverRendererColors();
     }
 
-    bool canUseGrayscaleShader = blockType == BlockType.Normal;
+    Material grayscaleMaterial = GetGameOverGrayscaleMaterial();
+    bool canUseGrayscaleShader =
+        blockType == BlockType.Normal ||
+        blockType == BlockType.Ice ||
+        blockType == BlockType.Chained;
     if (canUseGrayscaleShader)
     {
-        Material grayscaleMaterial = GetGameOverGrayscaleMaterial();
         sr.color = Color.white;
         if (grayscaleMaterial != null)
         {
@@ -380,6 +383,8 @@ public void SetGameOverGreyed(bool greyed)
     }
 
     HideGameOverChildRenderers();
+    ApplyIceVisualGameOverState(grayscaleMaterial);
+    ApplyChainVisualGameOverState(grayscaleMaterial);
 
     isGameOverGreyed = true;
 }
@@ -418,11 +423,77 @@ private void HideGameOverChildRenderers()
     SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
     foreach (SpriteRenderer renderer in renderers)
     {
-        if (renderer != null && renderer != sr)
+        if (renderer != null &&
+            renderer != sr &&
+            !IsIceVisualRenderer(renderer) &&
+            !IsChainOverlayRenderer(renderer))
         {
             renderer.enabled = false;
         }
     }
+}
+
+private void ApplyIceVisualGameOverState(Material grayscaleMaterial)
+{
+    if (!isFrozen || iceVisual == null || !iceVisual.activeSelf)
+        return;
+
+    SpriteRenderer iceRenderer = iceVisual.GetComponent<SpriteRenderer>();
+    if (iceRenderer == null)
+        return;
+
+    iceRenderer.enabled = true;
+    if (grayscaleMaterial != null)
+        iceRenderer.sharedMaterial = grayscaleMaterial;
+
+    iceRenderer.SetPropertyBlock(null);
+    iceRenderer.color = Color.white;
+}
+
+private bool IsIceVisualRenderer(SpriteRenderer renderer)
+{
+    return iceVisual != null &&
+        renderer != null &&
+        renderer.gameObject == iceVisual;
+}
+
+private void ApplyChainVisualGameOverState(Material grayscaleMaterial)
+{
+    if (!isChained)
+        return;
+
+    for (int i = 0; i < spawnedChainOverlays.Count; i++)
+    {
+        GameObject overlay = spawnedChainOverlays[i];
+        if (overlay == null || !overlay.activeSelf)
+            continue;
+
+        SpriteRenderer overlayRenderer = overlay.GetComponent<SpriteRenderer>();
+        if (overlayRenderer == null)
+            continue;
+
+        overlayRenderer.enabled = true;
+        if (grayscaleMaterial != null)
+            overlayRenderer.sharedMaterial = grayscaleMaterial;
+
+        overlayRenderer.SetPropertyBlock(null);
+        overlayRenderer.color = Color.white;
+    }
+}
+
+private bool IsChainOverlayRenderer(SpriteRenderer renderer)
+{
+    if (renderer == null)
+        return false;
+
+    for (int i = 0; i < spawnedChainOverlays.Count; i++)
+    {
+        GameObject overlay = spawnedChainOverlays[i];
+        if (overlay != null && renderer.gameObject == overlay)
+            return true;
+    }
+
+    return false;
 }
 
 private void RestoreGameOverRendererColors()
@@ -571,28 +642,40 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
     }
 }
 
-public void SetChained(bool chained)
-{
-    SetChained(chained ? MaxChainHealth : 0);
-}
-
-public void SetChained(int count)
-{
-    chainHealth = count > 0 ? MaxChainHealth : 0;
-    isChained = chainHealth > 0;
-
-    if (isChained)
+    public void SetChained(bool chained)
     {
-        blockType = BlockType.Chained;
-    }
-    else if (!isRock && !isFrozen)
-    {
-        blockType = BlockType.Normal;
+        SetChained(chained ? MaxChainHealth : 0);
     }
 
-    RefreshChainOverlays();
-    UpdateChainVisual();
-}
+    public void SetChained(bool chained, Sprite intactSprite, Sprite damagedSprite)
+    {
+        SetChained(chained ? MaxChainHealth : 0, intactSprite, damagedSprite);
+    }
+
+    public void SetChained(int count)
+    {
+        SetChained(count, null, null);
+    }
+
+    public void SetChained(int count, Sprite intactSprite, Sprite damagedSprite)
+    {
+        chainHealth = count > 0 ? MaxChainHealth : 0;
+        isChained = chainHealth > 0;
+        chainIntactSprite = intactSprite;
+        chainDamagedSprite = damagedSprite;
+
+        if (isChained)
+        {
+            blockType = BlockType.Chained;
+        }
+        else if (!isRock && !isFrozen)
+        {
+            blockType = BlockType.Normal;
+        }
+
+        RefreshChainOverlays();
+        UpdateChainVisual();
+    }
 
 public bool IsChained()
 {
@@ -890,7 +973,20 @@ private void RefreshChainOverlays()
             spawnedChainOverlays.RemoveAt(i);
     }
 
-    int overlayCellCount = Mathf.Clamp(width, 0, 4);
+    int overlayCellCount = isChained ? 1 : 0;
+
+    while (spawnedChainOverlays.Count > overlayCellCount)
+    {
+        int lastIndex = spawnedChainOverlays.Count - 1;
+        GameObject extraOverlay = spawnedChainOverlays[lastIndex];
+        spawnedChainOverlays.RemoveAt(lastIndex);
+
+        if (extraOverlay != null)
+        {
+            extraOverlay.SetActive(false);
+            Destroy(extraOverlay);
+        }
+    }
 
     while (spawnedChainOverlays.Count < overlayCellCount)
     {
@@ -907,7 +1003,7 @@ private void RefreshChainOverlays()
         if (overlay == null)
             continue;
 
-        overlay.transform.localPosition = GetChainOverlayLocalPosition(i);
+        overlay.transform.localPosition = Vector3.zero;
         overlay.SetActive(ShouldShowChainOverlay());
         SyncChainOverlayRenderer(overlay);
     }
@@ -933,12 +1029,6 @@ private GameObject CreateChainOverlayInstance(int overlayIndex)
     return overlay;
 }
 
-private Vector3 GetChainOverlayLocalPosition(int cellIndex)
-{
-    float startX = -(width - 1) * 0.5f;
-    return new Vector3(startX + cellIndex, 0f, 0f);
-}
-
 private void SyncChainOverlayRenderer(GameObject overlay)
 {
     if (overlay == null)
@@ -951,15 +1041,13 @@ private void SyncChainOverlayRenderer(GameObject overlay)
     if (overlayRenderer == null || sr == null)
         return;
 
-    Sprite currentStageSprite = GetCurrentChainSpriteForRenderer(overlayRenderer);
+    Sprite currentStageSprite = GetCurrentChainSprite();
     if (isChained && currentStageSprite == null)
     {
         LogMissingChainSpriteWarningOnce();
     }
-    else if (currentStageSprite != null)
-    {
-        overlayRenderer.sprite = currentStageSprite;
-    }
+
+    overlayRenderer.sprite = currentStageSprite;
 
     overlayRenderer.sortingOrder = sr.sortingOrder + 2;
     overlayRenderer.sortingLayerID = sr.sortingLayerID;
@@ -968,17 +1056,15 @@ private void SyncChainOverlayRenderer(GameObject overlay)
     overlay.transform.localScale = GetChainOverlayScale(overlayRenderer.sprite);
 }
 
-private Sprite GetCurrentChainSpriteForRenderer(SpriteRenderer overlayRenderer)
+private Sprite GetCurrentChainSprite()
 {
-    Sprite fallbackSprite = GetFallbackChainOverlaySprite(overlayRenderer);
-
     if (chainHealth >= MaxChainHealth)
-        return chainStage1Sprite != null ? chainStage1Sprite : (chainStage2Sprite != null ? chainStage2Sprite : fallbackSprite);
+        return chainIntactSprite;
 
     if (chainHealth == 1)
-        return chainStage2Sprite != null ? chainStage2Sprite : (chainStage1Sprite != null ? chainStage1Sprite : fallbackSprite);
+        return chainDamagedSprite != null ? chainDamagedSprite : chainIntactSprite;
 
-    return fallbackSprite;
+    return null;
 }
 
 private Vector3 GetChainOverlayScale(Sprite overlaySprite)
@@ -990,41 +1076,19 @@ private Vector3 GetChainOverlayScale(Sprite overlaySprite)
     if (spriteSize.x <= 0f || spriteSize.y <= 0f)
         return Vector3.one;
 
-    float targetWidth = ChainOverlayCellWidth * ChainOverlayPaddingMultiplier;
-    float targetHeight = ChainOverlayCellHeight * ChainOverlayPaddingMultiplier;
+    Vector2 blockSize = originalSize;
+    if ((blockSize.x <= 0f || blockSize.y <= 0f) && sr != null)
+        blockSize = sr.size;
+
+    float targetWidth = blockSize.x > 0f ? blockSize.x * ChainOverlayPaddingMultiplier : ChainOverlayCellWidth * ChainOverlayPaddingMultiplier;
+    float targetHeight = blockSize.y > 0f ? blockSize.y * ChainOverlayPaddingMultiplier : ChainOverlayCellHeight * ChainOverlayPaddingMultiplier;
 
     return new Vector3(targetWidth / spriteSize.x, targetHeight / spriteSize.y, 1f);
-}
-
-private Sprite GetCurrentChainStageSprite()
-{
-    if (chainHealth >= MaxChainHealth)
-        return chainStage1Sprite != null ? chainStage1Sprite : chainStage2Sprite;
-
-    if (chainHealth == 1)
-        return chainStage2Sprite != null ? chainStage2Sprite : chainStage1Sprite;
-
-    return null;
 }
 
 private bool ShouldShowChainOverlay()
 {
     return isChained;
-}
-
-private Sprite GetFallbackChainOverlaySprite(SpriteRenderer overlayRenderer)
-{
-    if (overlayRenderer != null && overlayRenderer.sprite != null)
-        return overlayRenderer.sprite;
-
-    if (chainOverlayPrefab != null)
-    {
-        SpriteRenderer prefabRenderer = chainOverlayPrefab.GetComponent<SpriteRenderer>();
-        if (prefabRenderer != null && prefabRenderer.sprite != null)
-            return prefabRenderer.sprite;
-    }
-
-    return null;
 }
 
 private Vector3 GetChainFXPosition()
@@ -1041,7 +1105,7 @@ private void LogMissingChainSpriteWarningOnce()
         return;
 
     hasLoggedMissingChainSpriteWarning = true;
-    Debug.LogWarning("Block chain overlay sprites are missing. Assign chainStage1Sprite and chainStage2Sprite on the Block prefab.");
+    Debug.LogWarning("Block chain overlay sprites are missing. Assign Chain Length Sprites on the GridManager.");
 }
 
     // Bloğu yeni bir koordinata gönder

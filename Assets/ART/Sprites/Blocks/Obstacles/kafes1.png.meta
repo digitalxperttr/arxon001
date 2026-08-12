@@ -1,16 +1,28 @@
 fileFormatVersion: 2
-guid: faa6993e95f354e598c0cc156e789763
+guid: d3103e17591184bf38f18d975be3a886
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -778959551529430427
-    second: zincirrrR_2_0
+      213: 1358819225080920509
+    second: kafes1_0
   - first:
-      213: 4623506395074765000
-    second: zincirrrR_2_1
+      213: -4082812798659302950
+    second: kafes1_1
   - first:
-      213: -4483148740334358010
-    second: zincirrrR_2_2
+      213: 8095894668025431291
+    second: kafes1_2
+  - first:
+      213: 8093214123978192602
+    second: kafes1_3
+  - first:
+      213: -739224520050688312
+    second: kafes1_4
+  - first:
+      213: -857985773895981790
+    second: kafes1_5
+  - first:
+      213: -1089764126561153760
+    second: kafes1_6
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,9 +64,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 512
@@ -78,10 +90,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 512
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -119,67 +131,133 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: zincirrrR_2_0
+      name: kafes1_S
       rect:
         serializedVersion: 2
-        x: 25
-        y: 368
-        width: 110
-        height: 134
+        x: 30
+        y: 384
+        width: 277
+        height: 241
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 562d0bc3a649035f0800000000000000
-      internalID: -778959551529430427
+      spriteID: db97be8c2ee7bd210800000000000000
+      internalID: 1358819225080920509
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: zincirrrR_2_1
+      name: kafes1_M
       rect:
         serializedVersion: 2
-        x: 53
-        y: 1
-        width: 456
-        height: 506
+        x: 379
+        y: 387
+        width: 366
+        height: 246
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8c0ad27e19ef92040800000000000000
-      internalID: 4623506395074765000
+      spriteID: ad96e7b246fe657c0800000000000000
+      internalID: -4082812798659302950
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: zincirrrR_2_2
+      name: kafes1_L
       rect:
         serializedVersion: 2
-        x: 10
-        y: 1
-        width: 115
-        height: 135
+        x: 764
+        y: 387
+        width: 696
+        height: 246
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 602712139f7a8c1c0800000000000000
-      internalID: -4483148740334358010
+      spriteID: bf482a28e456a5070800000000000000
+      internalID: 8095894668025431291
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kafes0_S
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 50
+        width: 289
+        height: 252
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad6f4e6bd5fd05070800000000000000
+      internalID: 8093214123978192602
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kafes0_M
+      rect:
+        serializedVersion: 2
+        x: 374
+        y: 50
+        width: 390
+        height: 252
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cebe11373fbdb5f0800000000000000
+      internalID: -739224520050688312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kafes0_L
+      rect:
+        serializedVersion: 2
+        x: 761
+        y: 50
+        width: 701
+        height: 252
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22567940c72d714f0800000000000000
+      internalID: -857985773895981790
       vertices: []
       indices: 
       edges: []
@@ -188,7 +266,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 707b063faec634ff39da995dae40063c
     internalID: 0
     vertices: []
     indices: 
@@ -198,9 +276,13 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      zincirrrR_2_0: -778959551529430427
-      zincirrrR_2_1: 4623506395074765000
-      zincirrrR_2_2: -4483148740334358010
+      kafes0_L: -857985773895981790
+      kafes0_M: -739224520050688312
+      kafes0_S: 8093214123978192602
+      kafes1_6: -1089764126561153760
+      kafes1_L: 8095894668025431291
+      kafes1_M: -4082812798659302950
+      kafes1_S: 1358819225080920509
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -22,6 +22,11 @@ public class GridManager : MonoBehaviour
         new Keyframe(0.55f, 0.72f, 0.95f, 0.75f),
         new Keyframe(0.85f, 0.94f, 0.55f, 0.35f),
         new Keyframe(1f, 1f, 0.15f, 0.15f));
+    private const int DangerSafeEmptyRows = 2;
+    private const float BoardDangerAlarmMinAlpha = 0.42f;
+    private const float BoardDangerAlarmMaxAlpha = 1.00f;
+    private const float BoardDangerPulseDuration = 1.15f;
+    private static readonly Color ForgeGameOverEnergyTint = new Color(0.34f, 0.38f, 0.38f, 0.34f);
 
     [Header("Gravity")]
     [SerializeField] private float gravityBaseDuration = 0.1336f;
@@ -92,6 +97,9 @@ public class GridManager : MonoBehaviour
     public Sprite iceSprite;       // 4. sıradaki buz
     [Header("Ice Length Sprites")]
     public LengthSpriteSet iceLengthSprites;
+    [Header("Chain Length Sprites")]
+    [SerializeField] private LengthSpriteSet chainIntactLengthSprites;
+    [SerializeField] private LengthSpriteSet chainDamagedLengthSprites;
     public Sprite lavaSprite;      // 6. sıradaki lavlı taş (Yeni mekanik!)
     [Header("Özel Blok Ayarları")]
     public Sprite fireSprite;
@@ -250,6 +258,16 @@ public class GridManager : MonoBehaviour
     [SerializeField] private GameObject noSpaceWarningPanel;
     [SerializeField] private float gameOverGreyWaveRowDelay = 0.045f;
     [SerializeField] private float noSpaceWarningDuration = 2f;
+    [SerializeField] private UnityEngine.UI.Image boardDangerAlarmImage;
+    private bool isBoardDangerActive = false;
+    private float boardDangerPulseTimer = 0f;
+    private readonly List<SpriteRendererGameOverState> gameOverPreviewRendererStates = new List<SpriteRendererGameOverState>();
+    private readonly List<SpriteRendererGameOverState> gameOverForgeRendererStates = new List<SpriteRendererGameOverState>();
+    private readonly List<BehaviourGameOverState> gameOverForgeBehaviourStates = new List<BehaviourGameOverState>();
+    private readonly List<ParticleSystemGameOverState> gameOverForgeParticleStates = new List<ParticleSystemGameOverState>();
+    private static Material sharedRuntimeGridGameOverGrayscaleMaterial;
+    private Material gridGameOverGrayscaleMaterial;
+    private bool isForgeGameOverVisualShutdownActive = false;
 
     [Header("Önizleme (Preview) Ayarları")]
     public float previewYPosition = -1.2f; // Gridin hemen altında duracağı Y koordinatı
@@ -310,6 +328,7 @@ private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
         profile.fireChance = 0.06f;
         profile.sliceChance = 0.04f;
         profile.frozenChance = 0.07f;
+        profile.chainedChance = 0.02f;
         profile.rockChance = 0.08f;
         profile.allowDoubleRowSpawn = true;
         profile.doubleRowChance = 0.22f;
@@ -321,6 +340,7 @@ private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
         profile.fireChance = 0.05f;
         profile.sliceChance = 0.03f;
         profile.frozenChance = 0.06f;
+        profile.chainedChance = 0.02f;
         profile.rockChance = 0.05f;
         profile.allowDoubleRowSpawn = true;
         profile.doubleRowChance = 0.15f;
@@ -330,6 +350,7 @@ private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
         profile.fireChance = 0.04f;
         profile.sliceChance = 0.03f;
         profile.frozenChance = 0.04f;
+        profile.chainedChance = 0.02f;
         profile.rockChance = 0.03f;
         profile.allowDoubleRowSpawn = true;
         profile.doubleRowChance = 0.10f;
@@ -445,6 +466,8 @@ void Start()
 
 private void Update()
 {
+    UpdateBoardDangerAlarmPulse();
+
     if (!CanResolveNoMoveSoftlock())
         return;
 
@@ -687,7 +710,7 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
 
     if (data.isRock) newBlock.SetRock(true);
     if (data.isFrozen) newBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
-    if (data.isChained) newBlock.SetChained(newBlock.width);
+    if (data.isChained) newBlock.SetChained(newBlock.width, GetChainIntactSpriteForLength(data.width), GetChainDamagedSpriteForLength(data.width));
 
     activeBlocks.Add(newBlock);
 
@@ -788,7 +811,10 @@ public Sprite GetVisualSpriteForBlockData(BlockData data)
     if (data.isFrozen || data.blockType == BlockType.Ice)
         return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
 
-    if (data.blockType != BlockType.Normal || data.isChained)
+    if (data.isChained || data.blockType == BlockType.Chained)
+        return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+
+    if (data.blockType != BlockType.Normal)
         return data.visualSprite;
 
     return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
@@ -802,6 +828,16 @@ public Sprite GetRockSpriteForLength(int logicalLength)
 public Sprite GetIceSpriteForLength(int logicalLength)
 {
     return iceLengthSprites.GetSpriteForLength(logicalLength, iceSprite);
+}
+
+public Sprite GetChainIntactSpriteForLength(int logicalLength)
+{
+    return chainIntactLengthSprites.GetSpriteForLength(logicalLength, null);
+}
+
+public Sprite GetChainDamagedSpriteForLength(int logicalLength)
+{
+    return chainDamagedLengthSprites.GetSpriteForLength(logicalLength, null);
 }
 
 public Sprite GetNormalGemSpriteForLength(int normalGemIndex, int logicalLength, Sprite fallback = null)
@@ -858,6 +894,8 @@ public void TriggerGameOver()
     {
         if (isGameOver) return;
         isGameOver = true;
+        SetBoardDangerActive(false);
+        ApplyGameOverForgeVisualShutdown();
         ResetClassicPushResolutionState();
 
         StartCoroutine(GameOverNoSpaceRoutine());
@@ -940,6 +978,8 @@ void GenerateBackgroundGrid()
             cell.transform.localScale = new Vector3(0.96f, 0.96f, 1f);
         }
     }
+
+    HideBoardDangerAlarm();
 }
 // Başlangıç için özel bir kontrol süreci
 IEnumerator InitialGravityCheck()
@@ -1166,8 +1206,10 @@ private void ResetClassicPushResolutionState()
 
 public void RestartGame()
 {
+    RestoreGameOverForgeVisualShutdown();
     Time.timeScale = 1f;
     isGameOver = false;
+    SetBoardDangerActive(false);
 
     if (IsClassicRun())
     {
@@ -2314,6 +2356,11 @@ public bool AreBlocksMoving()
 public void ChangeState(GameState newState)
     {
         currentState = newState;
+
+        if (newState == GameState.IDLE)
+        {
+            EvaluateBoardDangerState();
+        }
     }
 
     // private void OnDrawGizmos()
@@ -2337,6 +2384,471 @@ public void UpdateBlockInGrid(Block b, int newX, int newY)
 public Vector3 GetCellWorldPosition(int gridX, int gridY)
 {
     return new Vector3(gridX * cellSize, gridY * cellSize, 0f);
+}
+
+private void EvaluateBoardDangerState()
+{
+    if (isGameOver)
+    {
+        SetBoardDangerActive(false);
+        return;
+    }
+
+    int highestOccupiedRow = GetHighestOccupiedRow();
+    bool shouldShowDanger =
+        highestOccupiedRow >= 0 &&
+        GetEmptyRowsAbove(highestOccupiedRow) <= DangerSafeEmptyRows;
+
+    SetBoardDangerActive(shouldShowDanger);
+}
+
+private int GetHighestOccupiedRow()
+{
+    if (gridArray == null)
+        return -1;
+
+    for (int y = height - 1; y >= 0; y--)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            if (gridArray[x, y] != null)
+                return y;
+        }
+    }
+
+    return -1;
+}
+
+private int GetEmptyRowsAbove(int highestOccupiedRow)
+{
+    return (height - 1) - highestOccupiedRow;
+}
+
+private void SetBoardDangerActive(bool active)
+{
+    if (isBoardDangerActive == active)
+        return;
+
+    isBoardDangerActive = active;
+    boardDangerPulseTimer = 0f;
+
+    if (active)
+    {
+        ShowBoardDangerAlarm();
+    }
+    else
+    {
+        HideBoardDangerAlarm();
+    }
+}
+
+private void UpdateBoardDangerAlarmPulse()
+{
+    if (!isBoardDangerActive || boardDangerAlarmImage == null)
+        return;
+
+    boardDangerPulseTimer += Time.deltaTime;
+    float pulsePhase = BoardDangerPulseDuration > 0f
+        ? Mathf.PingPong(boardDangerPulseTimer, BoardDangerPulseDuration) / BoardDangerPulseDuration
+        : 1f;
+    float easedPulsePhase = Mathf.Sin(pulsePhase * Mathf.PI * 0.5f);
+    float alpha = Mathf.Lerp(BoardDangerAlarmMinAlpha, BoardDangerAlarmMaxAlpha, easedPulsePhase);
+
+    SetBoardDangerAlarmAlpha(alpha);
+}
+
+private void SetBoardDangerAlarmAlpha(float alpha)
+{
+    if (boardDangerAlarmImage == null)
+        return;
+
+    Color color = boardDangerAlarmImage.color;
+    color.a = alpha;
+    boardDangerAlarmImage.color = color;
+}
+
+private void ShowBoardDangerAlarm()
+{
+    if (boardDangerAlarmImage == null)
+        return;
+
+    boardDangerAlarmImage.gameObject.SetActive(true);
+    SetBoardDangerAlarmAlpha(BoardDangerAlarmMaxAlpha);
+}
+
+private void HideBoardDangerAlarm()
+{
+    SetBoardDangerAlarmAlpha(0f);
+
+    if (boardDangerAlarmImage != null)
+        boardDangerAlarmImage.gameObject.SetActive(false);
+}
+
+private void ApplyGameOverForgeVisualShutdown()
+{
+    if (isForgeGameOverVisualShutdownActive)
+        return;
+
+    isForgeGameOverVisualShutdownActive = true;
+    ApplyGameOverPreviewVisuals();
+    ApplyGameOverForgeVisuals();
+}
+
+private void ApplyGameOverPreviewVisuals()
+{
+    Material grayscaleMaterial = GetGridGameOverGrayscaleMaterial();
+
+    for (int i = 0; i < previewVisuals.Count; i++)
+    {
+        GameObject previewObject = previewVisuals[i];
+        if (previewObject == null)
+            continue;
+
+        SpriteRenderer[] renderers = previewObject.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int rendererIndex = 0; rendererIndex < renderers.Length; rendererIndex++)
+        {
+            SpriteRenderer renderer = renderers[rendererIndex];
+            if (renderer == null)
+                continue;
+
+            CacheRendererState(renderer, gameOverPreviewRendererStates);
+            ApplyPreviewGameOverRendererState(renderer, grayscaleMaterial);
+        }
+    }
+}
+
+private void ApplyPreviewGameOverRendererState(SpriteRenderer renderer, Material grayscaleMaterial)
+{
+    if (renderer == null)
+        return;
+
+    if (grayscaleMaterial != null)
+        renderer.sharedMaterial = grayscaleMaterial;
+
+    renderer.SetPropertyBlock(null);
+
+    Color color = renderer.color;
+    float alpha = color.a;
+    color = Color.Lerp(color, Color.gray, 0.65f);
+    color *= 0.72f;
+    color.a = alpha;
+    renderer.color = color;
+}
+
+private void ApplyGameOverForgeVisuals()
+{
+    Transform forgeRoot = GetForgeVisualRoot();
+    if (forgeRoot == null)
+        return;
+
+    StopForgeParticles(forgeRoot);
+    DisableForgeEnergyBehaviours(forgeRoot);
+    MuteForgeEnergyRenderers(forgeRoot);
+}
+
+private Transform GetForgeVisualRoot()
+{
+    ResolveForgeTeleportController();
+
+    if (forgeTeleportController != null)
+        return forgeTeleportController.transform;
+
+    return null;
+}
+
+private void StopForgeParticles(Transform forgeRoot)
+{
+    ParticleSystem[] particleSystems = forgeRoot.GetComponentsInChildren<ParticleSystem>(true);
+    for (int i = 0; i < particleSystems.Length; i++)
+    {
+        ParticleSystem particleSystem = particleSystems[i];
+        if (particleSystem == null)
+            continue;
+
+        gameOverForgeParticleStates.Add(new ParticleSystemGameOverState(particleSystem));
+        ParticleSystem.EmissionModule emission = particleSystem.emission;
+        emission.enabled = false;
+        particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
+}
+
+private void DisableForgeEnergyBehaviours(Transform forgeRoot)
+{
+    MonoBehaviour[] behaviours = forgeRoot.GetComponentsInChildren<MonoBehaviour>(true);
+    for (int i = 0; i < behaviours.Length; i++)
+    {
+        MonoBehaviour behaviour = behaviours[i];
+        if (!IsForgeEnergyBehaviour(behaviour))
+            continue;
+
+        gameOverForgeBehaviourStates.Add(new BehaviourGameOverState(behaviour));
+        behaviour.enabled = false;
+    }
+}
+
+private bool IsForgeEnergyBehaviour(MonoBehaviour behaviour)
+{
+    return behaviour is ForgeEnergyBreathing ||
+        behaviour is ForgeEnergyWaveController;
+}
+
+private void MuteForgeEnergyRenderers(Transform forgeRoot)
+{
+    Material grayscaleMaterial = GetGridGameOverGrayscaleMaterial();
+    SpriteRenderer[] renderers = forgeRoot.GetComponentsInChildren<SpriteRenderer>(true);
+
+    for (int i = 0; i < renderers.Length; i++)
+    {
+        SpriteRenderer renderer = renderers[i];
+        if (!ShouldMuteForgeRenderer(renderer))
+            continue;
+
+        CacheRendererState(renderer, gameOverForgeRendererStates);
+
+        if (grayscaleMaterial != null)
+            renderer.sharedMaterial = grayscaleMaterial;
+
+        renderer.SetPropertyBlock(null);
+        renderer.color = ForgeGameOverEnergyTint;
+    }
+}
+
+private bool ShouldMuteForgeRenderer(SpriteRenderer renderer)
+{
+    if (renderer == null)
+        return false;
+
+    Transform rendererTransform = renderer.transform;
+    if (HasForgeEnergyComponent(rendererTransform))
+        return true;
+
+    while (rendererTransform != null)
+    {
+        if (rendererTransform.name.Contains("Energy") ||
+            rendererTransform.name.Contains("Flow"))
+        {
+            return true;
+        }
+
+        if (rendererTransform == GetForgeVisualRoot())
+            break;
+
+        rendererTransform = rendererTransform.parent;
+    }
+
+    return false;
+}
+
+private bool HasForgeEnergyComponent(Transform target)
+{
+    if (target == null)
+        return false;
+
+    return target.GetComponent<ForgeEnergyBreathing>() != null ||
+        target.GetComponent<ForgeEnergyWaveController>() != null;
+}
+
+private void CacheRendererState(SpriteRenderer renderer, List<SpriteRendererGameOverState> states)
+{
+    if (renderer == null || states == null)
+        return;
+
+    for (int i = 0; i < states.Count; i++)
+    {
+        if (states[i].Renderer == renderer)
+            return;
+    }
+
+    states.Add(new SpriteRendererGameOverState(renderer));
+}
+
+private Material GetGridGameOverGrayscaleMaterial()
+{
+    if (gridGameOverGrayscaleMaterial == null)
+        gridGameOverGrayscaleMaterial = Resources.Load<Material>("M_GameOverGrayscale");
+
+    if (gridGameOverGrayscaleMaterial == null)
+    {
+        if (sharedRuntimeGridGameOverGrayscaleMaterial == null)
+        {
+            Shader shader = Shader.Find("ARXON/Sprite Grayscale");
+            if (shader != null)
+            {
+                sharedRuntimeGridGameOverGrayscaleMaterial = new Material(shader)
+                {
+                    name = "Runtime_GridGameOverGrayscale"
+                };
+            }
+        }
+
+        gridGameOverGrayscaleMaterial = sharedRuntimeGridGameOverGrayscaleMaterial;
+    }
+
+    return gridGameOverGrayscaleMaterial;
+}
+
+private void RestoreGameOverForgeVisualShutdown()
+{
+    if (!isForgeGameOverVisualShutdownActive)
+        return;
+
+    RestoreRendererStates(gameOverPreviewRendererStates);
+    RestoreRendererStates(gameOverForgeRendererStates);
+    RestoreParticleStates(gameOverForgeParticleStates);
+    RestoreBehaviourStates(gameOverForgeBehaviourStates);
+
+    gameOverPreviewRendererStates.Clear();
+    gameOverForgeRendererStates.Clear();
+    gameOverForgeParticleStates.Clear();
+    gameOverForgeBehaviourStates.Clear();
+    isForgeGameOverVisualShutdownActive = false;
+}
+
+private void RestoreRendererStates(List<SpriteRendererGameOverState> states)
+{
+    if (states == null)
+        return;
+
+    for (int i = 0; i < states.Count; i++)
+    {
+        states[i].Restore();
+    }
+}
+
+private void RestoreParticleStates(List<ParticleSystemGameOverState> states)
+{
+    if (states == null)
+        return;
+
+    for (int i = 0; i < states.Count; i++)
+    {
+        states[i].Restore();
+    }
+}
+
+private void RestoreBehaviourStates(List<BehaviourGameOverState> states)
+{
+    if (states == null)
+        return;
+
+    for (int i = 0; i < states.Count; i++)
+    {
+        states[i].Restore();
+    }
+}
+
+private void OnDisable()
+{
+    RestoreGameOverForgeVisualShutdown();
+    SetBoardDangerActive(false);
+}
+
+private void OnDestroy()
+{
+    RestoreGameOverForgeVisualShutdown();
+}
+
+private sealed class SpriteRendererGameOverState
+{
+    public SpriteRenderer Renderer { get; }
+
+    private readonly Color color;
+    private readonly Material sharedMaterial;
+    private readonly bool enabled;
+    private readonly MaterialPropertyBlock propertyBlock;
+
+    public SpriteRendererGameOverState(SpriteRenderer renderer)
+    {
+        Renderer = renderer;
+
+        if (renderer == null)
+            return;
+
+        color = renderer.color;
+        sharedMaterial = renderer.sharedMaterial;
+        enabled = renderer.enabled;
+        propertyBlock = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(propertyBlock);
+    }
+
+    public void Restore()
+    {
+        if (Renderer == null)
+            return;
+
+        Renderer.enabled = enabled;
+        Renderer.sharedMaterial = sharedMaterial;
+        Renderer.color = color;
+        Renderer.SetPropertyBlock(propertyBlock);
+    }
+}
+
+private sealed class BehaviourGameOverState
+{
+    private readonly MonoBehaviour behaviour;
+    private readonly bool enabled;
+    private readonly Transform transform;
+    private readonly Vector3 localPosition;
+    private readonly Vector3 localScale;
+
+    public BehaviourGameOverState(MonoBehaviour behaviour)
+    {
+        this.behaviour = behaviour;
+
+        if (behaviour == null)
+            return;
+
+        enabled = behaviour.enabled;
+        transform = behaviour.transform;
+        localPosition = transform.localPosition;
+        localScale = transform.localScale;
+    }
+
+    public void Restore()
+    {
+        if (behaviour == null)
+            return;
+
+        if (transform != null)
+        {
+            transform.localPosition = localPosition;
+            transform.localScale = localScale;
+        }
+
+        behaviour.enabled = enabled;
+    }
+}
+
+private sealed class ParticleSystemGameOverState
+{
+    private readonly ParticleSystem particleSystem;
+    private readonly bool wasPlaying;
+    private readonly bool emissionEnabled;
+
+    public ParticleSystemGameOverState(ParticleSystem particleSystem)
+    {
+        this.particleSystem = particleSystem;
+
+        if (particleSystem == null)
+            return;
+
+        wasPlaying = particleSystem.isPlaying;
+        emissionEnabled = particleSystem.emission.enabled;
+    }
+
+    public void Restore()
+    {
+        if (particleSystem == null)
+            return;
+
+        ParticleSystem.EmissionModule emission = particleSystem.emission;
+        emission.enabled = emissionEnabled;
+
+        if (wasPlaying)
+            particleSystem.Play(true);
+        else
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
 }
 
 public void GenerateFog()
@@ -2748,7 +3260,7 @@ private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
     previewBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
 
     if (data.isFrozen) previewBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
-    if (data.isChained) previewBlock.SetChained(previewBlock.width);
+    if (data.isChained) previewBlock.SetChained(previewBlock.width, GetChainIntactSpriteForLength(data.width), GetChainDamagedSpriteForLength(data.width));
     previewBlock.ApplyPreviewRendererSorting(PreviewSortingOrder);
     previewBlock.transform.localScale = new Vector3(previewVisualScale, previewVisualScale, 1f);
 

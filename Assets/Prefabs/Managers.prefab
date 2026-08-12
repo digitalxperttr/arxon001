@@ -66,15 +66,15 @@ MonoBehaviour:
   comboCount: 0
   scoreLevelThresholds:
   - 0
-  - 250
-  - 600
-  - 1000
-  - 1300
-  - 1800
-  - 2600
-  - 3200
-  - 4000
-  - 5000
+  - 200
+  - 450
+  - 750
+  - 1100
+  - 1600
+  - 2200
+  - 2900
+  - 3700
+  - 4600
   currentLevel: 1
 --- !u!114 &7920278384887831759
 MonoBehaviour:

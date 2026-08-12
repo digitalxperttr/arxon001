@@ -34,7 +34,7 @@ public class ScoreManager : MonoBehaviour
     public int comboMultiplier { get { return comboCount > 0 ? comboCount : 1; } }
 
     // SEVİYE (LEVEL) DEĞİŞKENLERİ
-    [SerializeField] private int[] scoreLevelThresholds = { 0, 250, 600, 1000, 1300, 1800, 2600, 3200, 4000, 5000 };
+    [SerializeField] private int[] scoreLevelThresholds = { 0, 200, 450, 750, 1100, 1600, 2200, 2900, 3700, 4600 };
     [SerializeField] private int postThresholdBaseGap = 1200;
     [SerializeField] private int postThresholdGapIncrease = 200;
     public int currentLevel = 1;
