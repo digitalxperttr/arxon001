@@ -165,24 +165,35 @@ MonoBehaviour:
   isFrozen: 0
   isRock: 0
   isChained: 0
+  hasCollectible: 0
+  collectibleId: 
+  collectibleVisualRenderer: {fileID: 0}
   chainOverlayRoot: {fileID: 0}
   chainOverlayPrefab: {fileID: 0}
   chainBreakFXPrefab: {fileID: 6568322574869184099, guid: 0485eb1ef4242424b9b69ab88dff4d5b, type: 3}
   flashOverlayRenderer: {fileID: 7098267512443741762}
   vfxAnchor: {fileID: 0}
-  chainBreakFlashDuration: 0.1
   chainBreakShakeDuration: 0.14
   chainBreakShakeStrength: 0.06
   chainBreakPunchScale: 1.08
   gameOverGrayscaleMaterial: {fileID: 2100000, guid: 0438e060388e4bed827d428355f9efcd, type: 2}
   glowIntensity: 2.5
   fireIdleParticlePrefab: {fileID: 5931205428725586556, guid: a071c6ccfaa364d9b886b036ca8ced71, type: 3}
-  fireParticleMinDelay: 3.99
-  fireParticleMaxDelay: 5.49
-  fireParticleMinCount: 5
-  fireParticleMaxCount: 19
-  fireParticleSpawnRadiusX: 0.54
-  fireParticleSpawnRadiusY: 0.35
+  fireInternalEnergyTrailMaterial: {fileID: 2100000, guid: c5df1245fad5c4e63b771b349e865cde, type: 2}
+  fireIdleFlameSprite: {fileID: 3087537244111470978, guid: 270f47b994d65498582a12ae2143b42d, type: 3}
+  fireLocalDischargeFrames:
+  - {fileID: 6040989371303549542, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  - {fileID: -2140350169970364834, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  - {fileID: -2324505480885959066, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  - {fileID: -1357730405022821831, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  - {fileID: 2948670770100645266, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  - {fileID: 5366572210257773125, guid: 8aa2f994920f84833a7b3731c3d636e4, type: 3}
+  fireParticleMinDelay: 2.8
+  fireParticleMaxDelay: 4.2
+  fireParticleMinCount: 3
+  fireParticleMaxCount: 5
+  fireParticleSpawnRadiusX: 0.32
+  fireParticleSpawnRadiusY: 0.2
 --- !u!96 &2158739461213683442
 TrailRenderer:
   serializedVersion: 4

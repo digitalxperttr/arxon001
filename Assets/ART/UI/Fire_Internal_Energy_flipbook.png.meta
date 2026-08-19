@@ -1,0 +1,2938 @@
+fileFormatVersion: 2
+guid: b9a05f3465dee43119ebc283392f20fb
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -7399787730863577764
+    second: Fire_Internal_Energy_flipbook_0
+  - first:
+      213: 2414638204254157275
+    second: Fire_Internal_Energy_flipbook_1
+  - first:
+      213: -486483002434675319
+    second: Fire_Internal_Energy_flipbook_2
+  - first:
+      213: 4783653490419107288
+    second: Fire_Internal_Energy_flipbook_3
+  - first:
+      213: -7811908800380125546
+    second: Fire_Internal_Energy_flipbook_4
+  - first:
+      213: -6989431222900132637
+    second: Fire_Internal_Energy_flipbook_5
+  - first:
+      213: 70015274715424842
+    second: Fire_Internal_Energy_flipbook_6
+  - first:
+      213: 8558652743108320182
+    second: Fire_Internal_Energy_flipbook_7
+  - first:
+      213: 6742765638814840240
+    second: Fire_Internal_Energy_flipbook_8
+  - first:
+      213: 8023406060376491021
+    second: Fire_Internal_Energy_flipbook_9
+  - first:
+      213: -1323982139786741845
+    second: Fire_Internal_Energy_flipbook_10
+  - first:
+      213: 310442451355556512
+    second: Fire_Internal_Energy_flipbook_11
+  - first:
+      213: -7375679363381196599
+    second: Fire_Internal_Energy_flipbook_12
+  - first:
+      213: 7257112494862543956
+    second: Fire_Internal_Energy_flipbook_13
+  - first:
+      213: -409091062553552544
+    second: Fire_Internal_Energy_flipbook_14
+  - first:
+      213: -718955728115970009
+    second: Fire_Internal_Energy_flipbook_15
+  - first:
+      213: -4201885895139319058
+    second: Fire_Internal_Energy_flipbook_16
+  - first:
+      213: -1814733098956556903
+    second: Fire_Internal_Energy_flipbook_17
+  - first:
+      213: -4936740359678552498
+    second: Fire_Internal_Energy_flipbook_18
+  - first:
+      213: -6353294186194957768
+    second: Fire_Internal_Energy_flipbook_19
+  - first:
+      213: -7922620260151686375
+    second: Fire_Internal_Energy_flipbook_20
+  - first:
+      213: -2438688931335951515
+    second: Fire_Internal_Energy_flipbook_21
+  - first:
+      213: -7459271813133527891
+    second: Fire_Internal_Energy_flipbook_22
+  - first:
+      213: -8343656388443157586
+    second: Fire_Internal_Energy_flipbook_23
+  - first:
+      213: -8058100054204729613
+    second: Fire_Internal_Energy_flipbook_24
+  - first:
+      213: 4167344550519270801
+    second: Fire_Internal_Energy_flipbook_25
+  - first:
+      213: 4354796379392985317
+    second: Fire_Internal_Energy_flipbook_26
+  - first:
+      213: -1053894297508467789
+    second: Fire_Internal_Energy_flipbook_27
+  - first:
+      213: 2646999342759218674
+    second: Fire_Internal_Energy_flipbook_28
+  - first:
+      213: -50772498937531239
+    second: Fire_Internal_Energy_flipbook_29
+  - first:
+      213: 8498525202276187337
+    second: Fire_Internal_Energy_flipbook_30
+  - first:
+      213: 1123161316472786856
+    second: Fire_Internal_Energy_flipbook_31
+  - first:
+      213: 6328114598802761521
+    second: Fire_Internal_Energy_flipbook_32
+  - first:
+      213: 8469687037380945942
+    second: Fire_Internal_Energy_flipbook_33
+  - first:
+      213: -7327690216145102781
+    second: Fire_Internal_Energy_flipbook_34
+  - first:
+      213: 946043468379787466
+    second: Fire_Internal_Energy_flipbook_35
+  - first:
+      213: 6173583217550164105
+    second: Fire_Internal_Energy_flipbook_36
+  - first:
+      213: 2030762567171711165
+    second: Fire_Internal_Energy_flipbook_37
+  - first:
+      213: -6679900095055348769
+    second: Fire_Internal_Energy_flipbook_38
+  - first:
+      213: -185686717605784485
+    second: Fire_Internal_Energy_flipbook_39
+  - first:
+      213: 9157860599166909886
+    second: Fire_Internal_Energy_flipbook_40
+  - first:
+      213: 6567989225641076782
+    second: Fire_Internal_Energy_flipbook_41
+  - first:
+      213: -5567531116198137106
+    second: Fire_Internal_Energy_flipbook_42
+  - first:
+      213: 4794850054547391027
+    second: Fire_Internal_Energy_flipbook_43
+  - first:
+      213: -8510584923153440722
+    second: Fire_Internal_Energy_flipbook_44
+  - first:
+      213: 7413455787721109462
+    second: Fire_Internal_Energy_flipbook_45
+  - first:
+      213: -4949980175440775522
+    second: Fire_Internal_Energy_flipbook_46
+  - first:
+      213: 8924278999870773863
+    second: Fire_Internal_Energy_flipbook_47
+  - first:
+      213: 8211049200092182892
+    second: Fire_Internal_Energy_flipbook_48
+  - first:
+      213: 5950369483045048849
+    second: Fire_Internal_Energy_flipbook_49
+  - first:
+      213: -1009731928910591646
+    second: Fire_Internal_Energy_flipbook_50
+  - first:
+      213: 7332947259345814914
+    second: Fire_Internal_Energy_flipbook_51
+  - first:
+      213: 235758349771883768
+    second: Fire_Internal_Energy_flipbook_52
+  - first:
+      213: -1545226907276289983
+    second: Fire_Internal_Energy_flipbook_53
+  - first:
+      213: -3759964666936292982
+    second: Fire_Internal_Energy_flipbook_54
+  - first:
+      213: -729472566902326767
+    second: Fire_Internal_Energy_flipbook_55
+  - first:
+      213: 98328444851990839
+    second: Fire_Internal_Energy_flipbook_56
+  - first:
+      213: -4546558004428452467
+    second: Fire_Internal_Energy_flipbook_57
+  - first:
+      213: 4281233547470392487
+    second: Fire_Internal_Energy_flipbook_58
+  - first:
+      213: -9042257042189995567
+    second: Fire_Internal_Energy_flipbook_59
+  - first:
+      213: 2193831161864799076
+    second: Fire_Internal_Energy_flipbook_60
+  - first:
+      213: 373646751810135778
+    second: Fire_Internal_Energy_flipbook_61
+  - first:
+      213: 2169005527535203013
+    second: Fire_Internal_Energy_flipbook_62
+  - first:
+      213: -7987341288564075740
+    second: Fire_Internal_Energy_flipbook_63
+  - first:
+      213: 1955725389616720557
+    second: Fire_Internal_Energy_flipbook_64
+  - first:
+      213: -1673148434511839591
+    second: Fire_Internal_Energy_flipbook_65
+  - first:
+      213: -6131547280244171794
+    second: Fire_Internal_Energy_flipbook_66
+  - first:
+      213: 5753834357993570387
+    second: Fire_Internal_Energy_flipbook_67
+  - first:
+      213: -5718546680503750263
+    second: Fire_Internal_Energy_flipbook_68
+  - first:
+      213: 6932789339930936768
+    second: Fire_Internal_Energy_flipbook_69
+  - first:
+      213: -3377381810471468105
+    second: Fire_Internal_Energy_flipbook_70
+  - first:
+      213: -5575406348528916380
+    second: Fire_Internal_Energy_flipbook_71
+  - first:
+      213: 3198027172054469038
+    second: Fire_Internal_Energy_flipbook_72
+  - first:
+      213: 5259599556232888239
+    second: Fire_Internal_Energy_flipbook_73
+  - first:
+      213: 2128424973433699775
+    second: Fire_Internal_Energy_flipbook_74
+  - first:
+      213: -4498981574155999352
+    second: Fire_Internal_Energy_flipbook_75
+  - first:
+      213: -5597339229767439343
+    second: Fire_Internal_Energy_flipbook_76
+  - first:
+      213: -4425702939492128339
+    second: Fire_Internal_Energy_flipbook_77
+  - first:
+      213: 5697468673977977390
+    second: Fire_Internal_Energy_flipbook_78
+  - first:
+      213: -4322785192706365878
+    second: Fire_Internal_Energy_flipbook_79
+  - first:
+      213: -2079599963951065361
+    second: Fire_Internal_Energy_flipbook_80
+  - first:
+      213: 7511932508052878295
+    second: Fire_Internal_Energy_flipbook_81
+  - first:
+      213: 4702784589108928661
+    second: Fire_Internal_Energy_flipbook_82
+  - first:
+      213: 1379675502008629667
+    second: Fire_Internal_Energy_flipbook_83
+  - first:
+      213: 4029210563270209718
+    second: Fire_Internal_Energy_flipbook_84
+  - first:
+      213: 1833987978564707582
+    second: Fire_Internal_Energy_flipbook_85
+  - first:
+      213: 7113255985319268396
+    second: Fire_Internal_Energy_flipbook_86
+  - first:
+      213: 2552265023731475594
+    second: Fire_Internal_Energy_flipbook_87
+  - first:
+      213: -5569516449516642863
+    second: Fire_Internal_Energy_flipbook_88
+  - first:
+      213: -4287974330647923589
+    second: Fire_Internal_Energy_flipbook_89
+  - first:
+      213: -6899393342541512792
+    second: Fire_Internal_Energy_flipbook_90
+  - first:
+      213: 2764031757318742077
+    second: Fire_Internal_Energy_flipbook_91
+  - first:
+      213: 5546958077076639754
+    second: Fire_Internal_Energy_flipbook_92
+  - first:
+      213: 8834141955799584880
+    second: Fire_Internal_Energy_flipbook_93
+  - first:
+      213: 3929676845624397520
+    second: Fire_Internal_Energy_flipbook_94
+  - first:
+      213: -8668053627801488758
+    second: Fire_Internal_Energy_flipbook_95
+  - first:
+      213: 6027700612313101921
+    second: Fire_Internal_Energy_flipbook_96
+  - first:
+      213: -2966552567038650086
+    second: Fire_Internal_Energy_flipbook_97
+  - first:
+      213: -4241120895073439398
+    second: Fire_Internal_Energy_flipbook_98
+  - first:
+      213: 8394048754865804825
+    second: Fire_Internal_Energy_flipbook_99
+  - first:
+      213: 5864176207433543313
+    second: Fire_Internal_Energy_flipbook_100
+  - first:
+      213: 5648168461900520048
+    second: Fire_Internal_Energy_flipbook_101
+  - first:
+      213: -5548605759395318455
+    second: Fire_Internal_Energy_flipbook_102
+  - first:
+      213: -3591565864569959153
+    second: Fire_Internal_Energy_flipbook_103
+  - first:
+      213: -650193796594624306
+    second: Fire_Internal_Energy_flipbook_104
+  - first:
+      213: -7438165045301076744
+    second: Fire_Internal_Energy_flipbook_105
+  - first:
+      213: 7437862570737445937
+    second: Fire_Internal_Energy_flipbook_106
+  - first:
+      213: -2235941091863002872
+    second: Fire_Internal_Energy_flipbook_107
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 0
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 0
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 512
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c552598b34cae4990800000000000000
+      internalID: -7399787730863577764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_1
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 512
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd9f7a947a4828120800000000000000
+      internalID: 2414638204254157275
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_2
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 512
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 98d9d9a694aaf39f0800000000000000
+      internalID: -486483002434675319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_3
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 512
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d50df03183f26240800000000000000
+      internalID: 4783653490419107288
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 69e3897d556869390800000000000000
+      internalID: -7811908800380125546
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_5
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e47309955d800f90800000000000000
+      internalID: -6989431222900132637
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_6
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 0
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a48a34a758eb8f000800000000000000
+      internalID: 70015274715424842
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_7
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 0
+        width: 384
+        height: 512
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6bbd4ecf25176c670800000000000000
+      internalID: 8558652743108320182
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_8
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 971
+        width: 14
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b5b441bf9d139d50800000000000000
+      internalID: 6742765638814840240
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_9
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 612
+        width: 12
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d0405755d4dd85f60800000000000000
+      internalID: 8023406060376491021
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_10
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 530
+        width: 122
+        height: 85
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ba7bc05324540ade0800000000000000
+      internalID: -1323982139786741845
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_11
+      rect:
+        serializedVersion: 2
+        x: 294
+        y: 591
+        width: 17
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0aadf34c3c9ee4400800000000000000
+      internalID: 310442451355556512
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_12
+      rect:
+        serializedVersion: 2
+        x: 622
+        y: 583
+        width: 19
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9c80c7072b254a990800000000000000
+      internalID: -7375679363381196599
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_13
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 603
+        width: 9
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45ca45f3d5176b460800000000000000
+      internalID: 7257112494862543956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_14
+      rect:
+        serializedVersion: 2
+        x: 750
+        y: 555
+        width: 9
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06955b798dd925af0800000000000000
+      internalID: -409091062553552544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_15
+      rect:
+        serializedVersion: 2
+        x: 1394
+        y: 595
+        width: 10
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7205a601391c506f0800000000000000
+      internalID: -718955728115970009
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_16
+      rect:
+        serializedVersion: 2
+        x: 1406
+        y: 593
+        width: 17
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ee22f797a07efa5c0800000000000000
+      internalID: -4201885895139319058
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_17
+      rect:
+        serializedVersion: 2
+        x: 1428
+        y: 585
+        width: 23
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 995fc828cd5c0d6e0800000000000000
+      internalID: -1814733098956556903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_18
+      rect:
+        serializedVersion: 2
+        x: 246
+        y: 581
+        width: 9
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e4696018ccc2d7bb0800000000000000
+      internalID: -4936740359678552498
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_19
+      rect:
+        serializedVersion: 2
+        x: 414
+        y: 559
+        width: 45
+        height: 43
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 83a8b4e499094d7a0800000000000000
+      internalID: -6353294186194957768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_20
+      rect:
+        serializedVersion: 2
+        x: 1478
+        y: 565
+        width: 29
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91b885769d23d0290800000000000000
+      internalID: -7922620260151686375
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_21
+      rect:
+        serializedVersion: 2
+        x: 1518
+        y: 589
+        width: 7
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 56b2b027659082ed0800000000000000
+      internalID: -2438688931335951515
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_22
+      rect:
+        serializedVersion: 2
+        x: 176
+        y: 577
+        width: 7
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da4971f8ec75b7890800000000000000
+      internalID: -7459271813133527891
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_23
+      rect:
+        serializedVersion: 2
+        x: 594
+        y: 575
+        width: 7
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eab4de6a8b0653c80800000000000000
+      internalID: -8343656388443157586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_24
+      rect:
+        serializedVersion: 2
+        x: 678
+        y: 559
+        width: 25
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3f63290c1b0eb2090800000000000000
+      internalID: -8058100054204729613
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_25
+      rect:
+        serializedVersion: 2
+        x: 1512
+        y: 530
+        width: 13
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 19d6c560ac165d930800000000000000
+      internalID: 4167344550519270801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_26
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 530
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e840eefb385f6c30800000000000000
+      internalID: 4354796379392985317
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_27
+      rect:
+        serializedVersion: 2
+        x: 188
+        y: 530
+        width: 55
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3bba23e58b0df51f0800000000000000
+      internalID: -1053894297508467789
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_28
+      rect:
+        serializedVersion: 2
+        x: 484
+        y: 535
+        width: 13
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fd0bd9b0e70cb420800000000000000
+      internalID: 2646999342759218674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_29
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 543
+        width: 10
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 99438746eae9b4ff0800000000000000
+      internalID: -50772498937531239
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_30
+      rect:
+        serializedVersion: 2
+        x: 686
+        y: 533
+        width: 17
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9cc7064f4a3d0f570800000000000000
+      internalID: 8498525202276187337
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_31
+      rect:
+        serializedVersion: 2
+        x: 752
+        y: 530
+        width: 7
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8af02dd3445469f00800000000000000
+      internalID: 1123161316472786856
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_32
+      rect:
+        serializedVersion: 2
+        x: 1422
+        y: 535
+        width: 9
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1372a9723baf1d750800000000000000
+      internalID: 6328114598802761521
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_33
+      rect:
+        serializedVersion: 2
+        x: 1456
+        y: 543
+        width: 13
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 61862d57c7f5a8570800000000000000
+      internalID: 8469687037380945942
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_34
+      rect:
+        serializedVersion: 2
+        x: 1494
+        y: 530
+        width: 15
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 348d09a7290de4a90800000000000000
+      internalID: -7327690216145102781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_35
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 54
+        width: 362
+        height: 445
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac01bdaa585012d00800000000000000
+      internalID: 946043468379787466
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_36
+      rect:
+        serializedVersion: 2
+        x: 404
+        y: 54
+        width: 355
+        height: 445
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 98004613a39fca550800000000000000
+      internalID: 6173583217550164105
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_37
+      rect:
+        serializedVersion: 2
+        x: 778
+        y: 54
+        width: 393
+        height: 445
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: db02e6f9bc7be2c10800000000000000
+      internalID: 2030762567171711165
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_38
+      rect:
+        serializedVersion: 2
+        x: 1176
+        y: 463
+        width: 41
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fdbb023514a3c43a0800000000000000
+      internalID: -6679900095055348769
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_39
+      rect:
+        serializedVersion: 2
+        x: 1220
+        y: 453
+        width: 43
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b5459950aee4c6df0800000000000000
+      internalID: -185686717605784485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_40
+      rect:
+        serializedVersion: 2
+        x: 1260
+        y: 419
+        width: 69
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ebdb3ebc1b1471f70800000000000000
+      internalID: 9157860599166909886
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_41
+      rect:
+        serializedVersion: 2
+        x: 1279
+        y: 489
+        width: 30
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e28edeae66f262b50800000000000000
+      internalID: 6567989225641076782
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_42
+      rect:
+        serializedVersion: 2
+        x: 1330
+        y: 407
+        width: 145
+        height: 92
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ee27317a2f72cb2b0800000000000000
+      internalID: -5567531116198137106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_43
+      rect:
+        serializedVersion: 2
+        x: 1392
+        y: 455
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3324f8c68baba8240800000000000000
+      internalID: 4794850054547391027
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_44
+      rect:
+        serializedVersion: 2
+        x: 1474
+        y: 447
+        width: 41
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e20e4a87a1454e980800000000000000
+      internalID: -8510584923153440722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_45
+      rect:
+        serializedVersion: 2
+        x: 1488
+        y: 455
+        width: 19
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6df2e21c2c2e1e660800000000000000
+      internalID: 7413455787721109462
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_46
+      rect:
+        serializedVersion: 2
+        x: 1514
+        y: 484
+        width: 11
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e9670ada1432e4bb0800000000000000
+      internalID: -4949980175440775522
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_47
+      rect:
+        serializedVersion: 2
+        x: 1165
+        y: 411
+        width: 20
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76a96cfa77869db70800000000000000
+      internalID: 8924278999870773863
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_48
+      rect:
+        serializedVersion: 2
+        x: 1184
+        y: 437
+        width: 15
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c69ffb45eb183f170800000000000000
+      internalID: 8211049200092182892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_49
+      rect:
+        serializedVersion: 2
+        x: 1196
+        y: 411
+        width: 21
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1129937b485f39250800000000000000
+      internalID: 5950369483045048849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_50
+      rect:
+        serializedVersion: 2
+        x: 1212
+        y: 401
+        width: 53
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2690ae21926bcf1f0800000000000000
+      internalID: -1009731928910591646
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_51
+      rect:
+        serializedVersion: 2
+        x: 1270
+        y: 430
+        width: 13
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2854bf54eacd3c560800000000000000
+      internalID: 7332947259345814914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_52
+      rect:
+        serializedVersion: 2
+        x: 1350
+        y: 421
+        width: 15
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f44cf258f4954300800000000000000
+      internalID: 235758349771883768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_53
+      rect:
+        serializedVersion: 2
+        x: 1366
+        y: 425
+        width: 11
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 148db6690504e8ae0800000000000000
+      internalID: -1545226907276289983
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_54
+      rect:
+        serializedVersion: 2
+        x: 1382
+        y: 409
+        width: 25
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a890e3b7e0ce1dbc0800000000000000
+      internalID: -3759964666936292982
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_55
+      rect:
+        serializedVersion: 2
+        x: 1406
+        y: 397
+        width: 33
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 11af468b09460e5f0800000000000000
+      internalID: -729472566902326767
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_56
+      rect:
+        serializedVersion: 2
+        x: 1434
+        y: 427
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73138ba13355d5100800000000000000
+      internalID: 98328444851990839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_57
+      rect:
+        serializedVersion: 2
+        x: 1165
+        y: 161
+        width: 360
+        height: 250
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d8d455b659167e0c0800000000000000
+      internalID: -4546558004428452467
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_58
+      rect:
+        serializedVersion: 2
+        x: 1248
+        y: 392
+        width: 7
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7ac457d7a3ff96b30800000000000000
+      internalID: 4281233547470392487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_59
+      rect:
+        serializedVersion: 2
+        x: 1356
+        y: 407
+        width: 7
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1d1bd78c023738280800000000000000
+      internalID: -9042257042189995567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_60
+      rect:
+        serializedVersion: 2
+        x: 1430
+        y: 395
+        width: 13
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 463422c71dd027e10800000000000000
+      internalID: 2193831161864799076
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_61
+      rect:
+        serializedVersion: 2
+        x: 1436
+        y: 391
+        width: 8
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e62f19bdb57f2500800000000000000
+      internalID: 373646751810135778
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_62
+      rect:
+        serializedVersion: 2
+        x: 1446
+        y: 396
+        width: 9
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c23890190bd91e10800000000000000
+      internalID: 2169005527535203013
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_63
+      rect:
+        serializedVersion: 2
+        x: 1480
+        y: 391
+        width: 45
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 423d353ba63472190800000000000000
+      internalID: -7987341288564075740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_64
+      rect:
+        serializedVersion: 2
+        x: 1512
+        y: 311
+        width: 13
+        height: 69
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: daa215641e1242b10800000000000000
+      internalID: 1955725389616720557
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_65
+      rect:
+        serializedVersion: 2
+        x: 1326
+        y: 159
+        width: 25
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 99ebb601d58c7c8e0800000000000000
+      internalID: -1673148434511839591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_66
+      rect:
+        serializedVersion: 2
+        x: 1368
+        y: 166
+        width: 9
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eeb98852c3e58eaa0800000000000000
+      internalID: -6131547280244171794
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_67
+      rect:
+        serializedVersion: 2
+        x: 36
+        y: 54
+        width: 99
+        height: 67
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 35005ac0dd9b9df40800000000000000
+      internalID: 5753834357993570387
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_68
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 100
+        width: 21
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 981b51d9714a3a0b0800000000000000
+      internalID: -5718546680503750263
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_69
+      rect:
+        serializedVersion: 2
+        x: 518
+        y: 97
+        width: 11
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c5c2355c27363060800000000000000
+      internalID: 6932789339930936768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_70
+      rect:
+        serializedVersion: 2
+        x: 526
+        y: 127
+        width: 21
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b38bf333212121d0800000000000000
+      internalID: -3377381810471468105
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_71
+      rect:
+        serializedVersion: 2
+        x: 542
+        y: 105
+        width: 25
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 468e97d377d20a2b0800000000000000
+      internalID: -5575406348528916380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_72
+      rect:
+        serializedVersion: 2
+        x: 542
+        y: 54
+        width: 81
+        height: 96
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ea98a54e4cca16c20800000000000000
+      internalID: 3198027172054469038
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_73
+      rect:
+        serializedVersion: 2
+        x: 678
+        y: 94
+        width: 29
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: faf301a0ee9ddf840800000000000000
+      internalID: 5259599556232888239
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_74
+      rect:
+        serializedVersion: 2
+        x: 706
+        y: 106
+        width: 31
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fbdf5988c3fa98d10800000000000000
+      internalID: 2128424973433699775
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_75
+      rect:
+        serializedVersion: 2
+        x: 1178
+        y: 55
+        width: 71
+        height: 84
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 887676d48186091c0800000000000000
+      internalID: -4498981574155999352
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_76
+      rect:
+        serializedVersion: 2
+        x: 1236
+        y: 89
+        width: 25
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 11c6a5260a14252b0800000000000000
+      internalID: -5597339229767439343
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_77
+      rect:
+        serializedVersion: 2
+        x: 1238
+        y: 119
+        width: 43
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da96b2aff9eb492c0800000000000000
+      internalID: -4425702939492128339
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_78
+      rect:
+        serializedVersion: 2
+        x: 1292
+        y: 83
+        width: 51
+        height: 69
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e2a8f5f8299711f40800000000000000
+      internalID: 5697468673977977390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_79
+      rect:
+        serializedVersion: 2
+        x: 1332
+        y: 54
+        width: 127
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a462b6435c16204c0800000000000000
+      internalID: -4322785192706365878
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_80
+      rect:
+        serializedVersion: 2
+        x: 1512
+        y: 54
+        width: 13
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe618c9d9d6c323e0800000000000000
+      internalID: -2079599963951065361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_81
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 103
+        width: 10
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7d3733fe0debf3860800000000000000
+      internalID: 7511932508052878295
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_82
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 85
+        width: 7
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 590e409daa5a34140800000000000000
+      internalID: 4702784589108928661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_83
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 95
+        width: 9
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a9788a2f87952310800000000000000
+      internalID: 1379675502008629667
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_84
+      rect:
+        serializedVersion: 2
+        x: 436
+        y: 54
+        width: 47
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b0f8fcd8a1aae730800000000000000
+      internalID: 4029210563270209718
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_85
+      rect:
+        serializedVersion: 2
+        x: 654
+        y: 103
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef4afa08952a37910800000000000000
+      internalID: 1833987978564707582
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_86
+      rect:
+        serializedVersion: 2
+        x: 752
+        y: 95
+        width: 7
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c20506981ac57b260800000000000000
+      internalID: 7113255985319268396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_87
+      rect:
+        serializedVersion: 2
+        x: 1254
+        y: 76
+        width: 37
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a842b2044877b6320800000000000000
+      internalID: 2552265023731475594
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_88
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 54
+        width: 16
+        height: 43
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1dd9dd73c4a15b2b0800000000000000
+      internalID: -5569516449516642863
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_89
+      rect:
+        serializedVersion: 2
+        x: 212
+        y: 55
+        width: 19
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b74bcbf901e0e74c0800000000000000
+      internalID: -4287974330647923589
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_90
+      rect:
+        serializedVersion: 2
+        x: 230
+        y: 54
+        width: 19
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8af3e1c3f4e6040a0800000000000000
+      internalID: -6899393342541512792
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_91
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 77
+        width: 19
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d30e1e22d30db5620800000000000000
+      internalID: 2764031757318742077
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_92
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 54
+        width: 47
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0013286bf0cafc40800000000000000
+      internalID: 5546958077076639754
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_93
+      rect:
+        serializedVersion: 2
+        x: 646
+        y: 73
+        width: 21
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0701fc2bd4d299a70800000000000000
+      internalID: 8834141955799584880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_94
+      rect:
+        serializedVersion: 2
+        x: 696
+        y: 85
+        width: 11
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0de05815544098630800000000000000
+      internalID: 3929676845624397520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_95
+      rect:
+        serializedVersion: 2
+        x: 1284
+        y: 55
+        width: 37
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a823bdc9623e4b780800000000000000
+      internalID: -8668053627801488758
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_96
+      rect:
+        serializedVersion: 2
+        x: 1408
+        y: 54
+        width: 97
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 166b35155c1b6a350800000000000000
+      internalID: 6027700612313101921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_97
+      rect:
+        serializedVersion: 2
+        x: 134
+        y: 54
+        width: 15
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1953226820b4d6d0800000000000000
+      internalID: -2966552567038650086
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_98
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 54
+        width: 9
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5139af24038425c0800000000000000
+      internalID: -4241120895073439398
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_99
+      rect:
+        serializedVersion: 2
+        x: 248
+        y: 69
+        width: 7
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91616157ed6ad7470800000000000000
+      internalID: 8394048754865804825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_100
+      rect:
+        serializedVersion: 2
+        x: 336
+        y: 63
+        width: 13
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 19eaf50e03db16150800000000000000
+      internalID: 5864176207433543313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_101
+      rect:
+        serializedVersion: 2
+        x: 510
+        y: 55
+        width: 15
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07a15237a43526e40800000000000000
+      internalID: 5648168461900520048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_102
+      rect:
+        serializedVersion: 2
+        x: 691
+        y: 54
+        width: 44
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9453e88a5746ff2b0800000000000000
+      internalID: -5548605759395318455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_103
+      rect:
+        serializedVersion: 2
+        x: 1248
+        y: 54
+        width: 21
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f0d83e600e1382ec0800000000000000
+      internalID: -3591565864569959153
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_104
+      rect:
+        serializedVersion: 2
+        x: 1042
+        y: 54
+        width: 11
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec890d6df2c0af6f0800000000000000
+      internalID: -650193796594624306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_105
+      rect:
+        serializedVersion: 2
+        x: 1270
+        y: 54
+        width: 19
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8fc1a16ec4456c890800000000000000
+      internalID: -7438165045301076744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_106
+      rect:
+        serializedVersion: 2
+        x: 1390
+        y: 54
+        width: 9
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13caaf0c998983760800000000000000
+      internalID: 7437862570737445937
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire_Internal_Energy_flipbook_107
+      rect:
+        serializedVersion: 2
+        x: 1474
+        y: 54
+        width: 7
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8018ec86c6758f0e0800000000000000
+      internalID: -2235941091863002872
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Fire_Internal_Energy_flipbook_0: -7399787730863577764
+      Fire_Internal_Energy_flipbook_1: 2414638204254157275
+      Fire_Internal_Energy_flipbook_10: -1323982139786741845
+      Fire_Internal_Energy_flipbook_100: 5864176207433543313
+      Fire_Internal_Energy_flipbook_101: 5648168461900520048
+      Fire_Internal_Energy_flipbook_102: -5548605759395318455
+      Fire_Internal_Energy_flipbook_103: -3591565864569959153
+      Fire_Internal_Energy_flipbook_104: -650193796594624306
+      Fire_Internal_Energy_flipbook_105: -7438165045301076744
+      Fire_Internal_Energy_flipbook_106: 7437862570737445937
+      Fire_Internal_Energy_flipbook_107: -2235941091863002872
+      Fire_Internal_Energy_flipbook_11: 310442451355556512
+      Fire_Internal_Energy_flipbook_12: -7375679363381196599
+      Fire_Internal_Energy_flipbook_13: 7257112494862543956
+      Fire_Internal_Energy_flipbook_14: -409091062553552544
+      Fire_Internal_Energy_flipbook_15: -718955728115970009
+      Fire_Internal_Energy_flipbook_16: -4201885895139319058
+      Fire_Internal_Energy_flipbook_17: -1814733098956556903
+      Fire_Internal_Energy_flipbook_18: -4936740359678552498
+      Fire_Internal_Energy_flipbook_19: -6353294186194957768
+      Fire_Internal_Energy_flipbook_2: -486483002434675319
+      Fire_Internal_Energy_flipbook_20: -7922620260151686375
+      Fire_Internal_Energy_flipbook_21: -2438688931335951515
+      Fire_Internal_Energy_flipbook_22: -7459271813133527891
+      Fire_Internal_Energy_flipbook_23: -8343656388443157586
+      Fire_Internal_Energy_flipbook_24: -8058100054204729613
+      Fire_Internal_Energy_flipbook_25: 4167344550519270801
+      Fire_Internal_Energy_flipbook_26: 4354796379392985317
+      Fire_Internal_Energy_flipbook_27: -1053894297508467789
+      Fire_Internal_Energy_flipbook_28: 2646999342759218674
+      Fire_Internal_Energy_flipbook_29: -50772498937531239
+      Fire_Internal_Energy_flipbook_3: 4783653490419107288
+      Fire_Internal_Energy_flipbook_30: 8498525202276187337
+      Fire_Internal_Energy_flipbook_31: 1123161316472786856
+      Fire_Internal_Energy_flipbook_32: 6328114598802761521
+      Fire_Internal_Energy_flipbook_33: 8469687037380945942
+      Fire_Internal_Energy_flipbook_34: -7327690216145102781
+      Fire_Internal_Energy_flipbook_35: 946043468379787466
+      Fire_Internal_Energy_flipbook_36: 6173583217550164105
+      Fire_Internal_Energy_flipbook_37: 2030762567171711165
+      Fire_Internal_Energy_flipbook_38: -6679900095055348769
+      Fire_Internal_Energy_flipbook_39: -185686717605784485
+      Fire_Internal_Energy_flipbook_4: -7811908800380125546
+      Fire_Internal_Energy_flipbook_40: 9157860599166909886
+      Fire_Internal_Energy_flipbook_41: 6567989225641076782
+      Fire_Internal_Energy_flipbook_42: -5567531116198137106
+      Fire_Internal_Energy_flipbook_43: 4794850054547391027
+      Fire_Internal_Energy_flipbook_44: -8510584923153440722
+      Fire_Internal_Energy_flipbook_45: 7413455787721109462
+      Fire_Internal_Energy_flipbook_46: -4949980175440775522
+      Fire_Internal_Energy_flipbook_47: 8924278999870773863
+      Fire_Internal_Energy_flipbook_48: 8211049200092182892
+      Fire_Internal_Energy_flipbook_49: 5950369483045048849
+      Fire_Internal_Energy_flipbook_5: -6989431222900132637
+      Fire_Internal_Energy_flipbook_50: -1009731928910591646
+      Fire_Internal_Energy_flipbook_51: 7332947259345814914
+      Fire_Internal_Energy_flipbook_52: 235758349771883768
+      Fire_Internal_Energy_flipbook_53: -1545226907276289983
+      Fire_Internal_Energy_flipbook_54: -3759964666936292982
+      Fire_Internal_Energy_flipbook_55: -729472566902326767
+      Fire_Internal_Energy_flipbook_56: 98328444851990839
+      Fire_Internal_Energy_flipbook_57: -4546558004428452467
+      Fire_Internal_Energy_flipbook_58: 4281233547470392487
+      Fire_Internal_Energy_flipbook_59: -9042257042189995567
+      Fire_Internal_Energy_flipbook_6: 70015274715424842
+      Fire_Internal_Energy_flipbook_60: 2193831161864799076
+      Fire_Internal_Energy_flipbook_61: 373646751810135778
+      Fire_Internal_Energy_flipbook_62: 2169005527535203013
+      Fire_Internal_Energy_flipbook_63: -7987341288564075740
+      Fire_Internal_Energy_flipbook_64: 1955725389616720557
+      Fire_Internal_Energy_flipbook_65: -1673148434511839591
+      Fire_Internal_Energy_flipbook_66: -6131547280244171794
+      Fire_Internal_Energy_flipbook_67: 5753834357993570387
+      Fire_Internal_Energy_flipbook_68: -5718546680503750263
+      Fire_Internal_Energy_flipbook_69: 6932789339930936768
+      Fire_Internal_Energy_flipbook_7: 8558652743108320182
+      Fire_Internal_Energy_flipbook_70: -3377381810471468105
+      Fire_Internal_Energy_flipbook_71: -5575406348528916380
+      Fire_Internal_Energy_flipbook_72: 3198027172054469038
+      Fire_Internal_Energy_flipbook_73: 5259599556232888239
+      Fire_Internal_Energy_flipbook_74: 2128424973433699775
+      Fire_Internal_Energy_flipbook_75: -4498981574155999352
+      Fire_Internal_Energy_flipbook_76: -5597339229767439343
+      Fire_Internal_Energy_flipbook_77: -4425702939492128339
+      Fire_Internal_Energy_flipbook_78: 5697468673977977390
+      Fire_Internal_Energy_flipbook_79: -4322785192706365878
+      Fire_Internal_Energy_flipbook_8: 6742765638814840240
+      Fire_Internal_Energy_flipbook_80: -2079599963951065361
+      Fire_Internal_Energy_flipbook_81: 7511932508052878295
+      Fire_Internal_Energy_flipbook_82: 4702784589108928661
+      Fire_Internal_Energy_flipbook_83: 1379675502008629667
+      Fire_Internal_Energy_flipbook_84: 4029210563270209718
+      Fire_Internal_Energy_flipbook_85: 1833987978564707582
+      Fire_Internal_Energy_flipbook_86: 7113255985319268396
+      Fire_Internal_Energy_flipbook_87: 2552265023731475594
+      Fire_Internal_Energy_flipbook_88: -5569516449516642863
+      Fire_Internal_Energy_flipbook_89: -4287974330647923589
+      Fire_Internal_Energy_flipbook_9: 8023406060376491021
+      Fire_Internal_Energy_flipbook_90: -6899393342541512792
+      Fire_Internal_Energy_flipbook_91: 2764031757318742077
+      Fire_Internal_Energy_flipbook_92: 5546958077076639754
+      Fire_Internal_Energy_flipbook_93: 8834141955799584880
+      Fire_Internal_Energy_flipbook_94: 3929676845624397520
+      Fire_Internal_Energy_flipbook_95: -8668053627801488758
+      Fire_Internal_Energy_flipbook_96: 6027700612313101921
+      Fire_Internal_Energy_flipbook_97: -2966552567038650086
+      Fire_Internal_Energy_flipbook_98: -4241120895073439398
+      Fire_Internal_Energy_flipbook_99: 8394048754865804825
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

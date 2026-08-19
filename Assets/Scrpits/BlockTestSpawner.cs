@@ -119,7 +119,7 @@ public class BlockTestSpawner : MonoBehaviour
 
     private static int ResolveWidth(TestBlockPlacement placement, BlockType resolvedType)
     {
-        if (resolvedType == BlockType.Fire || resolvedType == BlockType.Slice)
+        if (resolvedType == BlockType.Slice)
             return 1;
 
         return Mathf.Max(1, placement.width);

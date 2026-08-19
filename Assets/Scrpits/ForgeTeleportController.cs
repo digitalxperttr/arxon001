@@ -220,6 +220,12 @@ public class ForgeTeleportController : MonoBehaviour
             color.a = alpha;
             renderers[i].color = color;
         }
+
+        LineRenderer[] lineRenderers = target.GetComponentsInChildren<LineRenderer>(false);
+        for (int i = 0; i < lineRenderers.Length; i++)
+        {
+            lineRenderers[i].enabled = alpha > 0.01f;
+        }
     }
 
     private float EvaluateArrivalScale(float t)
@@ -281,6 +287,10 @@ public class ForgeTeleportController : MonoBehaviour
         private readonly GameObject root;
         private readonly SpriteRenderer[] renderers;
         private readonly Color[] colors;
+        private readonly LineRenderer[] lineRenderers;
+        private readonly Color[] lineStartColors;
+        private readonly Color[] lineEndColors;
+        private readonly bool[] lineEnabledStates;
         private readonly Vector3 scale;
 
         public RendererState(GameObject root)
@@ -289,9 +299,20 @@ public class ForgeTeleportController : MonoBehaviour
             scale = root != null ? root.transform.localScale : Vector3.one;
             renderers = root != null ? root.GetComponentsInChildren<SpriteRenderer>(false) : new SpriteRenderer[0];
             colors = new Color[renderers.Length];
+            lineRenderers = root != null ? root.GetComponentsInChildren<LineRenderer>(false) : new LineRenderer[0];
+            lineStartColors = new Color[lineRenderers.Length];
+            lineEndColors = new Color[lineRenderers.Length];
+            lineEnabledStates = new bool[lineRenderers.Length];
 
             for (int i = 0; i < renderers.Length; i++)
                 colors[i] = renderers[i] != null ? renderers[i].color : Color.white;
+
+            for (int i = 0; i < lineRenderers.Length; i++)
+            {
+                lineStartColors[i] = lineRenderers[i] != null ? lineRenderers[i].startColor : Color.white;
+                lineEndColors[i] = lineRenderers[i] != null ? lineRenderers[i].endColor : Color.white;
+                lineEnabledStates[i] = lineRenderers[i] != null && lineRenderers[i].enabled;
+            }
         }
 
         public void ApplyTeleportTint(float alpha, float flash)
@@ -305,6 +326,20 @@ public class ForgeTeleportController : MonoBehaviour
                 color.a = colors[i].a * alpha;
                 renderers[i].color = color;
             }
+
+            for (int i = 0; i < lineRenderers.Length; i++)
+            {
+                if (lineRenderers[i] == null)
+                    continue;
+
+                Color startColor = lineStartColors[i];
+                startColor.a = lineStartColors[i].a * alpha;
+                lineRenderers[i].startColor = startColor;
+
+                Color endColor = lineEndColors[i];
+                endColor.a = lineEndColors[i].a * alpha;
+                lineRenderers[i].endColor = endColor;
+            }
         }
 
         public void Restore()
@@ -316,6 +351,16 @@ public class ForgeTeleportController : MonoBehaviour
             {
                 if (renderers[i] != null)
                     renderers[i].color = colors[i];
+            }
+
+            for (int i = 0; i < lineRenderers.Length; i++)
+            {
+                if (lineRenderers[i] == null)
+                    continue;
+
+                lineRenderers[i].startColor = lineStartColors[i];
+                lineRenderers[i].endColor = lineEndColors[i];
+                lineRenderers[i].enabled = lineEnabledStates[i];
             }
         }
     }

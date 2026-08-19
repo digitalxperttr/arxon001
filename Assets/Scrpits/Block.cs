@@ -8,6 +8,39 @@ public class Block : MonoBehaviour
     private const float ChainOverlayCellWidth = 1f;
     private const float ChainOverlayCellHeight = 0.99f;
     private const float ChainOverlayPaddingMultiplier = 1.05f;
+    private const string FireIdleFlameRootName = "FireIdleFlameEmitters";
+    private const string FireIdleFlameNamePrefix = "FireIdleFlame_";
+    private const string FireIdleFlameSpriteName = "Flame SpriteRenderer";
+    private const int MaxFireIdleFlameEmitters = 4;
+    private const float FireIdleFlameBaseScale = 0.15f;
+    private const string FireIdleFlameGlowName = "FireIdleFlameGlow";
+    private const string FireIdleEmberEmitterName = "FireIdleEmberEmitter";
+    private const string FireInternalEnergyRootName = "FireInternalEnergyRoot";
+    private const string FireInternalEnergyLeftEmitterName = "FireInternalEnergy_LeftEdge";
+    private const string FireInternalEnergyRightEmitterName = "FireInternalEnergy_RightEdge";
+    private const string LegacyFireInternalEnergyRootName = "FireInternalEnergyFlow";
+    private const float FireInternalEnergyEdgeInset = 0.08f;
+    private const float FireInternalEnergyEdgeHeightMultiplier = 0.65f;
+    private const float FireInternalEnergyLifetime = 0.78f;
+    private const float FireInternalEnergyEmissionRatePerWidth = 3.0f;
+    private const int FireInternalEnergyMinParticlesPerEmitter = 8;
+    private const int FireInternalEnergyMaxParticlesPerEmitter = 28;
+    private const float FireInternalEnergyTrailLifetime = 0.32f;
+    private const string FireSurfaceEnergyRootName = "FireSurfaceEnergyEvents";
+    private const string FireSurfaceEnergyRendererName = "EventRenderer_0";
+    private const int FireSurfaceEnergyFrameCount = 6;
+    private const float FireSurfaceEnergyFramesPerSecond = 24f;
+    private const float FireSurfaceEnergyInitialDelayMin = 0.35f;
+    private const float FireSurfaceEnergyInitialDelayMax = 0.80f;
+    private const float FireSurfaceEnergyScale = 0.9375f;
+    private const float FireSurfaceEnergyAlphaMin = 0.60f;
+    private const float FireSurfaceEnergyAlphaMax = 0.78f;
+    private static readonly Vector2[] FireSurfaceEnergyAnchorOffsets =
+    {
+        new Vector2(-0.10f, -0.05f),
+        new Vector2(0.10f, 0.03f),
+        new Vector2(-0.03f, 0.08f)
+    };
 
     public int x, y, width;
     public bool isMoving = false;
@@ -69,16 +102,27 @@ public class Block : MonoBehaviour
 
     [Header("Fire Idle FX")]
     [SerializeField] private GameObject fireIdleParticlePrefab;
+    [SerializeField] private Material fireInternalEnergyTrailMaterial;
+    [SerializeField] private Sprite fireIdleFlameSprite;
+    [SerializeField] private Sprite[] fireLocalDischargeFrames;
 
     [SerializeField] private float fireParticleMinDelay = 3f;
     [SerializeField] private float fireParticleMaxDelay = 5f;
     [SerializeField] private int fireParticleMinCount = 3;
-    [SerializeField] private int fireParticleMaxCount = 7;
+    [SerializeField] private int fireParticleMaxCount = 5;
     [SerializeField] private float fireParticleSpawnRadiusX = 0.35f;
     [SerializeField] private float fireParticleSpawnRadiusY = 0.25f;
 
     private bool isSpecialVisualActive = false;
     private Coroutine fireIdleRoutine;
+    private Coroutine fireSurfaceEnergyRoutine;
+    private Transform fireIdleFlameRoot;
+    private ParticleSystem fireInternalEnergyLeftParticleSystem;
+    private ParticleSystem fireInternalEnergyRightParticleSystem;
+    private ParticleSystemRenderer fireInternalEnergyLeftRenderer;
+    private ParticleSystemRenderer fireInternalEnergyRightRenderer;
+    private SpriteRenderer fireSurfaceEnergyRenderer;
+    private readonly List<Transform> fireIdleFlames = new List<Transform>();
 
 
 void Awake()
@@ -102,11 +146,23 @@ private void UpdateSpecialVisualState()
 
     if (isSpecialVisualActive)
     {
-        if (fireIdleRoutine == null)
-            fireIdleRoutine = StartCoroutine(FireIdleParticleRoutine());
+        RemoveLegacyFireSurfaceVisuals();
+        RefreshFireIdleFlameEmitters();
+        RefreshFireInternalEnergyFlow();
+        RefreshFireSurfaceEnergy();
+
+        if (fireIdleRoutine != null)
+        {
+            StopCoroutine(fireIdleRoutine);
+            fireIdleRoutine = null;
+        }
     }
     else
     {
+        ClearFireIdleFlameEmitters();
+        ClearFireInternalEnergyFlow();
+        ClearFireSurfaceEnergy();
+
         if (fireIdleRoutine != null)
         {
             StopCoroutine(fireIdleRoutine);
@@ -133,6 +189,9 @@ public void SetHighlight(bool isHighlighted)
 
         RefreshChainOverlays();
         RefreshCollectibleVisual();
+        RefreshFireIdleFlameEmitters();
+        RefreshFireInternalEnergyFlowSorting();
+        RefreshFireSurfaceEnergySorting();
 
         // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
         if (trail == null) trail = GetComponent<TrailRenderer>();
@@ -639,6 +698,29 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
 
         overlayRenderer.sortingLayerID = sortingLayerId;
         overlayRenderer.sortingOrder = sortingOrder + 2;
+    }
+
+    if (fireSurfaceEnergyRenderer != null)
+    {
+        fireSurfaceEnergyRenderer.sortingLayerID = sortingLayerId;
+        fireSurfaceEnergyRenderer.sortingOrder = sortingOrder + 2;
+    }
+
+    ApplyFireInternalEnergyRendererSorting(fireInternalEnergyLeftRenderer, sortingLayerId, sortingOrder);
+    ApplyFireInternalEnergyRendererSorting(fireInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
+
+    for (int i = 0; i < fireIdleFlames.Count; i++)
+    {
+        Transform flame = fireIdleFlames[i];
+        if (flame == null)
+            continue;
+
+        SpriteRenderer flameRenderer = flame.Find(FireIdleFlameSpriteName)?.GetComponent<SpriteRenderer>();
+        if (flameRenderer != null)
+        {
+            flameRenderer.sortingLayerID = sortingLayerId;
+            flameRenderer.sortingOrder = sortingOrder + 4;
+        }
     }
 }
 
@@ -1150,7 +1232,805 @@ void Update()
             // Blok duruyorsa iz bırakıcıyı tamamen kapat
             if (trail != null) trail.enabled = false;
         }
+
     }
+
+private void RefreshFireIdleFlameEmitters()
+{
+    if (!isSpecialVisualActive || blockType != BlockType.Fire)
+    {
+        ClearFireIdleFlameEmitters();
+        return;
+    }
+
+    RemoveLegacyFireSurfaceVisuals();
+    ResolveFireIdleFlameRoot();
+
+    int emitterCount = Mathf.Clamp(width, 1, MaxFireIdleFlameEmitters);
+    while (fireIdleFlames.Count > emitterCount)
+    {
+        int lastIndex = fireIdleFlames.Count - 1;
+        Transform extraFlame = fireIdleFlames[lastIndex];
+        fireIdleFlames.RemoveAt(lastIndex);
+
+        if (extraFlame != null)
+            Destroy(extraFlame.gameObject);
+    }
+
+    while (fireIdleFlames.Count < emitterCount)
+    {
+        Transform flame = CreateFireIdleFlame(fireIdleFlames.Count);
+        fireIdleFlames.Add(flame);
+    }
+
+    for (int i = 0; i < fireIdleFlames.Count; i++)
+    {
+        Transform flame = fireIdleFlames[i];
+        if (flame == null)
+            continue;
+
+        flame.localPosition = GetFireIdleFlameEmitterPosition(i, emitterCount);
+        flame.localRotation = Quaternion.identity;
+        flame.localScale = Vector3.one;
+
+        ConfigureFireIdleFlame(flame, i);
+        flame.gameObject.SetActive(true);
+    }
+}
+
+private void ResolveFireIdleFlameRoot()
+{
+    if (fireIdleFlameRoot == null)
+    {
+        Transform existingRoot = transform.Find(FireIdleFlameRootName);
+        if (existingRoot != null)
+        {
+            fireIdleFlameRoot = existingRoot;
+        }
+        else
+        {
+            GameObject rootObject = new GameObject(FireIdleFlameRootName);
+            rootObject.transform.SetParent(transform, false);
+            fireIdleFlameRoot = rootObject.transform;
+        }
+    }
+
+    fireIdleFlameRoot.localPosition = Vector3.zero;
+    fireIdleFlameRoot.localRotation = Quaternion.identity;
+    fireIdleFlameRoot.localScale = Vector3.one;
+}
+
+private Transform CreateFireIdleFlame(int index)
+{
+    ResolveFireIdleFlameRoot();
+
+    GameObject flameObject = new GameObject($"{FireIdleFlameNamePrefix}{index}");
+    flameObject.transform.SetParent(fireIdleFlameRoot, false);
+    flameObject.SetActive(false);
+    return flameObject.transform;
+}
+
+private Vector3 GetFireIdleFlameEmitterPosition(int index, int emitterCount)
+{
+    float leftmostCellCenter = -((emitterCount - 1) * 0.5f);
+    float xOffset = leftmostCellCenter + index;
+    float yOffset = -0.1f + ((index % 2 == 0) ? 0.015f : -0.01f);
+    return new Vector3(xOffset, yOffset, -0.05f);
+}
+
+private void ConfigureFireIdleFlame(Transform flame, int index)
+{
+    if (flame == null)
+        return;
+
+    Transform spriteTransform = flame.Find(FireIdleFlameSpriteName);
+    SpriteRenderer flameRenderer;
+    if (spriteTransform == null)
+    {
+        GameObject spriteObject = new GameObject(FireIdleFlameSpriteName);
+        spriteObject.transform.SetParent(flame, false);
+        flameRenderer = spriteObject.AddComponent<SpriteRenderer>();
+    }
+    else
+    {
+        flameRenderer = spriteTransform.GetComponent<SpriteRenderer>();
+        if (flameRenderer == null)
+            flameRenderer = spriteTransform.gameObject.AddComponent<SpriteRenderer>();
+    }
+
+    flameRenderer.sprite = fireIdleFlameSprite;
+    flameRenderer.color = Color.white;
+    flameRenderer.sortingLayerID = sr != null ? sr.sortingLayerID : 0;
+    flameRenderer.sortingOrder = sr != null ? sr.sortingOrder + 4 : 4;
+    flameRenderer.transform.localPosition = Vector3.zero;
+    flameRenderer.transform.localRotation = Quaternion.identity;
+    flameRenderer.transform.localScale = new Vector3(FireIdleFlameBaseScale, FireIdleFlameBaseScale, 1f);
+
+    ParticleSystem legacyParticleSystem = flame.GetComponent<ParticleSystem>();
+    if (legacyParticleSystem != null)
+        Destroy(legacyParticleSystem);
+
+    ParticleSystemRenderer legacyRenderer = flame.GetComponent<ParticleSystemRenderer>();
+    if (legacyRenderer != null)
+        Destroy(legacyRenderer);
+
+    RemoveFireIdleFlameChild(flame, FireIdleFlameGlowName);
+    RemoveFireIdleFlameChild(flame, FireIdleEmberEmitterName);
+}
+
+private void RemoveFireIdleFlameChild(Transform flame, string childName)
+{
+    Transform child = flame.Find(childName);
+    if (child == null)
+        return;
+
+    child.gameObject.SetActive(false);
+    Destroy(child.gameObject);
+}
+
+private float GetFireIdleHash01(int index, int salt)
+{
+    float value = Mathf.Sin(((x + 11) * 12.9898f) + ((y + 17) * 78.233f) + ((index + 3) * 37.719f) + (salt * 19.371f)) * 43758.5453f;
+    return Mathf.Repeat(value, 1f);
+}
+
+private void ClearFireIdleFlameEmitters()
+{
+    for (int i = fireIdleFlames.Count - 1; i >= 0; i--)
+    {
+        Transform flame = fireIdleFlames[i];
+        if (flame != null)
+            Destroy(flame.gameObject);
+    }
+
+    fireIdleFlames.Clear();
+
+    if (fireIdleFlameRoot != null)
+    {
+        Destroy(fireIdleFlameRoot.gameObject);
+        fireIdleFlameRoot = null;
+    }
+}
+
+private void RefreshFireInternalEnergyFlow()
+{
+    bool shouldShowInternalEnergy =
+        isSpecialVisualActive &&
+        blockType == BlockType.Fire &&
+        width >= 1 &&
+        width <= MaxFireIdleFlameEmitters;
+
+    if (!shouldShowInternalEnergy)
+    {
+        ClearFireInternalEnergyFlow();
+        return;
+    }
+
+    ResolveFireInternalEnergyFlow();
+    ConfigureFireInternalEnergyEmitters();
+    RefreshFireInternalEnergyFlowSorting();
+
+    PlayFireInternalEnergyFlow(fireInternalEnergyLeftParticleSystem);
+    PlayFireInternalEnergyFlow(fireInternalEnergyRightParticleSystem);
+}
+
+private void ResolveFireInternalEnergyFlow()
+{
+    if (fireInternalEnergyLeftParticleSystem != null && fireInternalEnergyRightParticleSystem != null)
+        return;
+
+    RemoveLegacyFireInternalEnergyFlow();
+
+    Transform flowRoot = transform.Find(FireInternalEnergyRootName);
+    if (flowRoot == null)
+    {
+        GameObject rootObject = new GameObject(FireInternalEnergyRootName);
+        rootObject.transform.SetParent(transform, false);
+        flowRoot = rootObject.transform;
+    }
+
+    flowRoot.localPosition = Vector3.zero;
+    flowRoot.localRotation = Quaternion.identity;
+    flowRoot.localScale = Vector3.one;
+
+    fireInternalEnergyLeftParticleSystem = ResolveFireInternalEnergyEmitter(
+        flowRoot,
+        FireInternalEnergyLeftEmitterName,
+        out fireInternalEnergyLeftRenderer);
+    fireInternalEnergyRightParticleSystem = ResolveFireInternalEnergyEmitter(
+        flowRoot,
+        FireInternalEnergyRightEmitterName,
+        out fireInternalEnergyRightRenderer);
+}
+
+private ParticleSystem ResolveFireInternalEnergyEmitter(
+    Transform flowRoot,
+    string emitterName,
+    out ParticleSystemRenderer particleRenderer)
+{
+    particleRenderer = null;
+
+    if (flowRoot == null)
+        return null;
+
+    Transform particleTransform = flowRoot.Find(emitterName);
+    if (particleTransform == null)
+    {
+        GameObject particleObject = new GameObject(emitterName);
+        particleObject.transform.SetParent(flowRoot, false);
+        particleTransform = particleObject.transform;
+    }
+
+    particleTransform.localRotation = Quaternion.identity;
+    particleTransform.localScale = Vector3.one;
+
+    ParticleSystem particleSystem = particleTransform.GetComponent<ParticleSystem>();
+    if (particleSystem == null)
+        particleSystem = particleTransform.gameObject.AddComponent<ParticleSystem>();
+
+    particleRenderer = particleTransform.GetComponent<ParticleSystemRenderer>();
+    return particleSystem;
+}
+
+private void ConfigureFireInternalEnergyEmitters()
+{
+    Vector2 visualSize = GetFireInternalEnergyVisualSize();
+    float visualWidth = Mathf.Max(0.01f, visualSize.x);
+    float visualHeight = Mathf.Max(0.01f, visualSize.y);
+    float edgeInset = Mathf.Min(FireInternalEnergyEdgeInset, visualWidth * 0.35f);
+    float leftX = (-visualWidth * 0.5f) + edgeInset;
+    float rightX = (visualWidth * 0.5f) - edgeInset;
+    float travelDistance = Mathf.Max(0.05f, visualWidth - (edgeInset * 2f));
+    float horizontalSpeed = travelDistance / FireInternalEnergyLifetime;
+    float edgeHeight = visualHeight * FireInternalEnergyEdgeHeightMultiplier;
+    int clampedWidth = Mathf.Clamp(width, 1, MaxFireIdleFlameEmitters);
+    float emissionRate = FireInternalEnergyEmissionRatePerWidth * clampedWidth;
+    int maxParticles = Mathf.Clamp(
+        Mathf.CeilToInt(emissionRate * FireInternalEnergyLifetime * 2.0f),
+        FireInternalEnergyMinParticlesPerEmitter,
+        FireInternalEnergyMaxParticlesPerEmitter);
+
+    ConfigureFireInternalEnergyEmitter(
+        fireInternalEnergyLeftParticleSystem,
+        fireInternalEnergyLeftRenderer,
+        new Vector3(leftX, 0f, -0.06f),
+        1f,
+        horizontalSpeed,
+        edgeHeight,
+        emissionRate,
+        maxParticles,
+        17);
+    ConfigureFireInternalEnergyEmitter(
+        fireInternalEnergyRightParticleSystem,
+        fireInternalEnergyRightRenderer,
+        new Vector3(rightX, 0f, -0.06f),
+        -1f,
+        horizontalSpeed,
+        edgeHeight,
+        emissionRate,
+        maxParticles,
+        43);
+}
+
+private Vector2 GetFireInternalEnergyVisualSize()
+{
+    Vector2 visualSize = originalSize;
+    if ((visualSize.x <= 0f || visualSize.y <= 0f) && sr != null)
+        visualSize = sr.size;
+
+    if (visualSize.x <= 0f)
+        visualSize.x = Mathf.Max(1, width) - 0.01f;
+
+    if (visualSize.y <= 0f)
+        visualSize.y = 0.99f;
+
+    return visualSize;
+}
+
+private void ConfigureFireInternalEnergyEmitter(
+    ParticleSystem particleSystem,
+    ParticleSystemRenderer particleRenderer,
+    Vector3 localPosition,
+    float direction,
+    float horizontalSpeed,
+    float edgeHeight,
+    float emissionRate,
+    int maxParticles,
+    int seedSalt)
+{
+    if (particleSystem == null || particleRenderer == null)
+        return;
+
+    bool wasPlaying = particleSystem.isPlaying;
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.transform.localPosition = localPosition;
+
+    ParticleSystem.MainModule main = particleSystem.main;
+    main.loop = true;
+    main.prewarm = true;
+    main.playOnAwake = false;
+    main.simulationSpace = ParticleSystemSimulationSpace.Local;
+    main.gravityModifier = 0f;
+    main.startSpeed = 0f;
+    main.startLifetime = FireInternalEnergyLifetime;
+    main.startSize3D = false;
+    main.startSize = new ParticleSystem.MinMaxCurve(0.024f, 0.042f);
+    main.startRotation = 0f;
+    main.maxParticles = maxParticles;
+    particleSystem.useAutoRandomSeed = false;
+    particleSystem.randomSeed = GetFireInternalEnergySeed(seedSalt);
+    main.startColor = new ParticleSystem.MinMaxGradient(
+        new Color(1f, 0.66f, 0.16f, 0.18f),
+        new Color(1f, 0.48f, 0.05f, 0.32f));
+
+    ParticleSystem.EmissionModule emission = particleSystem.emission;
+    emission.enabled = true;
+    emission.rateOverTime = emissionRate;
+
+    ParticleSystem.ShapeModule shape = particleSystem.shape;
+    shape.enabled = true;
+    shape.shapeType = ParticleSystemShapeType.Box;
+    shape.position = Vector3.zero;
+    shape.rotation = Vector3.zero;
+    shape.scale = new Vector3(0.025f, edgeHeight, 0f);
+
+    ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
+    velocity.enabled = true;
+    velocity.space = ParticleSystemSimulationSpace.Local;
+    float signedSpeed = horizontalSpeed * Mathf.Sign(direction);
+    velocity.x = new ParticleSystem.MinMaxCurve(signedSpeed * 0.92f, signedSpeed * 1.08f);
+    velocity.y = new ParticleSystem.MinMaxCurve(-0.018f, 0.018f);
+    velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+
+    ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particleSystem.colorOverLifetime;
+    colorOverLifetime.enabled = true;
+    Gradient alphaEnvelope = new Gradient();
+    alphaEnvelope.SetKeys(
+        new[]
+        {
+            new GradientColorKey(Color.white, 0f),
+            new GradientColorKey(Color.white, 1f)
+        },
+        new[]
+        {
+            new GradientAlphaKey(0f, 0f),
+            new GradientAlphaKey(1f, 0.15f),
+            new GradientAlphaKey(0.75f, 0.65f),
+            new GradientAlphaKey(0f, 1f)
+        });
+    colorOverLifetime.color = new ParticleSystem.MinMaxGradient(alphaEnvelope);
+
+    ParticleSystem.NoiseModule noise = particleSystem.noise;
+    noise.enabled = false;
+
+    ParticleSystem.TrailModule trails = particleSystem.trails;
+    trails.enabled = true;
+    trails.mode = ParticleSystemTrailMode.PerParticle;
+    trails.ratio = 1f;
+    trails.lifetime = FireInternalEnergyTrailLifetime;
+    trails.dieWithParticles = false;
+    trails.sizeAffectsWidth = false;
+    trails.sizeAffectsLifetime = false;
+    trails.minVertexDistance = 0.005f;
+    trails.inheritParticleColor = false;
+    trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
+    trails.widthOverTrail = new ParticleSystem.MinMaxCurve(
+        1f,
+        new AnimationCurve(
+            new Keyframe(0f, 0.040f),
+            new Keyframe(0.70f, 0.036f),
+            new Keyframe(0.90f, 0.020f),
+            new Keyframe(1f, 0f)));
+    Gradient trailColor = new Gradient();
+    trailColor.SetKeys(
+        new[]
+        {
+            new GradientColorKey(new Color(1f, 0.74f, 0.24f), 0f),
+            new GradientColorKey(new Color(1f, 0.44f, 0.07f), 0.75f),
+            new GradientColorKey(new Color(0.95f, 0.20f, 0.02f), 1f)
+        },
+        new[]
+        {
+            new GradientAlphaKey(0.55f, 0f),
+            new GradientAlphaKey(0.62f, 0.55f),
+            new GradientAlphaKey(0.28f, 0.90f),
+            new GradientAlphaKey(0f, 1f)
+        });
+    trails.colorOverTrail = new ParticleSystem.MinMaxGradient(trailColor);
+
+    ParticleSystem.CollisionModule collision = particleSystem.collision;
+    collision.enabled = false;
+
+    ParticleSystem.RotationOverLifetimeModule rotationOverLifetime = particleSystem.rotationOverLifetime;
+    rotationOverLifetime.enabled = false;
+
+    ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = particleSystem.sizeOverLifetime;
+    sizeOverLifetime.enabled = false;
+
+    ParticleSystem.TextureSheetAnimationModule textureSheetAnimation = particleSystem.textureSheetAnimation;
+    textureSheetAnimation.enabled = false;
+    while (textureSheetAnimation.spriteCount > 0)
+        textureSheetAnimation.RemoveSprite(0);
+
+    Material sharedMaterial = GetFireInternalEnergySharedMaterial();
+    particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+    particleRenderer.sharedMaterial = sharedMaterial;
+    particleRenderer.trailMaterial = fireInternalEnergyTrailMaterial != null
+        ? fireInternalEnergyTrailMaterial
+        : sharedMaterial;
+
+    if (wasPlaying)
+        particleSystem.Play(true);
+}
+
+private uint GetFireInternalEnergySeed(int salt)
+{
+    return (uint)Mathf.Max(1, Mathf.FloorToInt(GetFireIdleHash01(2, salt) * 2147483646f));
+}
+
+private Material GetFireInternalEnergySharedMaterial()
+{
+    if (fireIdleParticlePrefab != null)
+    {
+        ParticleSystemRenderer idleParticleRenderer = fireIdleParticlePrefab.GetComponent<ParticleSystemRenderer>();
+        if (idleParticleRenderer != null)
+            return idleParticleRenderer.sharedMaterial;
+    }
+
+    return null;
+}
+
+private void ClearFireInternalEnergyFlow()
+{
+    StopFireInternalEnergyFlow();
+
+    Transform flowRoot = transform.Find(FireInternalEnergyRootName);
+    if (flowRoot != null)
+        Destroy(flowRoot.gameObject);
+
+    Transform legacyFlowRoot = transform.Find(LegacyFireInternalEnergyRootName);
+    if (legacyFlowRoot != null)
+        Destroy(legacyFlowRoot.gameObject);
+
+    fireInternalEnergyLeftParticleSystem = null;
+    fireInternalEnergyRightParticleSystem = null;
+    fireInternalEnergyLeftRenderer = null;
+    fireInternalEnergyRightRenderer = null;
+}
+
+private void StopFireInternalEnergyFlow()
+{
+    StopFireInternalEnergyEmitter(fireInternalEnergyLeftParticleSystem);
+    StopFireInternalEnergyEmitter(fireInternalEnergyRightParticleSystem);
+}
+
+private void StopFireInternalEnergyEmitter(ParticleSystem particleSystem)
+{
+    if (particleSystem == null)
+        return;
+
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.Clear(true);
+}
+
+private void PlayFireInternalEnergyFlow(ParticleSystem particleSystem)
+{
+    if (particleSystem != null && !particleSystem.isPlaying)
+        particleSystem.Play(true);
+}
+
+private void RefreshFireInternalEnergyFlowSorting()
+{
+    int sortingLayerId = sr != null ? sr.sortingLayerID : 0;
+    int sortingOrder = sr != null ? sr.sortingOrder : 0;
+
+    ApplyFireInternalEnergyRendererSorting(fireInternalEnergyLeftRenderer, sortingLayerId, sortingOrder);
+    ApplyFireInternalEnergyRendererSorting(fireInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
+}
+
+private void ApplyFireInternalEnergyRendererSorting(
+    ParticleSystemRenderer particleRenderer,
+    int sortingLayerId,
+    int baseSortingOrder)
+{
+    if (particleRenderer == null)
+        return;
+
+    particleRenderer.sortingLayerID = sortingLayerId;
+    particleRenderer.sortingOrder = baseSortingOrder + 4;
+}
+
+private void RemoveLegacyFireInternalEnergyFlow()
+{
+    Transform legacyFlowRoot = transform.Find(LegacyFireInternalEnergyRootName);
+    if (legacyFlowRoot != null)
+        Destroy(legacyFlowRoot.gameObject);
+}
+
+private void RefreshFireSurfaceEnergy()
+{
+    bool shouldShowSurfaceEnergy =
+        isSpecialVisualActive &&
+        blockType == BlockType.Fire &&
+        width >= 1 &&
+        width <= MaxFireIdleFlameEmitters &&
+        fireLocalDischargeFrames != null &&
+        fireLocalDischargeFrames.Length == FireSurfaceEnergyFrameCount;
+
+    if (!shouldShowSurfaceEnergy)
+    {
+        ClearFireSurfaceEnergy();
+        return;
+    }
+
+    ResolveFireSurfaceEnergyRenderer();
+    ConfigureFireSurfaceEnergyRenderer();
+
+    if (fireSurfaceEnergyRoutine == null)
+        fireSurfaceEnergyRoutine = StartCoroutine(FireSurfaceEnergyRoutine());
+}
+
+private void ResolveFireSurfaceEnergyRenderer()
+{
+    if (fireSurfaceEnergyRenderer != null)
+        return;
+
+    Transform surfaceEnergyRoot = transform.Find(FireSurfaceEnergyRootName);
+    if (surfaceEnergyRoot == null)
+    {
+        GameObject rootObject = new GameObject(FireSurfaceEnergyRootName);
+        rootObject.transform.SetParent(transform, false);
+        surfaceEnergyRoot = rootObject.transform;
+    }
+
+    Transform eventRendererTransform = surfaceEnergyRoot.Find(FireSurfaceEnergyRendererName);
+    if (eventRendererTransform == null)
+    {
+        GameObject rendererObject = new GameObject(FireSurfaceEnergyRendererName);
+        rendererObject.transform.SetParent(surfaceEnergyRoot, false);
+        eventRendererTransform = rendererObject.transform;
+    }
+
+    fireSurfaceEnergyRenderer = eventRendererTransform.GetComponent<SpriteRenderer>();
+    if (fireSurfaceEnergyRenderer == null)
+        fireSurfaceEnergyRenderer = eventRendererTransform.gameObject.AddComponent<SpriteRenderer>();
+
+    fireSurfaceEnergyRenderer.sprite = null;
+    fireSurfaceEnergyRenderer.enabled = false;
+}
+
+private void ConfigureFireSurfaceEnergyRenderer()
+{
+    if (fireSurfaceEnergyRenderer == null)
+        return;
+
+    Transform surfaceEnergyRoot = fireSurfaceEnergyRenderer.transform.parent;
+    if (surfaceEnergyRoot != null)
+    {
+        surfaceEnergyRoot.localPosition = Vector3.zero;
+        surfaceEnergyRoot.localRotation = Quaternion.identity;
+        surfaceEnergyRoot.localScale = Vector3.one;
+    }
+
+    Transform surfaceEnergyTransform = fireSurfaceEnergyRenderer.transform;
+    surfaceEnergyTransform.localRotation = Quaternion.identity;
+    surfaceEnergyTransform.localScale = new Vector3(FireSurfaceEnergyScale, FireSurfaceEnergyScale, 1f);
+
+    fireSurfaceEnergyRenderer.color = Color.white;
+    fireSurfaceEnergyRenderer.drawMode = SpriteDrawMode.Simple;
+    fireSurfaceEnergyRenderer.sortingLayerID = sr != null ? sr.sortingLayerID : 0;
+    fireSurfaceEnergyRenderer.sortingOrder = sr != null ? sr.sortingOrder + 2 : 2;
+}
+
+private IEnumerator FireSurfaceEnergyRoutine()
+{
+    float initialDelay = Mathf.Lerp(
+        FireSurfaceEnergyInitialDelayMin,
+        FireSurfaceEnergyInitialDelayMax,
+        GetFireIdleHash01(0, 31)
+    );
+    yield return new WaitForSeconds(initialDelay);
+
+    int eventSequence = Mathf.FloorToInt(GetFireIdleHash01(0, 41) * 1024f);
+    int previousCellIndex = -1;
+    int previousAnchorIndex = -1;
+    while (isSpecialVisualActive && blockType == BlockType.Fire && width >= 1 && width <= MaxFireIdleFlameEmitters)
+    {
+        if (fireSurfaceEnergyRenderer == null ||
+            fireLocalDischargeFrames == null ||
+            fireLocalDischargeFrames.Length != FireSurfaceEnergyFrameCount)
+        {
+            break;
+        }
+
+        int cellIndex = GetFireSurfaceEnergyCellIndex(eventSequence, previousCellIndex);
+        int anchorIndex = GetFireSurfaceEnergyAnchorIndex(eventSequence, cellIndex, previousCellIndex, previousAnchorIndex);
+        fireSurfaceEnergyRenderer.transform.localPosition = GetFireSurfaceEnergyLocalPosition(cellIndex, anchorIndex);
+        float eventAlpha = Mathf.Lerp(
+            FireSurfaceEnergyAlphaMin,
+            FireSurfaceEnergyAlphaMax,
+            GetFireIdleHash01(eventSequence, 67)
+        );
+        fireSurfaceEnergyRenderer.color = new Color(1f, 1f, 1f, eventAlpha);
+        fireSurfaceEnergyRenderer.enabled = true;
+        for (int frameIndex = 0; frameIndex < FireSurfaceEnergyFrameCount; frameIndex++)
+        {
+            fireSurfaceEnergyRenderer.sprite = fireLocalDischargeFrames[frameIndex];
+            yield return new WaitForSeconds(1f / FireSurfaceEnergyFramesPerSecond);
+        }
+
+        fireSurfaceEnergyRenderer.sprite = null;
+        fireSurfaceEnergyRenderer.enabled = false;
+
+        previousCellIndex = cellIndex;
+        previousAnchorIndex = anchorIndex;
+        eventSequence++;
+        float idleDelay = GetFireSurfaceEnergyIdleDelay(eventSequence);
+        yield return new WaitForSeconds(idleDelay);
+    }
+
+    if (fireSurfaceEnergyRenderer != null)
+    {
+        fireSurfaceEnergyRenderer.sprite = null;
+        fireSurfaceEnergyRenderer.enabled = false;
+    }
+
+    fireSurfaceEnergyRoutine = null;
+}
+
+private int GetFireSurfaceEnergyCellIndex(int eventSequence, int previousCellIndex)
+{
+    int cellCount = Mathf.Clamp(width, 1, MaxFireIdleFlameEmitters);
+    if (cellCount == 1)
+        return 0;
+
+    int cellIndex = Mathf.FloorToInt(GetFireIdleHash01(eventSequence, 43) * cellCount);
+    if (cellIndex != previousCellIndex)
+        return cellIndex;
+
+    int alternateOffset = 1 + Mathf.FloorToInt(GetFireIdleHash01(eventSequence, 47) * (cellCount - 1));
+    return (cellIndex + alternateOffset) % cellCount;
+}
+
+private int GetFireSurfaceEnergyAnchorIndex(int eventSequence, int cellIndex, int previousCellIndex, int previousAnchorIndex)
+{
+    int firstCandidate = Mathf.FloorToInt(GetFireIdleHash01(eventSequence + cellIndex, 53) * FireSurfaceEnergyAnchorOffsets.Length);
+    for (int offset = 0; offset < FireSurfaceEnergyAnchorOffsets.Length; offset++)
+    {
+        int anchorIndex = (firstCandidate + offset) % FireSurfaceEnergyAnchorOffsets.Length;
+        bool repeatsPreviousCombination = cellIndex == previousCellIndex && anchorIndex == previousAnchorIndex;
+        if (!repeatsPreviousCombination && IsFireSurfaceEnergyAnchorSafe(cellIndex, anchorIndex))
+            return anchorIndex;
+    }
+
+    return 0;
+}
+
+private bool IsFireSurfaceEnergyAnchorSafe(int cellIndex, int anchorIndex)
+{
+    if (width == 1)
+        return true;
+
+    float anchorX = FireSurfaceEnergyAnchorOffsets[anchorIndex].x;
+    if (cellIndex == 0 && anchorX < 0f)
+        return false;
+
+    if (cellIndex == width - 1 && anchorX > 0f)
+        return false;
+
+    return true;
+}
+
+private Vector3 GetFireSurfaceEnergyLocalPosition(int cellIndex, int anchorIndex)
+{
+    float leftmostCellCenter = -((width - 1) * 0.5f);
+    Vector2 anchorOffset = FireSurfaceEnergyAnchorOffsets[anchorIndex];
+    float localX = width == 1 ? 0f : leftmostCellCenter + cellIndex + anchorOffset.x;
+    return new Vector3(localX, anchorOffset.y, -0.025f);
+}
+
+private float GetFireSurfaceEnergyIdleDelay(int eventSequence)
+{
+    float minimumDelay;
+    float maximumDelay;
+
+    switch (width)
+    {
+        case 1:
+            minimumDelay = 0.90f;
+            maximumDelay = 1.40f;
+            break;
+        case 2:
+            minimumDelay = 0.70f;
+            maximumDelay = 1.10f;
+            break;
+        case 3:
+            minimumDelay = 0.55f;
+            maximumDelay = 0.90f;
+            break;
+        default:
+            minimumDelay = 0.45f;
+            maximumDelay = 0.80f;
+            break;
+    }
+
+    return Mathf.Lerp(minimumDelay, maximumDelay, GetFireIdleHash01(eventSequence, 61));
+}
+
+private void ClearFireSurfaceEnergy()
+{
+    StopFireSurfaceEnergyRoutine();
+
+    Transform existingSurfaceEnergyRoot = transform.Find(FireSurfaceEnergyRootName);
+    if (existingSurfaceEnergyRoot != null)
+        Destroy(existingSurfaceEnergyRoot.gameObject);
+
+    fireSurfaceEnergyRenderer = null;
+}
+
+private void StopFireSurfaceEnergyRoutine()
+{
+    if (fireSurfaceEnergyRoutine != null)
+    {
+        StopCoroutine(fireSurfaceEnergyRoutine);
+        fireSurfaceEnergyRoutine = null;
+    }
+
+    if (fireSurfaceEnergyRenderer != null)
+    {
+        fireSurfaceEnergyRenderer.sprite = null;
+        fireSurfaceEnergyRenderer.enabled = false;
+    }
+}
+
+private void OnDisable()
+{
+    StopFireInternalEnergyFlow();
+    StopFireSurfaceEnergyRoutine();
+}
+
+private void OnEnable()
+{
+    if (Application.isPlaying && isSpecialVisualActive && blockType == BlockType.Fire)
+        RefreshFireInternalEnergyFlow();
+}
+
+private void RefreshFireSurfaceEnergySorting()
+{
+    if (fireSurfaceEnergyRenderer == null)
+        return;
+
+    fireSurfaceEnergyRenderer.sortingLayerID = sr != null ? sr.sortingLayerID : 0;
+    fireSurfaceEnergyRenderer.sortingOrder = sr != null ? sr.sortingOrder + 2 : 2;
+}
+
+private void RemoveLegacyFireSurfaceVisuals()
+{
+    RemoveLegacyFireSurfaceVisual("FireSurfaceEnergy");
+    RemoveLegacyFireSurfaceVisual("FireEnergyOverlay");
+    RemoveLegacyFireSurfaceVisual("FireEnergyFilaments");
+    RemoveLegacyFireSurfaceVisual("FireEnergyFilamentRoot");
+    RemoveLegacyFireSurfaceVisual("FireIdleMarks");
+
+    LineRenderer[] lineRenderers = GetComponentsInChildren<LineRenderer>(true);
+    for (int i = 0; i < lineRenderers.Length; i++)
+    {
+        LineRenderer lineRenderer = lineRenderers[i];
+        if (lineRenderer == null)
+            continue;
+
+        string objectName = lineRenderer.gameObject.name;
+        if (objectName.Contains("FireEnergyFilament") || objectName.Contains("FireEnergy"))
+            Destroy(lineRenderer.gameObject);
+    }
+}
+
+private void RemoveLegacyFireSurfaceVisual(string childName)
+{
+    Transform child = transform.Find(childName);
+    if (child != null)
+        Destroy(child.gameObject);
+}
 
 private IEnumerator FireIdleParticleRoutine()
 {

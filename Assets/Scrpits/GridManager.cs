@@ -680,8 +680,6 @@ public BlockData CreateSingleCellBlockData(int x, BlockType blockType, int norma
             data.isChained = true;
             break;
         case BlockType.Fire:
-            if (fireSprite != null)
-                data.visualSprite = fireSprite;
             break;
         case BlockType.Slice:
             if (sliceSprite != null)
@@ -812,6 +810,9 @@ public Sprite GetVisualSpriteForBlockData(BlockData data)
         return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
 
     if (data.isChained || data.blockType == BlockType.Chained)
+        return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+
+    if (data.blockType == BlockType.Fire)
         return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
 
     if (data.blockType != BlockType.Normal)
@@ -1086,7 +1087,7 @@ public IEnumerator PushBoardUpRoutine()
 
     // 2. ŞİMDİ OYUNCUYA SÜRE TANI (Hızı buradan kontrol et)
     // "Hızlı gibi" dediğin yer burası, bu süreyi artırabilirsin.
-    yield return new WaitForSeconds(0.4f); // 0.1f yerine 0.4f veya 0.5f yaparak sakinleştiriyoruz.
+    yield return new WaitForSeconds(0.25f); // 0.1f yerine 0.4f veya 0.5f yaparak sakinleştiriyoruz.
 
     // --- YENİ: GAME OVER KONTROLÜ ---
     CheckGameOver();
@@ -3057,11 +3058,7 @@ public void GenerateNextRowData()
             if (canSpawnFire && specialRoll < currentFireChance)
             {
                 newData.blockType = BlockType.Fire;
-                newData.width = 1;
                 currentFireCount++;
-
-                if (fireSprite != null)
-                    newData.visualSprite = fireSprite;
             }
             else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
             {
@@ -3133,11 +3130,7 @@ public void GenerateNextRowData()
                if (canSpawnFire && specialRoll < currentFireChance)
                {
                    newData.blockType = BlockType.Fire;
-                   newData.width = 1;
                    currentFireCount++;
-
-                   if (fireSprite != null)
-                       newData.visualSprite = fireSprite;
                }
                else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
                {
