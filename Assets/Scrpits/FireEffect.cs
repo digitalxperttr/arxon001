@@ -8,7 +8,7 @@ public class FireEffect : IBlockEffect
             return;
 
         GridManager.Instance.SetCurrentFireSource(owner);
-        GridManager.Instance.ShowFireTriggerFeedback(owner);
-        GridManager.Instance.DestroyBlocksByColor(owner.blockColor);
+        Color targetColor = GridManager.Instance.GetColorForGemColor(owner.fireTargetColor);
+        GridManager.Instance.DestroyBlocksByColor(targetColor);
     }
 }

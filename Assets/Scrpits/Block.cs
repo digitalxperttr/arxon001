@@ -8,39 +8,36 @@ public class Block : MonoBehaviour
     private const float ChainOverlayCellWidth = 1f;
     private const float ChainOverlayCellHeight = 0.99f;
     private const float ChainOverlayPaddingMultiplier = 1.05f;
-    private const string FireIdleFlameRootName = "FireIdleFlameEmitters";
-    private const string FireIdleFlameNamePrefix = "FireIdleFlame_";
-    private const string FireIdleFlameSpriteName = "Flame SpriteRenderer";
-    private const int MaxFireIdleFlameEmitters = 4;
-    private const float FireIdleFlameBaseScale = 0.15f;
-    private const string FireIdleFlameGlowName = "FireIdleFlameGlow";
-    private const string FireIdleEmberEmitterName = "FireIdleEmberEmitter";
     private const string FireInternalEnergyRootName = "FireInternalEnergyRoot";
     private const string FireInternalEnergyLeftEmitterName = "FireInternalEnergy_LeftEdge";
     private const string FireInternalEnergyRightEmitterName = "FireInternalEnergy_RightEdge";
     private const string LegacyFireInternalEnergyRootName = "FireInternalEnergyFlow";
     private const float FireInternalEnergyEdgeInset = 0.08f;
     private const float FireInternalEnergyEdgeHeightMultiplier = 0.65f;
-    private const float FireInternalEnergyLifetime = 0.78f;
+    private const float FireInternalEnergyLifetime = 0.9f;
     private const float FireInternalEnergyEmissionRatePerWidth = 3.0f;
     private const int FireInternalEnergyMinParticlesPerEmitter = 8;
     private const int FireInternalEnergyMaxParticlesPerEmitter = 28;
-    private const float FireInternalEnergyTrailLifetime = 0.32f;
-    private const string FireSurfaceEnergyRootName = "FireSurfaceEnergyEvents";
-    private const string FireSurfaceEnergyRendererName = "EventRenderer_0";
-    private const int FireSurfaceEnergyFrameCount = 6;
-    private const float FireSurfaceEnergyFramesPerSecond = 24f;
-    private const float FireSurfaceEnergyInitialDelayMin = 0.35f;
-    private const float FireSurfaceEnergyInitialDelayMax = 0.80f;
-    private const float FireSurfaceEnergyScale = 0.9375f;
-    private const float FireSurfaceEnergyAlphaMin = 0.60f;
-    private const float FireSurfaceEnergyAlphaMax = 0.78f;
-    private static readonly Vector2[] FireSurfaceEnergyAnchorOffsets =
-    {
-        new Vector2(-0.10f, -0.05f),
-        new Vector2(0.10f, 0.03f),
-        new Vector2(-0.03f, 0.08f)
-    };
+    private const float FireInternalEnergyTrailLifetime = 0.75f;
+    // FIRE_V2_CLEANUP: FireInternalEnergyFlow no longer depends on the legacy idle-emitter limit.
+    private const int FireInternalEnergyMaxWidth = 6;
+    private const string SliceInternalEnergyRootName = "SliceInternalEnergyRoot";
+    private const string SliceInternalEnergyLeftEmitterName = "SliceInternalEnergy_LeftEdge";
+    private const string SliceInternalEnergyRightEmitterName = "SliceInternalEnergy_RightEdge";
+    private const float SliceInternalEnergyEdgeInset = 0.08f;
+    private const float SliceInternalEnergyLifetime = 0.9f;
+    private const int SliceInternalEnergyMaxWidth = 6;
+
+    #region Fire Block Visual System (Slice Style)
+    private const string FireSliceVisualRootName = "FireSliceVisualRoot";
+    private const string FireSliceLeftEnergyName = "FireSliceEnergy_Left";
+    private const string FireSliceRightEnergyName = "FireSliceEnergy_Right";
+    private const string FireSliceGlowName = "FireSliceGlow";
+    private const string FireSliceSymbolName = "FireSliceSymbol";
+    private const float FireSliceEnergyLifetime = 1.2f;
+    private const float FireSliceEnergySpeed = 0.4f;
+    private const float FireSliceTrailLifetime = 0.4f;
+    #endregion
 
     public int x, y, width;
     public bool isMoving = false;
@@ -103,15 +100,32 @@ public class Block : MonoBehaviour
     [Header("Fire Idle FX")]
     [SerializeField] private GameObject fireIdleParticlePrefab;
     [SerializeField] private Material fireInternalEnergyTrailMaterial;
-    [SerializeField] private Sprite fireIdleFlameSprite;
-    [SerializeField] private Sprite[] fireLocalDischargeFrames;
+    // FIRE_V2_CLEANUP: Legacy serialized fields are preserved in source but disabled.
+    // [SerializeField] private Sprite fireIdleFlameSprite;
+    // [SerializeField] private Sprite[] fireLocalDischargeFrames;
+    [SerializeField] private Sprite fireSymbolSprite;
+    [SerializeField] private Material fireParticleMaterial;
+    [SerializeField] private float firePulseScale = 1.15f;
+    [SerializeField] private float firePulseDuration = 0.8f;
 
-    [SerializeField] private float fireParticleMinDelay = 3f;
-    [SerializeField] private float fireParticleMaxDelay = 5f;
-    [SerializeField] private int fireParticleMinCount = 3;
-    [SerializeField] private int fireParticleMaxCount = 5;
-    [SerializeField] private float fireParticleSpawnRadiusX = 0.35f;
-    [SerializeField] private float fireParticleSpawnRadiusY = 0.25f;
+    [Header("Fire V2")]
+    [SerializeField] private SpriteRenderer fireSymbolRenderer;
+    [SerializeField] private GameObject fireInternalEnergyFlowPrefab;
+    public GemColor fireTargetColor;
+
+    [Header("Slice Internal Energy V2")]
+    [SerializeField] private GameObject sliceInternalEnergyFlowPrefab;
+
+    [Header("Slice Symbol")]
+    [SerializeField] private GameObject sliceSymbolRoot;
+
+    // FIRE_V2_CLEANUP: Legacy idle-particle tuning is preserved in source but disabled.
+    // [SerializeField] private float fireParticleMinDelay = 3f;
+    // [SerializeField] private float fireParticleMaxDelay = 5f;
+    // [SerializeField] private int fireParticleMinCount = 3;
+    // [SerializeField] private int fireParticleMaxCount = 5;
+    // [SerializeField] private float fireParticleSpawnRadiusX = 0.35f;
+    // [SerializeField] private float fireParticleSpawnRadiusY = 0.25f;
 
     private bool isSpecialVisualActive = false;
     private Coroutine fireIdleRoutine;
@@ -121,8 +135,22 @@ public class Block : MonoBehaviour
     private ParticleSystem fireInternalEnergyRightParticleSystem;
     private ParticleSystemRenderer fireInternalEnergyLeftRenderer;
     private ParticleSystemRenderer fireInternalEnergyRightRenderer;
-    private SpriteRenderer fireSurfaceEnergyRenderer;
+    private ParticleSystem sliceInternalEnergyLeftParticleSystem;
+    private ParticleSystem sliceInternalEnergyRightParticleSystem;
+    private ParticleSystemRenderer sliceInternalEnergyLeftRenderer;
+    private ParticleSystemRenderer sliceInternalEnergyRightRenderer;
+    // FIRE_V2_CLEANUP: Legacy surface renderer remains disabled until its V2 replacement exists.
+    private SpriteRenderer fireSurfaceEnergyRenderer = null;
+    private SpriteRenderer fireSymbolGlowRenderer;
     private readonly List<Transform> fireIdleFlames = new List<Transform>();
+    private Transform fireSliceVisualRoot;
+    private ParticleSystem fireSliceLeftEnergy;
+    private ParticleSystem fireSliceRightEnergy;
+    private ParticleSystemRenderer fireSliceLeftRenderer;
+    private ParticleSystemRenderer fireSliceRightRenderer;
+    private SpriteRenderer fireSliceGlowRenderer;
+    private SpriteRenderer fireSliceSymbolRenderer;
+    private Coroutine fireSlicePulseRoutine;
 
 
 void Awake()
@@ -142,32 +170,43 @@ private void Start()
 private void UpdateSpecialVisualState()
 {
     isSpecialVisualActive =
-        blockType == BlockType.Fire;
+        blockType == BlockType.Fire ||
+        blockType == BlockType.Slice;
 
-    if (isSpecialVisualActive)
+    if (blockType == BlockType.Fire)
     {
-        RemoveLegacyFireSurfaceVisuals();
-        RefreshFireIdleFlameEmitters();
-        RefreshFireInternalEnergyFlow();
-        RefreshFireSurfaceEnergy();
+        ClearSliceInternalEnergyFlow();
+        SetSliceSymbolActive(false);
+        Sprite fireSprite = GridManager.Instance != null
+            ? GridManager.Instance.GetSpecialBlockSprite(BlockType.Fire, width)
+            : null;
+        if (fireSprite != null && sr != null)
+            sr.sprite = fireSprite;
 
-        if (fireIdleRoutine != null)
-        {
-            StopCoroutine(fireIdleRoutine);
-            fireIdleRoutine = null;
-        }
+        // FIRE_V2_CLEANUP: Keep only the retained Fire V2 identity and internal energy flow.
+        // RefreshFireIdleFlameEmitters();
+        ConfigureFireSymbol();
+        RefreshFireInternalEnergyFlow();
+    }
+    else if (blockType == BlockType.Slice)
+    {
+        Sprite sliceSprite = GridManager.Instance != null
+            ? GridManager.Instance.GetSpecialBlockSprite(BlockType.Slice, width)
+            : null;
+        if (sliceSprite != null && sr != null)
+            sr.sprite = sliceSprite;
+
+        ClearFireSymbol();
+        ClearFireInternalEnergyFlow();
+        RefreshSliceInternalEnergyFlow();
+        SetSliceSymbolActive(true);
     }
     else
     {
-        ClearFireIdleFlameEmitters();
+        ClearFireSymbol();
         ClearFireInternalEnergyFlow();
-        ClearFireSurfaceEnergy();
-
-        if (fireIdleRoutine != null)
-        {
-            StopCoroutine(fireIdleRoutine);
-            fireIdleRoutine = null;
-        }
+        ClearSliceInternalEnergyFlow();
+        SetSliceSymbolActive(false);
     }
 }
 
@@ -189,9 +228,9 @@ public void SetHighlight(bool isHighlighted)
 
         RefreshChainOverlays();
         RefreshCollectibleVisual();
-        RefreshFireIdleFlameEmitters();
+        RefreshFireSymbolSorting();
         RefreshFireInternalEnergyFlowSorting();
-        RefreshFireSurfaceEnergySorting();
+        RefreshSliceInternalEnergyFlowSorting();
 
         // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
         if (trail == null) trail = GetComponent<TrailRenderer>();
@@ -205,6 +244,134 @@ public void SetHighlight(bool isHighlighted)
         if (popCoroutine != null) StopCoroutine(popCoroutine);
         popCoroutine = StartCoroutine(AnimatePop(isHighlighted));
     }
+
+private void ConfigureFireSymbol()
+{
+    if (blockType != BlockType.Fire)
+    {
+        ClearFireSymbol();
+        return;
+    }
+
+    ResolveFireSymbolRenderer();
+    if (fireSymbolRenderer == null)
+        return;
+
+    Sprite symbolSprite = FireV2SpriteLibrary.GetFireSymbolSprite(fireTargetColor);
+    if (symbolSprite == null)
+    {
+        ClearFireSymbol();
+        return;
+    }
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    float blockHeight = sr != null ? sr.size.y : 1f;
+    float spriteHeight = symbolSprite.bounds.size.y;
+    float symbolHeight = blockHeight * (width <= 1 ? 0.65f : 0.68f);
+    float symbolScale = spriteHeight > 0f
+        ? symbolHeight / spriteHeight
+        : 1f;
+
+    fireSymbolRenderer.sprite = symbolSprite;
+    fireSymbolRenderer.drawMode = SpriteDrawMode.Simple;
+    fireSymbolRenderer.color = Color.white;
+    fireSymbolRenderer.transform.localPosition = new Vector3(0f, 0f, -0.03f);
+    fireSymbolRenderer.transform.localRotation = Quaternion.identity;
+    fireSymbolRenderer.transform.localScale = new Vector3(symbolScale, symbolScale, 1f);
+    fireSymbolRenderer.enabled = true;
+
+    ConfigureFireSymbolGlow();
+    RefreshFireSymbolSorting();
+}
+
+private void ConfigureFireSymbolGlow()
+{
+    if (fireSymbolRenderer == null || fireSymbolRenderer.sprite == null)
+        return;
+
+    Transform glowTransform = fireSymbolRenderer.transform.Find("FireSymbolGlow");
+    if (glowTransform == null)
+        glowTransform = fireSymbolRenderer.transform.Find("Glow");
+    bool createdGlow = false;
+    if (glowTransform == null)
+    {
+        GameObject glowObject = new GameObject("FireSymbolGlow");
+        glowTransform = glowObject.transform;
+        glowTransform.SetParent(fireSymbolRenderer.transform, false);
+        createdGlow = true;
+    }
+
+    fireSymbolGlowRenderer = glowTransform.GetComponent<SpriteRenderer>();
+    if (fireSymbolGlowRenderer == null)
+        fireSymbolGlowRenderer = glowTransform.gameObject.AddComponent<SpriteRenderer>();
+
+    fireSymbolGlowRenderer.sprite = fireSymbolRenderer.sprite;
+    if (createdGlow)
+    {
+        fireSymbolGlowRenderer.color = new Color(1f, 1f, 1f, 0.30f);
+        fireSymbolGlowRenderer.transform.localPosition = Vector3.zero;
+        fireSymbolGlowRenderer.transform.localRotation = Quaternion.identity;
+        fireSymbolGlowRenderer.transform.localScale = Vector3.one * 1.20f;
+    }
+    fireSymbolGlowRenderer.enabled = fireSymbolRenderer.enabled;
+}
+
+private void ResolveFireSymbolRenderer()
+{
+    if (fireSymbolRenderer != null)
+        return;
+
+    const string symbolObjectName = "FireSymbolV2";
+    Transform symbolTransform = transform.Find(symbolObjectName);
+    if (symbolTransform == null)
+    {
+        GameObject symbolObject = new GameObject(symbolObjectName);
+        symbolTransform = symbolObject.transform;
+        symbolTransform.SetParent(transform, false);
+    }
+
+    fireSymbolRenderer = symbolTransform.GetComponent<SpriteRenderer>();
+    if (fireSymbolRenderer == null)
+        fireSymbolRenderer = symbolTransform.gameObject.AddComponent<SpriteRenderer>();
+}
+
+private void ClearFireSymbol()
+{
+    if (fireSymbolRenderer != null)
+        fireSymbolRenderer.enabled = false;
+
+    if (fireSymbolGlowRenderer != null)
+        fireSymbolGlowRenderer.enabled = false;
+}
+
+private void RefreshFireSymbolSorting()
+{
+    if (fireSymbolRenderer == null)
+        return;
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    if (sr == null)
+        return;
+
+    fireSymbolRenderer.sortingLayerID = sr.sortingLayerID;
+    fireSymbolRenderer.sortingOrder = sr.sortingOrder + 3;
+
+    if (fireSymbolGlowRenderer != null)
+    {
+        fireSymbolGlowRenderer.sortingLayerID = sr.sortingLayerID;
+        fireSymbolGlowRenderer.sortingOrder = sr.sortingOrder + 2;
+    }
+}
+
+private void SetSliceSymbolActive(bool isActive)
+{
+    if (sliceSymbolRoot != null)
+        sliceSymbolRoot.SetActive(isActive);
+}
 
     // YENİ EKLENEN ANİMASYON FONKSİYONU
   private IEnumerator AnimatePop(bool isHighlighted)
@@ -299,8 +466,15 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
     {
         if (sr == null) sr = GetComponent<SpriteRenderer>();
         ClearGameOverGreyCache();
-        
-        sr.sprite = newSprite;
+
+        Sprite finalSprite = newSprite;
+        Sprite specialSprite = GridManager.Instance != null
+            ? GridManager.Instance.GetSpecialBlockSprite(blockType, blockWidth)
+            : null;
+        if (specialSprite != null)
+            finalSprite = specialSprite;
+
+        sr.sprite = finalSprite;
         sr.color = Color.white; 
         blockColor = colorData;
         sr.drawMode = SpriteDrawMode.Sliced;
@@ -320,7 +494,7 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
         UpdateTrailColor(colorData);
         RefreshChainOverlays();
         RefreshCollectibleVisual();
-    }
+}
 
 public void AssignCollectible(string newCollectibleId, Sprite sprite, bool logAssignment = true)
 {
@@ -700,28 +874,13 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
         overlayRenderer.sortingOrder = sortingOrder + 2;
     }
 
-    if (fireSurfaceEnergyRenderer != null)
-    {
-        fireSurfaceEnergyRenderer.sortingLayerID = sortingLayerId;
-        fireSurfaceEnergyRenderer.sortingOrder = sortingOrder + 2;
-    }
-
     ApplyFireInternalEnergyRendererSorting(fireInternalEnergyLeftRenderer, sortingLayerId, sortingOrder);
     ApplyFireInternalEnergyRendererSorting(fireInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
+    ApplySliceInternalEnergyRendererSorting(sliceInternalEnergyLeftRenderer, sortingLayerId, sortingOrder);
+    ApplySliceInternalEnergyRendererSorting(sliceInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
 
-    for (int i = 0; i < fireIdleFlames.Count; i++)
-    {
-        Transform flame = fireIdleFlames[i];
-        if (flame == null)
-            continue;
+    RefreshFireSymbolSorting();
 
-        SpriteRenderer flameRenderer = flame.Find(FireIdleFlameSpriteName)?.GetComponent<SpriteRenderer>();
-        if (flameRenderer != null)
-        {
-            flameRenderer.sortingLayerID = sortingLayerId;
-            flameRenderer.sortingOrder = sortingOrder + 4;
-        }
-    }
 }
 
     public void SetChained(bool chained)
@@ -1235,6 +1394,404 @@ void Update()
 
     }
 
+#if false
+#region Fire Block Visual System (Slice Style)
+private void RefreshFireSliceVisuals()
+{
+    bool shouldShowFireVisuals = isSpecialVisualActive && blockType == BlockType.Fire;
+    if (!shouldShowFireVisuals)
+    {
+        ClearFireSliceVisuals();
+        return;
+    }
+
+    // FIRE_V2_CLEANUP: Legacy idle/surface FX cleanup calls are disabled with their systems.
+    // ClearFireIdleFlameEmitters();
+    ClearFireInternalEnergyFlow();
+    // ClearFireSurfaceEnergy();
+    RemoveLegacyFireSurfaceVisuals();
+
+    ResolveFireSliceVisuals();
+    ConfigureFireSliceEnergy();
+    ConfigureFireSliceGlow();
+    ConfigureFireSliceSymbol();
+    RefreshFireSliceVisualSorting();
+
+    PlayFireSliceEnergy(fireSliceLeftEnergy);
+    PlayFireSliceEnergy(fireSliceRightEnergy);
+}
+
+private void ResolveFireSliceVisuals()
+{
+    if (fireSliceVisualRoot == null)
+    {
+        Transform existingRoot = transform.Find(FireSliceVisualRootName);
+        if (existingRoot != null)
+        {
+            fireSliceVisualRoot = existingRoot;
+        }
+        else
+        {
+            GameObject rootObject = new GameObject(FireSliceVisualRootName);
+            rootObject.transform.SetParent(transform, false);
+            fireSliceVisualRoot = rootObject.transform;
+        }
+    }
+
+    fireSliceVisualRoot.localPosition = Vector3.zero;
+    fireSliceVisualRoot.localRotation = Quaternion.identity;
+    fireSliceVisualRoot.localScale = Vector3.one;
+
+    fireSliceLeftEnergy = ResolveFireSliceEnergyEmitter(
+        FireSliceLeftEnergyName,
+        out fireSliceLeftRenderer);
+    fireSliceRightEnergy = ResolveFireSliceEnergyEmitter(
+        FireSliceRightEnergyName,
+        out fireSliceRightRenderer);
+    fireSliceGlowRenderer = ResolveFireSliceRenderer(FireSliceGlowName);
+
+    Transform existingOuterGlow = fireSliceVisualRoot.Find("FireGlowOuter");
+    if (existingOuterGlow != null)
+        Destroy(existingOuterGlow.gameObject);
+
+    if (fireSymbolSprite != null)
+    {
+        fireSliceSymbolRenderer = ResolveFireSliceRenderer(FireSliceSymbolName);
+    }
+    else
+    {
+        StopFireSlicePulse();
+        Transform existingSymbol = fireSliceVisualRoot.Find(FireSliceSymbolName);
+        if (existingSymbol != null)
+            Destroy(existingSymbol.gameObject);
+
+        fireSliceSymbolRenderer = null;
+    }
+}
+
+private ParticleSystem ResolveFireSliceEnergyEmitter(
+    string emitterName,
+    out ParticleSystemRenderer particleRenderer)
+{
+    particleRenderer = null;
+    if (fireSliceVisualRoot == null)
+        return null;
+
+    Transform emitterTransform = fireSliceVisualRoot.Find(emitterName);
+    if (emitterTransform == null)
+    {
+        GameObject emitterObject = new GameObject(emitterName);
+        emitterObject.transform.SetParent(fireSliceVisualRoot, false);
+        emitterTransform = emitterObject.transform;
+    }
+
+    ParticleSystem particleSystem = emitterTransform.GetComponent<ParticleSystem>();
+    if (particleSystem == null)
+        particleSystem = emitterTransform.gameObject.AddComponent<ParticleSystem>();
+
+    particleRenderer = emitterTransform.GetComponent<ParticleSystemRenderer>();
+    return particleSystem;
+}
+
+private SpriteRenderer ResolveFireSliceRenderer(string rendererName)
+{
+    if (fireSliceVisualRoot == null)
+        return null;
+
+    Transform rendererTransform = fireSliceVisualRoot.Find(rendererName);
+    if (rendererTransform == null)
+    {
+        GameObject rendererObject = new GameObject(rendererName);
+        rendererObject.transform.SetParent(fireSliceVisualRoot, false);
+        rendererTransform = rendererObject.transform;
+    }
+
+    SpriteRenderer renderer = rendererTransform.GetComponent<SpriteRenderer>();
+    if (renderer == null)
+        renderer = rendererTransform.gameObject.AddComponent<SpriteRenderer>();
+
+    return renderer;
+}
+
+private void ConfigureFireSliceEnergy()
+{
+    Vector2 visualSize = GetFireInternalEnergyVisualSize();
+    int clampedWidth = Mathf.Clamp(width, 1, 4);
+    float energyWidth = Mathf.Max(0.10f, visualSize.x - 0.35f);
+    float energyHeight = Mathf.Max(0.10f, visualSize.y - 0.15f);
+    int maxParticles = Mathf.Clamp(20 + Mathf.CeilToInt((clampedWidth - 1) * (10f / 3f)), 20, 30);
+    float emissionRate = 3f * clampedWidth;
+
+    ConfigureFireSliceEnergyEmitter(
+        fireSliceLeftEnergy,
+        fireSliceLeftRenderer,
+        1f,
+        energyWidth,
+        energyHeight,
+        emissionRate,
+        maxParticles,
+        101);
+    ConfigureFireSliceEnergyEmitter(
+        fireSliceRightEnergy,
+        fireSliceRightRenderer,
+        -1f,
+        energyWidth,
+        energyHeight,
+        emissionRate,
+        maxParticles,
+        211);
+}
+
+private void ConfigureFireSliceEnergyEmitter(
+    ParticleSystem particleSystem,
+    ParticleSystemRenderer particleRenderer,
+    float direction,
+    float energyWidth,
+    float energyHeight,
+    float emissionRate,
+    int maxParticles,
+    int seedSalt)
+{
+    if (particleSystem == null || particleRenderer == null)
+        return;
+
+    bool wasPlaying = particleSystem.isPlaying;
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.transform.localPosition = Vector3.zero;
+    particleSystem.transform.localRotation = Quaternion.identity;
+    particleSystem.transform.localScale = Vector3.one;
+
+    ParticleSystem.MainModule main = particleSystem.main;
+    main.loop = true;
+    main.prewarm = true;
+    main.playOnAwake = false;
+    main.simulationSpace = ParticleSystemSimulationSpace.Local;
+    main.gravityModifier = 0f;
+    main.startLifetime = FireSliceEnergyLifetime;
+    main.startSpeed = 0f;
+    main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.05f);
+    main.maxParticles = maxParticles;
+    particleSystem.useAutoRandomSeed = false;
+    particleSystem.randomSeed = GetFireInternalEnergySeed(seedSalt);
+
+    main.startColor = new ParticleSystem.MinMaxGradient(
+        new Color(1f, 1f, 1f, 0.3f),
+        new Color(1f, 1f, 0.95f, 0.5f));
+
+    ParticleSystem.EmissionModule emission = particleSystem.emission;
+    emission.enabled = true;
+    emission.rateOverTime = emissionRate;
+
+    ParticleSystem.ShapeModule shape = particleSystem.shape;
+    shape.enabled = true;
+    shape.shapeType = ParticleSystemShapeType.Box;
+    shape.position = Vector3.zero;
+    shape.rotation = Vector3.zero;
+    shape.scale = new Vector3(energyWidth, energyHeight, 0f);
+
+    ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
+    velocity.enabled = true;
+    velocity.space = ParticleSystemSimulationSpace.Local;
+    float signedSpeed = direction * FireSliceEnergySpeed;
+    velocity.x = new ParticleSystem.MinMaxCurve(signedSpeed * 0.6f);
+    velocity.y = new ParticleSystem.MinMaxCurve(0f);
+    velocity.z = new ParticleSystem.MinMaxCurve(0f);
+
+    ParticleSystem.NoiseModule noise = particleSystem.noise;
+    noise.enabled = true;
+    noise.separateAxes = false;
+    noise.strength = 0.15f;
+    noise.frequency = 0.5f;
+    noise.scrollSpeed = 0.1f;
+    noise.damping = true;
+
+    ParticleSystem.TrailModule trails = particleSystem.trails;
+    trails.enabled = true;
+    trails.mode = ParticleSystemTrailMode.PerParticle;
+    trails.ratio = 1f;
+    trails.lifetime = FireSliceTrailLifetime;
+    trails.dieWithParticles = true;
+    trails.sizeAffectsWidth = false;
+    trails.sizeAffectsLifetime = false;
+    trails.minVertexDistance = 0.01f;
+    trails.inheritParticleColor = true;
+    trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
+    trails.widthOverTrail = new ParticleSystem.MinMaxCurve(
+        1f,
+        new AnimationCurve(new Keyframe(0f, 0.035f), new Keyframe(1f, 0f)));
+    Gradient trailColor = new Gradient();
+    trailColor.SetKeys(
+        new[]
+        {
+            new GradientColorKey(new Color(1f, 1f, 1f), 0f),
+            new GradientColorKey(new Color(1f, 0.95f, 0.8f), 0.5f),
+            new GradientColorKey(new Color(1f, 0.8f, 0.4f), 1f)
+        },
+        new[]
+        {
+            new GradientAlphaKey(0.7f, 0f),
+            new GradientAlphaKey(0.4f, 0.7f),
+            new GradientAlphaKey(0f, 1f)
+        });
+    trails.colorOverTrail = new ParticleSystem.MinMaxGradient(trailColor);
+
+    ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particleSystem.colorOverLifetime;
+    colorOverLifetime.enabled = false;
+
+    ParticleSystem.CollisionModule collision = particleSystem.collision;
+    collision.enabled = false;
+
+    Material particleMaterial = fireParticleMaterial != null
+        ? fireParticleMaterial
+        : GetFireInternalEnergySharedMaterial();
+    particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+    particleRenderer.sharedMaterial = particleMaterial;
+    particleRenderer.trailMaterial = particleRenderer.sharedMaterial;
+
+    if (wasPlaying)
+        particleSystem.Play(true);
+}
+
+private void ConfigureFireSliceGlow()
+{
+    if (sr == null)
+        return;
+
+    ConfigureFireSliceGlowRenderer(
+        fireSliceGlowRenderer,
+        new Color(1f, 0.6f, 0.15f, 0.18f),
+        1.08f);
+}
+
+private void ConfigureFireSliceGlowRenderer(SpriteRenderer glowRenderer, Color color, float scale)
+{
+    if (glowRenderer == null || sr == null)
+        return;
+
+    glowRenderer.sprite = sr.sprite;
+    glowRenderer.drawMode = SpriteDrawMode.Sliced;
+    glowRenderer.size = sr.size;
+    glowRenderer.color = color;
+    glowRenderer.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+    glowRenderer.transform.localRotation = Quaternion.identity;
+    glowRenderer.transform.localScale = Vector3.one * scale;
+    glowRenderer.enabled = glowRenderer.sprite != null;
+}
+
+private void ConfigureFireSliceSymbol()
+{
+    if (fireSymbolSprite == null || fireSliceSymbolRenderer == null)
+        return;
+
+    Vector2 visualSize = GetFireInternalEnergyVisualSize();
+    fireSliceSymbolRenderer.sprite = fireSymbolSprite;
+    fireSliceSymbolRenderer.drawMode = SpriteDrawMode.Simple;
+    fireSliceSymbolRenderer.color = new Color(1f, 1f, 1f, 0.75f);
+    fireSliceSymbolRenderer.transform.localPosition = new Vector3(0f, visualSize.y * 0.16f, -0.08f);
+    fireSliceSymbolRenderer.transform.localRotation = Quaternion.identity;
+    fireSliceSymbolRenderer.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
+    fireSliceSymbolRenderer.enabled = true;
+
+    if (fireSlicePulseRoutine == null && Application.isPlaying)
+        fireSlicePulseRoutine = StartCoroutine(FireSliceSymbolPulseRoutine());
+}
+
+private IEnumerator FireSliceSymbolPulseRoutine()
+{
+    while (isSpecialVisualActive && blockType == BlockType.Fire && fireSliceSymbolRenderer != null && fireSymbolSprite != null)
+    {
+        float duration = Mathf.Max(0.01f, firePulseDuration);
+        float pulse = (Mathf.Sin((Time.time / duration) * Mathf.PI * 2f) + 1f) * 0.5f;
+        float scale = Mathf.Lerp(1f, Mathf.Max(1f, firePulseScale), pulse) * 0.5f;
+        fireSliceSymbolRenderer.transform.localScale = new Vector3(scale, scale, 1f);
+        yield return null;
+    }
+
+    fireSlicePulseRoutine = null;
+}
+
+private void RefreshFireSliceVisualSorting()
+{
+    int sortingLayerId = sr != null ? sr.sortingLayerID : 0;
+    int sortingOrder = sr != null ? sr.sortingOrder : 0;
+
+    if (fireSliceGlowRenderer != null)
+    {
+        fireSliceGlowRenderer.sortingLayerID = sortingLayerId;
+        fireSliceGlowRenderer.sortingOrder = sortingOrder - 1;
+    }
+
+    ApplyFireSliceEnergySorting(fireSliceLeftRenderer, sortingLayerId, sortingOrder);
+    ApplyFireSliceEnergySorting(fireSliceRightRenderer, sortingLayerId, sortingOrder);
+
+    if (fireSliceSymbolRenderer != null)
+    {
+        fireSliceSymbolRenderer.sortingLayerID = sortingLayerId;
+        fireSliceSymbolRenderer.sortingOrder = sortingOrder + 3;
+    }
+}
+
+private void ApplyFireSliceEnergySorting(
+    ParticleSystemRenderer particleRenderer,
+    int sortingLayerId,
+    int baseSortingOrder)
+{
+    if (particleRenderer == null)
+        return;
+
+    particleRenderer.sortingLayerID = sortingLayerId;
+    particleRenderer.sortingOrder = baseSortingOrder + 2;
+}
+
+private void PlayFireSliceEnergy(ParticleSystem particleSystem)
+{
+    if (particleSystem != null && !particleSystem.isPlaying)
+        particleSystem.Play(true);
+}
+
+private void StopFireSlicePulse()
+{
+    if (fireSlicePulseRoutine == null)
+        return;
+
+    StopCoroutine(fireSlicePulseRoutine);
+    fireSlicePulseRoutine = null;
+}
+
+private void ClearFireSliceVisuals()
+{
+    StopFireSlicePulse();
+    StopFireSliceEnergy(fireSliceLeftEnergy);
+    StopFireSliceEnergy(fireSliceRightEnergy);
+
+    Transform existingRoot = fireSliceVisualRoot != null
+        ? fireSliceVisualRoot
+        : transform.Find(FireSliceVisualRootName);
+    if (existingRoot != null)
+        Destroy(existingRoot.gameObject);
+
+    fireSliceVisualRoot = null;
+    fireSliceLeftEnergy = null;
+    fireSliceRightEnergy = null;
+    fireSliceLeftRenderer = null;
+    fireSliceRightRenderer = null;
+    fireSliceGlowRenderer = null;
+    fireSliceSymbolRenderer = null;
+}
+
+private void StopFireSliceEnergy(ParticleSystem particleSystem)
+{
+    if (particleSystem == null)
+        return;
+
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.Clear(true);
+}
+#endregion
+#endif
+
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
+#if false
 private void RefreshFireIdleFlameEmitters()
 {
     if (!isSpecialVisualActive || blockType != BlockType.Fire)
@@ -1278,6 +1835,7 @@ private void RefreshFireIdleFlameEmitters()
     }
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
 private void ResolveFireIdleFlameRoot()
 {
     if (fireIdleFlameRoot == null)
@@ -1300,6 +1858,7 @@ private void ResolveFireIdleFlameRoot()
     fireIdleFlameRoot.localScale = Vector3.one;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
 private Transform CreateFireIdleFlame(int index)
 {
     ResolveFireIdleFlameRoot();
@@ -1310,14 +1869,16 @@ private Transform CreateFireIdleFlame(int index)
     return flameObject.transform;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
 private Vector3 GetFireIdleFlameEmitterPosition(int index, int emitterCount)
 {
     float leftmostCellCenter = -((emitterCount - 1) * 0.5f);
     float xOffset = leftmostCellCenter + index;
-    float yOffset = -0.1f + ((index % 2 == 0) ? 0.015f : -0.01f);
+    float yOffset = 0.25f + ((index % 2 == 0) ? 0.015f : -0.01f);
     return new Vector3(xOffset, yOffset, -0.05f);
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
 private void ConfigureFireIdleFlame(Transform flame, int index)
 {
     if (flame == null)
@@ -1338,13 +1899,21 @@ private void ConfigureFireIdleFlame(Transform flame, int index)
             flameRenderer = spriteTransform.gameObject.AddComponent<SpriteRenderer>();
     }
 
-    flameRenderer.sprite = fireIdleFlameSprite;
-    flameRenderer.color = Color.white;
+    if (fireIdleFlameSprite != null)
+    {
+        flameRenderer.sprite = fireIdleFlameSprite;
+        flameRenderer.color = Color.white;
+    }
+    else if (sr != null && sr.sprite != null)
+    {
+        flameRenderer.sprite = sr.sprite;
+        flameRenderer.color = new Color(1f, 0.45f, 0.05f, 0.9f);
+    }
     flameRenderer.sortingLayerID = sr != null ? sr.sortingLayerID : 0;
     flameRenderer.sortingOrder = sr != null ? sr.sortingOrder + 4 : 4;
     flameRenderer.transform.localPosition = Vector3.zero;
     flameRenderer.transform.localRotation = Quaternion.identity;
-    flameRenderer.transform.localScale = new Vector3(FireIdleFlameBaseScale, FireIdleFlameBaseScale, 1f);
+    flameRenderer.transform.localScale = new Vector3(FireIdleFlameBaseScale * 1.5f, FireIdleFlameBaseScale * 1.5f, 1f);
 
     ParticleSystem legacyParticleSystem = flame.GetComponent<ParticleSystem>();
     if (legacyParticleSystem != null)
@@ -1358,6 +1927,7 @@ private void ConfigureFireIdleFlame(Transform flame, int index)
     RemoveFireIdleFlameChild(flame, FireIdleEmberEmitterName);
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
 private void RemoveFireIdleFlameChild(Transform flame, string childName)
 {
     Transform child = flame.Find(childName);
@@ -1367,6 +1937,7 @@ private void RemoveFireIdleFlameChild(Transform flame, string childName)
     child.gameObject.SetActive(false);
     Destroy(child.gameObject);
 }
+#endif
 
 private float GetFireIdleHash01(int index, int salt)
 {
@@ -1374,6 +1945,8 @@ private float GetFireIdleHash01(int index, int salt)
     return Mathf.Repeat(value, 1f);
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Flame method preserved but disabled.
+#if false
 private void ClearFireIdleFlameEmitters()
 {
     for (int i = fireIdleFlames.Count - 1; i >= 0; i--)
@@ -1391,6 +1964,7 @@ private void ClearFireIdleFlameEmitters()
         fireIdleFlameRoot = null;
     }
 }
+#endif
 
 private void RefreshFireInternalEnergyFlow()
 {
@@ -1398,7 +1972,8 @@ private void RefreshFireInternalEnergyFlow()
         isSpecialVisualActive &&
         blockType == BlockType.Fire &&
         width >= 1 &&
-        width <= MaxFireIdleFlameEmitters;
+        // FIRE_V2_CLEANUP: Use the retained system's own width limit.
+        width <= FireInternalEnergyMaxWidth;
 
     if (!shouldShowInternalEnergy)
     {
@@ -1424,8 +1999,12 @@ private void ResolveFireInternalEnergyFlow()
     Transform flowRoot = transform.Find(FireInternalEnergyRootName);
     if (flowRoot == null)
     {
-        GameObject rootObject = new GameObject(FireInternalEnergyRootName);
-        rootObject.transform.SetParent(transform, false);
+        GameObject rootObject = fireInternalEnergyFlowPrefab != null
+            ? Instantiate(fireInternalEnergyFlowPrefab, transform)
+            : new GameObject(FireInternalEnergyRootName);
+        rootObject.name = FireInternalEnergyRootName;
+        if (rootObject.transform.parent != transform)
+            rootObject.transform.SetParent(transform, false);
         flowRoot = rootObject.transform;
     }
 
@@ -1483,7 +2062,8 @@ private void ConfigureFireInternalEnergyEmitters()
     float travelDistance = Mathf.Max(0.05f, visualWidth - (edgeInset * 2f));
     float horizontalSpeed = travelDistance / FireInternalEnergyLifetime;
     float edgeHeight = visualHeight * FireInternalEnergyEdgeHeightMultiplier;
-    int clampedWidth = Mathf.Clamp(width, 1, MaxFireIdleFlameEmitters);
+    // FIRE_V2_CLEANUP: Use the retained system's own width limit.
+    int clampedWidth = Mathf.Clamp(width, 1, FireInternalEnergyMaxWidth);
     float emissionRate = FireInternalEnergyEmissionRatePerWidth * clampedWidth;
     int maxParticles = Mathf.Clamp(
         Mathf.CeilToInt(emissionRate * FireInternalEnergyLifetime * 2.0f),
@@ -1538,126 +2118,171 @@ private void ConfigureFireInternalEnergyEmitter(
     int maxParticles,
     int seedSalt)
 {
-    if (particleSystem == null || particleRenderer == null)
-        return;
+    if (particleSystem == null || particleRenderer == null) return;
+    if (particleRenderer.sharedMaterial == null)
+        particleRenderer.sharedMaterial = GetFireInternalEnergySharedMaterial();
 
     bool wasPlaying = particleSystem.isPlaying;
     particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     particleSystem.transform.localPosition = localPosition;
+    bool usePrefabSettings = fireInternalEnergyFlowPrefab != null;
 
+    // FIRE_V2_CLEANUP: Rebuilt internal energy flow uses small amber particles and organic bursts.
     ParticleSystem.MainModule main = particleSystem.main;
-    main.loop = true;
-    main.prewarm = true;
-    main.playOnAwake = false;
-    main.simulationSpace = ParticleSystemSimulationSpace.Local;
-    main.gravityModifier = 0f;
-    main.startSpeed = 0f;
-    main.startLifetime = FireInternalEnergyLifetime;
-    main.startSize3D = false;
-    main.startSize = new ParticleSystem.MinMaxCurve(0.024f, 0.042f);
-    main.startRotation = 0f;
-    main.maxParticles = maxParticles;
+    if (!usePrefabSettings)
+    {
+        main.loop = true;
+        main.prewarm = true;
+        main.playOnAwake = false;
+        main.duration = 1.0f;
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.gravityModifier = 0f;
+        main.startSpeed = 0f;
+        main.startLifetime = FireInternalEnergyLifetime;
+        main.startSize3D = false;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
+        main.startRotation = new ParticleSystem.MinMaxCurve(-15f, 15f);
+        main.maxParticles = maxParticles;
+    }
     particleSystem.useAutoRandomSeed = false;
     particleSystem.randomSeed = GetFireInternalEnergySeed(seedSalt);
-    main.startColor = new ParticleSystem.MinMaxGradient(
-        new Color(1f, 0.66f, 0.16f, 0.18f),
-        new Color(1f, 0.48f, 0.05f, 0.32f));
+    if (!usePrefabSettings)
+    {
+        main.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(1f, 0.98f, 0.90f, 0.95f),
+            new Color(1f, 0.95f, 0.75f, 0.90f));
+    }
 
     ParticleSystem.EmissionModule emission = particleSystem.emission;
-    emission.enabled = true;
-    emission.rateOverTime = emissionRate;
+    if (!usePrefabSettings)
+    {
+        emission.enabled = true;
+        emission.rateOverTime = emissionRate * 0.4f;
+        emission.SetBursts(new ParticleSystem.Burst[]
+        {
+            new ParticleSystem.Burst(0.0f, Mathf.Max(1, Mathf.FloorToInt(emissionRate * 0.2f))),
+            new ParticleSystem.Burst(0.2f, Mathf.Max(1, Mathf.FloorToInt(emissionRate * 0.3f))),
+            new ParticleSystem.Burst(0.5f, Mathf.Max(1, Mathf.FloorToInt(emissionRate * 0.2f)))
+        });
+    }
 
     ParticleSystem.ShapeModule shape = particleSystem.shape;
-    shape.enabled = true;
-    shape.shapeType = ParticleSystemShapeType.Box;
-    shape.position = Vector3.zero;
-    shape.rotation = Vector3.zero;
-    shape.scale = new Vector3(0.025f, edgeHeight, 0f);
+    if (!usePrefabSettings)
+    {
+        shape.enabled = true;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.position = Vector3.zero;
+        shape.rotation = Vector3.zero;
+        shape.scale = new Vector3(0.015f, edgeHeight * 0.5f, 0f);
+    }
 
     ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
     velocity.enabled = true;
     velocity.space = ParticleSystemSimulationSpace.Local;
     float signedSpeed = horizontalSpeed * Mathf.Sign(direction);
-    velocity.x = new ParticleSystem.MinMaxCurve(signedSpeed * 0.92f, signedSpeed * 1.08f);
-    velocity.y = new ParticleSystem.MinMaxCurve(-0.018f, 0.018f);
-    velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+    velocity.x = new ParticleSystem.MinMaxCurve(signedSpeed * 0.6f, signedSpeed * 1.0f);
+    if (!usePrefabSettings)
+    {
+        velocity.y = new ParticleSystem.MinMaxCurve(-0.04f, 0.04f);
+        velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+    }
 
     ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particleSystem.colorOverLifetime;
-    colorOverLifetime.enabled = true;
-    Gradient alphaEnvelope = new Gradient();
-    alphaEnvelope.SetKeys(
-        new[]
-        {
-            new GradientColorKey(Color.white, 0f),
-            new GradientColorKey(Color.white, 1f)
-        },
-        new[]
-        {
-            new GradientAlphaKey(0f, 0f),
-            new GradientAlphaKey(1f, 0.15f),
-            new GradientAlphaKey(0.75f, 0.65f),
-            new GradientAlphaKey(0f, 1f)
-        });
-    colorOverLifetime.color = new ParticleSystem.MinMaxGradient(alphaEnvelope);
+    if (!usePrefabSettings)
+    {
+        colorOverLifetime.enabled = true;
+        Gradient alphaEnvelope = new Gradient();
+        alphaEnvelope.SetKeys(
+            new[]
+            {
+                new GradientColorKey(new Color(1f, 1.0f, 0.95f), 0f),
+                new GradientColorKey(new Color(1f, 0.98f, 0.85f), 0.5f),
+                new GradientColorKey(new Color(1f, 0.90f, 0.60f), 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(0f, 0f),
+                new GradientAlphaKey(1f, 0.08f),
+                new GradientAlphaKey(0.9f, 0.5f),
+                new GradientAlphaKey(0.3f, 0.85f),
+                new GradientAlphaKey(0f, 1f)
+            });
+        colorOverLifetime.color = new ParticleSystem.MinMaxGradient(alphaEnvelope);
+    }
 
-    ParticleSystem.NoiseModule noise = particleSystem.noise;
-    noise.enabled = false;
+    if (!usePrefabSettings)
+    {
+        ParticleSystem.TrailModule trails = particleSystem.trails;
+        trails.enabled = true;
+        trails.mode = ParticleSystemTrailMode.PerParticle;
+        trails.ratio = 1f;
+        trails.lifetime = FireInternalEnergyTrailLifetime;
+        trails.dieWithParticles = true;
+        trails.sizeAffectsWidth = true;
+        trails.sizeAffectsLifetime = false;
+        trails.minVertexDistance = 0.003f;
+        trails.inheritParticleColor = true;
+        trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
+        trails.widthOverTrail = new ParticleSystem.MinMaxCurve(
+            1f,
+            new AnimationCurve(
+                new Keyframe(0f, 1.2f),
+                new Keyframe(0.3f, 0.8f),
+                new Keyframe(0.7f, 0.4f),
+                new Keyframe(1f, 0f)));
+        trails.colorOverLifetime = colorOverLifetime.color;
+    }
 
-    ParticleSystem.TrailModule trails = particleSystem.trails;
-    trails.enabled = true;
-    trails.mode = ParticleSystemTrailMode.PerParticle;
-    trails.ratio = 1f;
-    trails.lifetime = FireInternalEnergyTrailLifetime;
-    trails.dieWithParticles = false;
-    trails.sizeAffectsWidth = false;
-    trails.sizeAffectsLifetime = false;
-    trails.minVertexDistance = 0.005f;
-    trails.inheritParticleColor = false;
-    trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
-    trails.widthOverTrail = new ParticleSystem.MinMaxCurve(
-        1f,
-        new AnimationCurve(
-            new Keyframe(0f, 0.040f),
-            new Keyframe(0.70f, 0.036f),
-            new Keyframe(0.90f, 0.020f),
-            new Keyframe(1f, 0f)));
-    Gradient trailColor = new Gradient();
-    trailColor.SetKeys(
-        new[]
-        {
-            new GradientColorKey(new Color(1f, 0.74f, 0.24f), 0f),
-            new GradientColorKey(new Color(1f, 0.44f, 0.07f), 0.75f),
-            new GradientColorKey(new Color(0.95f, 0.20f, 0.02f), 1f)
-        },
-        new[]
-        {
-            new GradientAlphaKey(0.55f, 0f),
-            new GradientAlphaKey(0.62f, 0.55f),
-            new GradientAlphaKey(0.28f, 0.90f),
-            new GradientAlphaKey(0f, 1f)
-        });
-    trails.colorOverTrail = new ParticleSystem.MinMaxGradient(trailColor);
+    if (!usePrefabSettings)
+    {
+        ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = particleSystem.sizeOverLifetime;
+        sizeOverLifetime.enabled = true;
+        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(
+            1f,
+            new AnimationCurve(
+                new Keyframe(0f, 1f),
+                new Keyframe(0.5f, 0.85f),
+                new Keyframe(1f, 0.5f)));
+
+        ParticleSystem.NoiseModule noise = particleSystem.noise;
+        noise.enabled = true;
+        noise.strength = 0.08f;
+        noise.frequency = 0.5f;
+        noise.scrollSpeed = 0.2f;
+    }
 
     ParticleSystem.CollisionModule collision = particleSystem.collision;
-    collision.enabled = false;
-
-    ParticleSystem.RotationOverLifetimeModule rotationOverLifetime = particleSystem.rotationOverLifetime;
-    rotationOverLifetime.enabled = false;
-
-    ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = particleSystem.sizeOverLifetime;
-    sizeOverLifetime.enabled = false;
+    if (!usePrefabSettings)
+        collision.enabled = false;
 
     ParticleSystem.TextureSheetAnimationModule textureSheetAnimation = particleSystem.textureSheetAnimation;
-    textureSheetAnimation.enabled = false;
-    while (textureSheetAnimation.spriteCount > 0)
-        textureSheetAnimation.RemoveSprite(0);
+    if (!usePrefabSettings)
+    {
+        textureSheetAnimation.enabled = false;
+        while (textureSheetAnimation.spriteCount > 0)
+            textureSheetAnimation.RemoveSprite(0);
+    }
 
-    Material sharedMaterial = GetFireInternalEnergySharedMaterial();
-    particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
-    particleRenderer.sharedMaterial = sharedMaterial;
-    particleRenderer.trailMaterial = fireInternalEnergyTrailMaterial != null
-        ? fireInternalEnergyTrailMaterial
-        : sharedMaterial;
+    if (!usePrefabSettings)
+    {
+        Material sharedMaterial = GetFireInternalEnergySharedMaterial();
+        SetFireInternalEnergyMaterialTint(sharedMaterial);
+        particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        particleRenderer.alignment = ParticleSystemRenderSpace.View;
+        particleRenderer.sortMode = ParticleSystemSortMode.OldestInFront;
+        particleRenderer.sharedMaterial = sharedMaterial;
+        particleRenderer.trailMaterial = sharedMaterial;
+    }
+    else
+    {
+        if (particleRenderer.sharedMaterial == null)
+        {
+            Material sharedMaterial = GetFireInternalEnergySharedMaterial();
+            particleRenderer.sharedMaterial = sharedMaterial;
+        }
+        if (particleRenderer.trailMaterial == null)
+            particleRenderer.trailMaterial = particleRenderer.sharedMaterial;
+    }
 
     if (wasPlaying)
         particleSystem.Play(true);
@@ -1668,13 +2293,39 @@ private uint GetFireInternalEnergySeed(int salt)
     return (uint)Mathf.Max(1, Mathf.FloorToInt(GetFireIdleHash01(2, salt) * 2147483646f));
 }
 
+private static void SetFireInternalEnergyMaterialTint(Material material)
+{
+    if (material == null)
+        return;
+
+    Color warmWhiteTint = new Color(1f, 0.95f, 0.85f, 1f);
+    if (material.HasProperty("_Color"))
+        material.SetColor("_Color", warmWhiteTint);
+
+    if (material.HasProperty("_TintColor"))
+        material.SetColor("_TintColor", warmWhiteTint);
+
+    if (material.HasProperty("_BaseColor"))
+        material.SetColor("_BaseColor", warmWhiteTint);
+}
+
 private Material GetFireInternalEnergySharedMaterial()
 {
     if (fireIdleParticlePrefab != null)
     {
         ParticleSystemRenderer idleParticleRenderer = fireIdleParticlePrefab.GetComponent<ParticleSystemRenderer>();
-        if (idleParticleRenderer != null)
+        if (idleParticleRenderer != null && idleParticleRenderer.sharedMaterial != null)
             return idleParticleRenderer.sharedMaterial;
+    }
+
+    // Fallback: Runtime'da ateş rengi materyal oluştur
+    Shader spriteShader = Shader.Find("Sprites/Default");
+    if (spriteShader != null)
+    {
+        Material fallbackMaterial = new Material(spriteShader);
+        fallbackMaterial.color = new Color(1f, 0.55f, 0.1f, 0.85f);
+        fallbackMaterial.name = "Runtime_FireEnergyFallback";
+        return fallbackMaterial;
     }
 
     return null;
@@ -1737,7 +2388,314 @@ private void ApplyFireInternalEnergyRendererSorting(
         return;
 
     particleRenderer.sortingLayerID = sortingLayerId;
-    particleRenderer.sortingOrder = baseSortingOrder + 4;
+    particleRenderer.sortingOrder = baseSortingOrder + 1;
+}
+
+private void RefreshSliceInternalEnergyFlow()
+{
+    bool shouldShowInternalEnergy =
+        isSpecialVisualActive &&
+        blockType == BlockType.Slice &&
+        width >= 1 &&
+        width <= SliceInternalEnergyMaxWidth;
+
+    if (!shouldShowInternalEnergy)
+    {
+        ClearSliceInternalEnergyFlow();
+        return;
+    }
+
+    ResolveSliceInternalEnergyFlow();
+    ConfigureSliceInternalEnergyEmitters();
+    RefreshSliceInternalEnergyFlowSorting();
+
+    PlaySliceInternalEnergyFlow(sliceInternalEnergyLeftParticleSystem);
+    PlaySliceInternalEnergyFlow(sliceInternalEnergyRightParticleSystem);
+}
+
+private void ResolveSliceInternalEnergyFlow()
+{
+    if (sliceInternalEnergyLeftParticleSystem != null && sliceInternalEnergyRightParticleSystem != null)
+        return;
+
+    Transform flowRoot = transform.Find(SliceInternalEnergyRootName);
+    if (flowRoot == null)
+    {
+        GameObject rootObject = sliceInternalEnergyFlowPrefab != null
+            ? Instantiate(sliceInternalEnergyFlowPrefab, transform)
+            : new GameObject(SliceInternalEnergyRootName);
+        rootObject.name = SliceInternalEnergyRootName;
+        if (rootObject.transform.parent != transform)
+            rootObject.transform.SetParent(transform, false);
+        flowRoot = rootObject.transform;
+    }
+
+    flowRoot.localPosition = Vector3.zero;
+    flowRoot.localRotation = Quaternion.identity;
+    flowRoot.localScale = Vector3.one;
+
+    sliceInternalEnergyLeftParticleSystem = ResolveSliceInternalEnergyEmitter(
+        flowRoot,
+        SliceInternalEnergyLeftEmitterName,
+        out sliceInternalEnergyLeftRenderer);
+    sliceInternalEnergyRightParticleSystem = ResolveSliceInternalEnergyEmitter(
+        flowRoot,
+        SliceInternalEnergyRightEmitterName,
+        out sliceInternalEnergyRightRenderer);
+}
+
+private ParticleSystem ResolveSliceInternalEnergyEmitter(
+    Transform flowRoot,
+    string emitterName,
+    out ParticleSystemRenderer particleRenderer)
+{
+    particleRenderer = null;
+
+    if (flowRoot == null)
+        return null;
+
+    Transform particleTransform = flowRoot.Find(emitterName);
+    if (particleTransform == null)
+    {
+        GameObject particleObject = new GameObject(emitterName);
+        particleObject.transform.SetParent(flowRoot, false);
+        particleTransform = particleObject.transform;
+    }
+
+    particleTransform.localRotation = Quaternion.identity;
+    particleTransform.localScale = Vector3.one;
+
+    ParticleSystem particleSystem = particleTransform.GetComponent<ParticleSystem>();
+    if (particleSystem == null)
+        particleSystem = particleTransform.gameObject.AddComponent<ParticleSystem>();
+
+    particleRenderer = particleTransform.GetComponent<ParticleSystemRenderer>();
+    return particleSystem;
+}
+
+private void ConfigureSliceInternalEnergyEmitters()
+{
+    Vector2 visualSize = GetSliceInternalEnergyVisualSize();
+    float visualWidth = Mathf.Max(0.01f, visualSize.x);
+    float edgeInset = Mathf.Min(SliceInternalEnergyEdgeInset, visualWidth * 0.35f);
+    float leftX = (-visualWidth * 0.5f) + edgeInset;
+    float rightX = (visualWidth * 0.5f) - edgeInset;
+    float travelDistance = Mathf.Max(0.05f, visualWidth - (edgeInset * 2f));
+    float horizontalSpeed = travelDistance / SliceInternalEnergyLifetime;
+
+    ConfigureSliceInternalEnergyEmitter(
+        sliceInternalEnergyLeftParticleSystem,
+        sliceInternalEnergyLeftRenderer,
+        new Vector3(leftX, 0f, -0.06f),
+        1f,
+        horizontalSpeed,
+        17);
+    ConfigureSliceInternalEnergyEmitter(
+        sliceInternalEnergyRightParticleSystem,
+        sliceInternalEnergyRightRenderer,
+        new Vector3(rightX, 0f, -0.06f),
+        -1f,
+        horizontalSpeed,
+        43);
+}
+
+private Vector2 GetSliceInternalEnergyVisualSize()
+{
+    Vector2 visualSize = originalSize;
+    if ((visualSize.x <= 0f || visualSize.y <= 0f) && sr != null)
+        visualSize = sr.size;
+
+    if (visualSize.x <= 0f)
+        visualSize.x = Mathf.Max(1, width) - 0.01f;
+
+    if (visualSize.y <= 0f)
+        visualSize.y = 0.99f;
+
+    return visualSize;
+}
+
+private void ConfigureSliceInternalEnergyEmitter(
+    ParticleSystem particleSystem,
+    ParticleSystemRenderer particleRenderer,
+    Vector3 localPosition,
+    float direction,
+    float horizontalSpeed,
+    int seedSalt)
+{
+    if (particleSystem == null || particleRenderer == null)
+        return;
+
+    bool wasPlaying = particleSystem.isPlaying;
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.transform.localPosition = localPosition;
+    bool usePrefabSettings = sliceInternalEnergyFlowPrefab != null;
+
+    if (!usePrefabSettings)
+        ConfigureSliceInternalEnergyFallback(particleSystem, particleRenderer);
+
+    particleSystem.useAutoRandomSeed = false;
+    particleSystem.randomSeed = GetSliceInternalEnergySeed(seedSalt);
+
+    // Width-aware movement is runtime-owned; all particle styling remains prefab-owned.
+    ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
+    velocity.enabled = true;
+    velocity.space = ParticleSystemSimulationSpace.Local;
+    float signedSpeed = horizontalSpeed * Mathf.Sign(direction);
+    velocity.x = new ParticleSystem.MinMaxCurve(signedSpeed * 0.6f, signedSpeed * 1.0f);
+
+    if (particleRenderer.sharedMaterial == null)
+        particleRenderer.sharedMaterial = GetSliceInternalEnergyFallbackMaterial();
+    if (particleRenderer.trailMaterial == null)
+        particleRenderer.trailMaterial = particleRenderer.sharedMaterial;
+
+    if (wasPlaying)
+        particleSystem.Play(true);
+}
+
+private static void ConfigureSliceInternalEnergyFallback(
+    ParticleSystem particleSystem,
+    ParticleSystemRenderer particleRenderer)
+{
+    ParticleSystem.MainModule main = particleSystem.main;
+    main.loop = true;
+    main.prewarm = true;
+    main.playOnAwake = false;
+    main.duration = 1.0f;
+    main.simulationSpace = ParticleSystemSimulationSpace.Local;
+    main.gravityModifier = 0f;
+    main.startSpeed = 0f;
+    main.startLifetime = new ParticleSystem.MinMaxCurve(0.65f, 0.8f);
+    main.startSize3D = false;
+    main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.07f);
+    main.maxParticles = 18;
+    main.startColor = new ParticleSystem.MinMaxGradient(
+        new Color(0.55f, 0.92f, 1f, 0.78f),
+        new Color(0.92f, 1f, 1f, 0.9f));
+
+    ParticleSystem.EmissionModule emission = particleSystem.emission;
+    emission.enabled = true;
+    emission.rateOverTime = 1.0f;
+
+    ParticleSystem.ShapeModule shape = particleSystem.shape;
+    shape.enabled = true;
+    shape.shapeType = ParticleSystemShapeType.Box;
+    shape.scale = new Vector3(0.015f, 0.3f, 0f);
+
+    ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particleSystem.colorOverLifetime;
+    colorOverLifetime.enabled = true;
+    Gradient color = new Gradient();
+    color.SetKeys(
+        new[]
+        {
+            new GradientColorKey(new Color(0.5f, 0.9f, 1f), 0f),
+            new GradientColorKey(Color.white, 0.5f),
+            new GradientColorKey(new Color(0.35f, 0.8f, 1f), 1f)
+        },
+        new[]
+        {
+            new GradientAlphaKey(0f, 0f),
+            new GradientAlphaKey(0.88f, 0.12f),
+            new GradientAlphaKey(0.45f, 0.65f),
+            new GradientAlphaKey(0f, 1f)
+        });
+    colorOverLifetime.color = new ParticleSystem.MinMaxGradient(color);
+
+    ParticleSystem.TrailModule trails = particleSystem.trails;
+    trails.enabled = true;
+    trails.mode = ParticleSystemTrailMode.PerParticle;
+    trails.ratio = 1f;
+    trails.lifetime = 0.55f;
+    trails.dieWithParticles = true;
+    trails.sizeAffectsWidth = true;
+    trails.sizeAffectsLifetime = false;
+    trails.minVertexDistance = 0.003f;
+    trails.inheritParticleColor = true;
+    trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
+    trails.widthOverTrail = new ParticleSystem.MinMaxCurve(
+        1f,
+        new AnimationCurve(
+            new Keyframe(0f, 0.85f),
+            new Keyframe(0.35f, 0.6f),
+            new Keyframe(0.75f, 0.28f),
+            new Keyframe(1f, 0f)));
+    trails.colorOverLifetime = colorOverLifetime.color;
+
+    particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+    particleRenderer.alignment = ParticleSystemRenderSpace.View;
+    particleRenderer.sortMode = ParticleSystemSortMode.OldestInFront;
+}
+
+private uint GetSliceInternalEnergySeed(int salt)
+{
+    return (uint)Mathf.Max(1, Mathf.FloorToInt(GetFireIdleHash01(3, salt) * 2147483646f));
+}
+
+private static Material GetSliceInternalEnergyFallbackMaterial()
+{
+    Shader spriteShader = Shader.Find("Sprites/Default");
+    if (spriteShader == null)
+        return null;
+
+    Material fallbackMaterial = new Material(spriteShader);
+    fallbackMaterial.name = "Runtime_SliceEnergyFallback";
+    fallbackMaterial.color = Color.white;
+    return fallbackMaterial;
+}
+
+private void ClearSliceInternalEnergyFlow()
+{
+    StopSliceInternalEnergyFlow();
+
+    Transform flowRoot = transform.Find(SliceInternalEnergyRootName);
+    if (flowRoot != null)
+        Destroy(flowRoot.gameObject);
+
+    sliceInternalEnergyLeftParticleSystem = null;
+    sliceInternalEnergyRightParticleSystem = null;
+    sliceInternalEnergyLeftRenderer = null;
+    sliceInternalEnergyRightRenderer = null;
+}
+
+private void StopSliceInternalEnergyFlow()
+{
+    StopSliceInternalEnergyEmitter(sliceInternalEnergyLeftParticleSystem);
+    StopSliceInternalEnergyEmitter(sliceInternalEnergyRightParticleSystem);
+}
+
+private static void StopSliceInternalEnergyEmitter(ParticleSystem particleSystem)
+{
+    if (particleSystem == null)
+        return;
+
+    particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    particleSystem.Clear(true);
+}
+
+private static void PlaySliceInternalEnergyFlow(ParticleSystem particleSystem)
+{
+    if (particleSystem != null && !particleSystem.isPlaying)
+        particleSystem.Play(true);
+}
+
+private void RefreshSliceInternalEnergyFlowSorting()
+{
+    int sortingLayerId = sr != null ? sr.sortingLayerID : 0;
+    int sortingOrder = sr != null ? sr.sortingOrder : 0;
+
+    ApplySliceInternalEnergyRendererSorting(sliceInternalEnergyLeftRenderer, sortingLayerId, sortingOrder);
+    ApplySliceInternalEnergyRendererSorting(sliceInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
+}
+
+private static void ApplySliceInternalEnergyRendererSorting(
+    ParticleSystemRenderer particleRenderer,
+    int sortingLayerId,
+    int baseSortingOrder)
+{
+    if (particleRenderer == null)
+        return;
+
+    particleRenderer.sortingLayerID = sortingLayerId;
+    particleRenderer.sortingOrder = baseSortingOrder + 1;
 }
 
 private void RemoveLegacyFireInternalEnergyFlow()
@@ -1747,6 +2705,8 @@ private void RemoveLegacyFireInternalEnergyFlow()
         Destroy(legacyFlowRoot.gameObject);
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
+#if false
 private void RefreshFireSurfaceEnergy()
 {
     bool shouldShowSurfaceEnergy =
@@ -1770,6 +2730,7 @@ private void RefreshFireSurfaceEnergy()
         fireSurfaceEnergyRoutine = StartCoroutine(FireSurfaceEnergyRoutine());
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private void ResolveFireSurfaceEnergyRenderer()
 {
     if (fireSurfaceEnergyRenderer != null)
@@ -1799,6 +2760,7 @@ private void ResolveFireSurfaceEnergyRenderer()
     fireSurfaceEnergyRenderer.enabled = false;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private void ConfigureFireSurfaceEnergyRenderer()
 {
     if (fireSurfaceEnergyRenderer == null)
@@ -1822,6 +2784,7 @@ private void ConfigureFireSurfaceEnergyRenderer()
     fireSurfaceEnergyRenderer.sortingOrder = sr != null ? sr.sortingOrder + 2 : 2;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private IEnumerator FireSurfaceEnergyRoutine()
 {
     float initialDelay = Mathf.Lerp(
@@ -1878,6 +2841,7 @@ private IEnumerator FireSurfaceEnergyRoutine()
     fireSurfaceEnergyRoutine = null;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private int GetFireSurfaceEnergyCellIndex(int eventSequence, int previousCellIndex)
 {
     int cellCount = Mathf.Clamp(width, 1, MaxFireIdleFlameEmitters);
@@ -1892,6 +2856,7 @@ private int GetFireSurfaceEnergyCellIndex(int eventSequence, int previousCellInd
     return (cellIndex + alternateOffset) % cellCount;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private int GetFireSurfaceEnergyAnchorIndex(int eventSequence, int cellIndex, int previousCellIndex, int previousAnchorIndex)
 {
     int firstCandidate = Mathf.FloorToInt(GetFireIdleHash01(eventSequence + cellIndex, 53) * FireSurfaceEnergyAnchorOffsets.Length);
@@ -1906,6 +2871,7 @@ private int GetFireSurfaceEnergyAnchorIndex(int eventSequence, int cellIndex, in
     return 0;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private bool IsFireSurfaceEnergyAnchorSafe(int cellIndex, int anchorIndex)
 {
     if (width == 1)
@@ -1921,6 +2887,7 @@ private bool IsFireSurfaceEnergyAnchorSafe(int cellIndex, int anchorIndex)
     return true;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private Vector3 GetFireSurfaceEnergyLocalPosition(int cellIndex, int anchorIndex)
 {
     float leftmostCellCenter = -((width - 1) * 0.5f);
@@ -1929,6 +2896,7 @@ private Vector3 GetFireSurfaceEnergyLocalPosition(int cellIndex, int anchorIndex
     return new Vector3(localX, anchorOffset.y, -0.025f);
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private float GetFireSurfaceEnergyIdleDelay(int eventSequence)
 {
     float minimumDelay;
@@ -1957,6 +2925,7 @@ private float GetFireSurfaceEnergyIdleDelay(int eventSequence)
     return Mathf.Lerp(minimumDelay, maximumDelay, GetFireIdleHash01(eventSequence, 61));
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private void ClearFireSurfaceEnergy()
 {
     StopFireSurfaceEnergyRoutine();
@@ -1968,6 +2937,7 @@ private void ClearFireSurfaceEnergy()
     fireSurfaceEnergyRenderer = null;
 }
 
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
 private void StopFireSurfaceEnergyRoutine()
 {
     if (fireSurfaceEnergyRoutine != null)
@@ -1982,19 +2952,51 @@ private void StopFireSurfaceEnergyRoutine()
         fireSurfaceEnergyRenderer.enabled = false;
     }
 }
+#endif
 
 private void OnDisable()
 {
     StopFireInternalEnergyFlow();
-    StopFireSurfaceEnergyRoutine();
+    StopSliceInternalEnergyFlow();
+    SetSliceSymbolActive(false);
 }
 
 private void OnEnable()
 {
-    if (Application.isPlaying && isSpecialVisualActive && blockType == BlockType.Fire)
+    if (!Application.isPlaying)
+        return;
+
+    if (isSpecialVisualActive && blockType == BlockType.Fire)
+    {
+        // FIRE_V2_CLEANUP: Re-enable the retained FireInternalEnergyFlow only.
+        // RefreshFireSliceVisuals();
+        ConfigureFireSymbol();
+        ClearSliceInternalEnergyFlow();
+        SetSliceSymbolActive(false);
         RefreshFireInternalEnergyFlow();
+    }
+    else if (isSpecialVisualActive && blockType == BlockType.Slice)
+    {
+        ClearFireSymbol();
+        ClearFireInternalEnergyFlow();
+        RefreshSliceInternalEnergyFlow();
+        SetSliceSymbolActive(true);
+    }
+    else
+    {
+        ClearSliceInternalEnergyFlow();
+        SetSliceSymbolActive(false);
+    }
 }
 
+private void OnDestroy()
+{
+    ClearSliceInternalEnergyFlow();
+    SetSliceSymbolActive(false);
+}
+
+// FIRE_V2_CLEANUP: Legacy Fire Surface Energy method preserved but disabled.
+#if false
 private void RefreshFireSurfaceEnergySorting()
 {
     if (fireSurfaceEnergyRenderer == null)
@@ -2003,7 +3005,10 @@ private void RefreshFireSurfaceEnergySorting()
     fireSurfaceEnergyRenderer.sortingLayerID = sr != null ? sr.sortingLayerID : 0;
     fireSurfaceEnergyRenderer.sortingOrder = sr != null ? sr.sortingOrder + 2 : 2;
 }
+#endif
 
+#if false
+// FIRE_V2_CLEANUP: Legacy Fire surface scrubber disabled with the old surface system.
 private void RemoveLegacyFireSurfaceVisuals()
 {
     RemoveLegacyFireSurfaceVisual("FireSurfaceEnergy");
@@ -2025,13 +3030,17 @@ private void RemoveLegacyFireSurfaceVisuals()
     }
 }
 
+// FIRE_V2_CLEANUP: Retained as the helper for the required active legacy-surface cleanup call.
 private void RemoveLegacyFireSurfaceVisual(string childName)
 {
     Transform child = transform.Find(childName);
     if (child != null)
         Destroy(child.gameObject);
 }
+#endif
 
+// FIRE_V2_CLEANUP: Legacy Fire Idle Particle method preserved but disabled.
+#if false
 private IEnumerator FireIdleParticleRoutine()
 {
     while (true)
@@ -2064,6 +3073,7 @@ private IEnumerator FireIdleParticleRoutine()
         }
     }
 }
+#endif
 
 public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefab)
     {

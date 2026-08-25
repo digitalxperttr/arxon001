@@ -2425,15 +2425,6 @@ MonoBehaviour:
   enableCameraShake: 1
   shakeDuration: 0.18
   shakeStrength: 0.14
-  fireTriggerText: FIRE!
-  fireTriggerTextColor: {r: 1, g: 0.35, b: 0.05, a: 1}
-  fireTriggerTextSize: 11.1
-  fireTriggerShakeDuration: 0.18
-  fireTriggerShakeStrength: 0.16
-  enableFireArcVisual: 1
-  fireArcDuration: 0.29
-  fireArcWidth: 0.24
-  fireArcColor: {r: 1, g: 0.35, b: 0.05, a: 1}
   fireWaveDelayBetweenBlocks: 0.18
   enableFireWaveClear: 1
   sliceTriggerText: SLICE!
@@ -2449,8 +2440,6 @@ MonoBehaviour:
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
   chainBreakImpactPause: 0.16
-  firePulseScale: 1.52
-  firePulseDuration: 0.1
   enableClassicDoubleRowSpawn: 1
   activeBlocks: []
   blockPrefab: {fileID: 4165942794352353875, guid: c68cd50a2b94e4ed5ac370d3e673a80e, type: 3}

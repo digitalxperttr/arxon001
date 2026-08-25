@@ -46,7 +46,7 @@ public class BlockTestSpawner : MonoBehaviour
             }
 
             BlockType resolvedType = ResolveBlockType(placement);
-            int resolvedWidth = ResolveWidth(placement, resolvedType);
+            int resolvedWidth = ResolveWidth(placement);
 
             if (placement.x + resolvedWidth > gridManager.width)
             {
@@ -117,11 +117,8 @@ public class BlockTestSpawner : MonoBehaviour
         }
     }
 
-    private static int ResolveWidth(TestBlockPlacement placement, BlockType resolvedType)
+    private static int ResolveWidth(TestBlockPlacement placement)
     {
-        if (resolvedType == BlockType.Slice)
-            return 1;
-
         return Mathf.Max(1, placement.width);
     }
 

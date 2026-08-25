@@ -101,9 +101,14 @@ public class GridManager : MonoBehaviour
     [SerializeField] private LengthSpriteSet chainIntactLengthSprites;
     [SerializeField] private LengthSpriteSet chainDamagedLengthSprites;
     public Sprite lavaSprite;      // 6. sıradaki lavlı taş (Yeni mekanik!)
-    [Header("Özel Blok Ayarları")]
-    public Sprite fireSprite;
-    public Sprite sliceSprite;
+    [Header("Fire Block Sprites")]
+    [SerializeField] private Sprite fireSprite_S;
+    [SerializeField] private Sprite fireSprite_M;
+    [SerializeField] private Sprite fireSprite_L;
+    [Header("Slice Block Sprites")]
+    [SerializeField] private Sprite sliceSprite_S;
+    [SerializeField] private Sprite sliceSprite_M;
+    [SerializeField] private Sprite sliceSprite_L;
 
     [Header("Collectibles")]
     [SerializeField] private CollectibleDatabase collectibleDatabase;
@@ -147,25 +152,10 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float shakeDuration = 0.12f;
     [SerializeField] private float shakeStrength = 0.08f;
 
-    [Header("Fire Trigger Feedback")]
-    [SerializeField] private string fireTriggerText = "FIRE!";
-    [SerializeField] private Color fireTriggerTextColor = new Color(1f, 0.35f, 0.05f);
-    [SerializeField] private float fireTriggerTextSize = 9f;
-
-    [SerializeField] private float fireTriggerShakeDuration = 0.18f;
-    [SerializeField] private float fireTriggerShakeStrength = 0.16f;
-
-    [Header("Fire Arc Visual")]
-    [SerializeField] private bool enableFireArcVisual = true;
-    [SerializeField] private float fireArcDuration = 0.08f;
-    [SerializeField] private float fireArcWidth = 0.06f;
-    [SerializeField] private Color fireArcColor = new Color(1f, 0.35f, 0.05f, 1f);
-
-    [Header("Fire Wave Clear")]
+    [Header("Fire Wave Clear Timing")]
+    // Neutral cadence retained after each target batch; this replaces the removed FireArc wait.
     [SerializeField] private float fireWaveDelayBetweenBlocks = 0.045f;
     [SerializeField] private bool enableFireWaveClear = true;
-    private bool hasFireSourcePosition = false;
-    private Vector3 currentFireSourcePosition;
     private Block heldFireSourceBlock;
     private bool isFireResolving = false;
 
@@ -187,10 +177,6 @@ public class GridManager : MonoBehaviour
 
     [Header("Chain Break Feedback")]
     [SerializeField] private float chainBreakImpactPause = 0.16f;
-
-    [Header("Fire Color Pulse")]
-    [SerializeField] private float firePulseScale = 1.12f;
-    [SerializeField] private float firePulseDuration = 0.12f;
 
     [SerializeField] private bool enableClassicDoubleRowSpawn = true;
     private BlockTestSpawner blockTestSpawner;
@@ -281,6 +267,7 @@ public struct BlockData
     public int width;
     public Color color;
     public Sprite visualSprite;
+    public GemColor fireTargetColor;
 
     public BlockType blockType;
 
@@ -682,8 +669,6 @@ public BlockData CreateSingleCellBlockData(int x, BlockType blockType, int norma
         case BlockType.Fire:
             break;
         case BlockType.Slice:
-            if (sliceSprite != null)
-                data.visualSprite = sliceSprite;
             break;
     }
 
@@ -703,6 +688,7 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
     newBlock.x = data.x;
     newBlock.y = y;
     newBlock.blockType = data.blockType;
+    newBlock.fireTargetColor = data.fireTargetColor;
 
     newBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
 
@@ -799,6 +785,7 @@ private void ApplyNormalGemVisual(ref BlockData data, int normalGemIndex, bool u
 
     data.visualSprite = normalGems[resolvedIndex].sprite;
     data.color = normalGems[resolvedIndex].particleColor;
+    data.fireTargetColor = ResolveGemColor(data.color);
 }
 
 public Sprite GetVisualSpriteForBlockData(BlockData data)
@@ -813,12 +800,55 @@ public Sprite GetVisualSpriteForBlockData(BlockData data)
         return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
 
     if (data.blockType == BlockType.Fire)
-        return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+        return GetSpecialBlockSprite(BlockType.Fire, data.width) ??
+               FireV2SpriteLibrary.GetFireBaseSprite() ??
+               data.visualSprite;
+
+    if (data.blockType == BlockType.Slice)
+        return GetSpecialBlockSprite(BlockType.Slice, data.width) ??
+               data.visualSprite;
 
     if (data.blockType != BlockType.Normal)
         return data.visualSprite;
 
     return GetNormalGemSpriteForColorAndLength(data.color, data.width, data.visualSprite);
+}
+
+public Sprite GetSpecialBlockSprite(BlockType type, int blockWidth)
+{
+    switch (type)
+    {
+        case BlockType.Fire:
+            return GetFireSprite(blockWidth);
+
+        case BlockType.Slice:
+            return GetSliceSprite(blockWidth);
+
+        default:
+            return null;
+    }
+}
+
+private Sprite GetFireSprite(int blockWidth)
+{
+    if (blockWidth <= 1)
+        return fireSprite_S;
+
+    if (blockWidth == 2)
+        return fireSprite_M;
+
+    return fireSprite_L;
+}
+
+private Sprite GetSliceSprite(int blockWidth)
+{
+    if (blockWidth <= 1)
+        return sliceSprite_S;
+
+    if (blockWidth == 2)
+        return sliceSprite_M;
+
+    return sliceSprite_L;
 }
 
 public Sprite GetRockSpriteForLength(int logicalLength)
@@ -872,6 +902,40 @@ private static bool ApproximatelySameColor(Color a, Color b)
            Mathf.Approximately(a.g, b.g) &&
            Mathf.Approximately(a.b, b.b) &&
            Mathf.Approximately(a.a, b.a);
+}
+
+public Color GetColorForGemColor(GemColor targetColor)
+{
+    if (normalGems != null)
+    {
+        for (int i = 0; i < normalGems.Length; i++)
+        {
+            if (ResolveGemColor(normalGems[i].particleColor) == targetColor)
+                return normalGems[i].particleColor;
+        }
+    }
+
+    Debug.LogWarning($"GridManager: No normal gem color is configured for Fire target {targetColor}.");
+    return Color.clear;
+}
+
+private static GemColor ResolveGemColor(Color color)
+{
+    Color.RGBToHSV(color, out float hue, out _, out _);
+
+    if (hue < 0.05f || hue >= 0.95f)
+        return GemColor.Red;
+
+    if (hue < 0.20f)
+        return GemColor.Yellow;
+
+    if (hue < 0.48f)
+        return GemColor.Green;
+
+    if (hue < 0.68f)
+        return GemColor.Blue;
+
+    return GemColor.Purple;
 }
 
 
@@ -2115,69 +2179,15 @@ private IEnumerator CameraShakeRoutine(float duration, float strength)
     cam.transform.position = originalPos;
 }
 
-public void ShowFireTriggerFeedback(Block fireBlock)
-{
-    if (fireBlock == null)
-        return;
-
-    if (floatingTextPrefab != null)
-    {
-        Vector3 textPos = fireBlock.transform.position + new Vector3(0f, 1.2f, 0f);
-        FloatingText text = Instantiate(floatingTextPrefab, textPos, Quaternion.identity);
-        text.SetText(fireTriggerText, fireTriggerTextColor, fireTriggerTextSize);
-    }
-
-    StartCoroutine(CameraShakeRoutine(
-        fireTriggerShakeDuration,
-        fireTriggerShakeStrength
-    ));
-}
-
 public void SetCurrentFireSource(Block fireBlock)
 {
     if (fireBlock == null)
     {
-        hasFireSourcePosition = false;
         heldFireSourceBlock = null;
         return;
     }
 
-    currentFireSourcePosition = fireBlock.transform.position;
-    hasFireSourcePosition = true;
     heldFireSourceBlock = fireBlock;
-}
-
-private IEnumerator FireArcRoutine(Vector3 startPos, Vector3 endPos)
-{
-    if (!enableFireArcVisual)
-        yield break;
-
-    GameObject arcObj = new GameObject("FireArc");
-
-    LineRenderer line = arcObj.AddComponent<LineRenderer>();
-
-    line.positionCount = 2;
-    line.SetPosition(0, startPos);
-    line.SetPosition(1, endPos);
-
-    line.startWidth = fireArcWidth;
-    line.endWidth = fireArcWidth * 0.4f;
-
-    line.startColor = fireArcColor;
-    line.endColor = new Color(fireArcColor.r, fireArcColor.g, fireArcColor.b, 0f);
-
-    line.sortingOrder = 50;
-
-    Shader spriteShader = Shader.Find("Sprites/Default");
-    if (spriteShader != null)
-    {
-        Material mat = new Material(spriteShader);
-        line.material = mat;
-    }
-
-    yield return new WaitForSeconds(fireArcDuration);
-
-    Destroy(arcObj);
 }
 
 public void ShowSliceTriggerFeedback(Block target)
@@ -2193,50 +2203,6 @@ public void ShowSliceTriggerFeedback(Block target)
     }
 
     StartCoroutine(CameraShakeRoutine(sliceShakeDuration, sliceShakeStrength));
-}
-
-private IEnumerator FireColorPulseRoutine(Color targetColor)
-{
-    List<Block> affectedBlocks = new List<Block>();
-
-    foreach (Block block in activeBlocks)
-    {
-        if (block == null)
-            continue;
-
-        if (block.isBeingDestroyed)
-            continue;
-
-        if (block.blockColor == targetColor)
-        {
-            affectedBlocks.Add(block);
-        }
-    }
-
-    Dictionary<Block, Vector3> originalScales = new Dictionary<Block, Vector3>();
-
-    foreach (Block block in affectedBlocks)
-    {
-        if (block == null)
-            continue;
-
-        originalScales[block] = block.transform.localScale;
-
-        block.transform.localScale *= firePulseScale;
-    }
-
-    yield return new WaitForSeconds(firePulseDuration);
-
-    foreach (Block block in affectedBlocks)
-    {
-        if (block == null)
-            continue;
-
-        if (originalScales.ContainsKey(block))
-        {
-            block.transform.localScale = originalScales[block];
-        }
-    }
 }
 
 bool IsRowFull(int y)
@@ -3063,11 +3029,7 @@ public void GenerateNextRowData()
             else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
             {
                 newData.blockType = BlockType.Slice;
-                newData.width = 1;
                 currentSliceCount++;
-
-                if (sliceSprite != null)
-                    newData.visualSprite = sliceSprite;
             }
 }
 
@@ -3135,11 +3097,7 @@ public void GenerateNextRowData()
                else if (canSpawnSlice && specialRoll < currentFireChance + currentSliceChance)
                {
                    newData.blockType = BlockType.Slice;
-                   newData.width = 1;
                    currentSliceCount++;
-
-                   if (sliceSprite != null)
-                       newData.visualSprite = sliceSprite;
                }
            }
 
@@ -3250,6 +3208,10 @@ private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
     previewBlock.enabled = false;
     if (previewBlock.TryGetComponent<Collider2D>(out Collider2D col)) col.enabled = false;
 
+    previewBlock.width = data.width;
+    previewBlock.blockType = data.blockType;
+    previewBlock.fireTargetColor = data.fireTargetColor;
+
     previewBlock.SetVisual(GetVisualSpriteForBlockData(data), data.color, data.width);
 
     if (data.isFrozen) previewBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
@@ -3319,8 +3281,6 @@ public void DestroyBlocksByColor(Color targetColor)
     }
 
     System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
-
-    StartCoroutine(FireColorPulseRoutine(targetColor));
 
     foreach (Block block in activeBlocks)
     {
@@ -3401,16 +3361,9 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
         if (block.isBeingDestroyed)
             continue;
 
-        if (hasFireSourcePosition)
-        {
-            yield return StartCoroutine(FireArcRoutine(
-                currentFireSourcePosition,
-                block.transform.position
-            ));
-        }
-
         SafeDestroyBlock(block);
 
+        // Preserve a non-zero wave cadence after removing the old per-target arc wait.
         yield return new WaitForSeconds(fireWaveDelayBetweenBlocks);
     }
 
@@ -3425,7 +3378,6 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
         yield return StartCoroutine(RebuildAndApplyGravityRoutine());
     }
 
-    hasFireSourcePosition = false;
     isFireResolving = false;
 
             yield return StartCoroutine(CheckAndClearRowsRoutine(false, 0));
