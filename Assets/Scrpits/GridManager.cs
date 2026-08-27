@@ -159,6 +159,15 @@ public class GridManager : MonoBehaviour
     private Block heldFireSourceBlock;
     private bool isFireResolving = false;
 
+    [Header("Fire Arc FX")]
+    [SerializeField] private bool     enableFireArcFX     = true;
+    [SerializeField] private Material fireArcMaterial;             // null → FireArcFX runtime fallback
+    [SerializeField] private float    fireArcDuration     = 0.20f;
+    [SerializeField] private int      fireArcSegments     = 12;
+    [SerializeField] private float    fireArcDisplacement = 0.20f;
+    [SerializeField] private float    fireArcStartWidth   = 0.18f;
+    [SerializeField] private float    fireArcEndWidth     = 0.10f;
+
     [Header("Slice Trigger Feedback")]
     [SerializeField] private string sliceTriggerText = "SLICE!";
     [SerializeField] private Color sliceTriggerTextColor = new Color(0.5f, 0.9f, 1f);
@@ -2221,7 +2230,6 @@ bool ClearRow(int y, out string specialResolutionTypes)
         List<string> specialResolutionReasons = new List<string>();
         System.Collections.Generic.List<Block> blocksToDestroy = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.List<Block> blocksToUnfreeze = new System.Collections.Generic.List<Block>();
-        System.Collections.Generic.List<Block> blocksToHoldSlice = new System.Collections.Generic.List<Block>();
         System.Collections.Generic.HashSet<Block> processedChainedBlocks = new System.Collections.Generic.HashSet<Block>();
         System.Collections.Generic.HashSet<Block> protectedFromRemovalThisClear = new System.Collections.Generic.HashSet<Block>();
 
@@ -2268,20 +2276,8 @@ bool ClearRow(int y, out string specialResolutionTypes)
                         AddSpecialResolutionReason(specialResolutionReasons, "Slice");
                     }
 
-                    if (b.blockType == BlockType.Slice)
-                    {
-                        if (!blocksToHoldSlice.Contains(b))
-                        {
-                            blocksToHoldSlice.Add(b);
-                            b.TriggerSpecial();
-                            StartCoroutine(SliceSourceHoldAndDestroyRoutine(b));
-                        }
-                    }
-                    else
-                    {
-                        b.TriggerSpecial();
-                        blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
-                    }
+                    b.TriggerSpecial();
+                    blocksToDestroy.Add(b); // Hiçbir şeyi yoksa patlayacak!
                 }
             }
         }
@@ -3353,6 +3349,32 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
         return a.x.CompareTo(b.x);
     });
 
+    // [Fire Arc FX] Tüm hedeflere aynı anda çok kollu yıldırım arkları bağlanır ve bloklar elektrikle titrer.
+    if (enableFireArcFX && heldFireSourceBlock != null && blocksToDestroy.Count > 0)
+    {
+        Vector3 arcOrigin = heldFireSourceBlock.GetArcAnchorPosition();
+        foreach (Block arcTarget in blocksToDestroy)
+        {
+            if (arcTarget == null || arcTarget.isBeingDestroyed) continue;
+
+            FireArcFX.Spawn(
+                arcOrigin,
+                arcTarget.GetArcAnchorPosition(),
+                arcTarget.GetArcTargetSize(),
+                fireArcDuration,
+                fireArcSegments,
+                fireArcDisplacement,
+                fireArcStartWidth,
+                fireArcEndWidth,
+                fireArcMaterial);
+
+            arcTarget.PlayFireShockFeedback(fireArcDuration);
+        }
+
+        // Elektrik çarpması ve şok hissinin gözlemlenmesi için kısa bir yüklenme beklemesi
+        yield return new WaitForSeconds(0.12f);
+    }
+
     foreach (Block block in blocksToDestroy)
     {
         if (block == null)
@@ -3397,7 +3419,7 @@ public void TriggerSlice(Block sliceBlock)
         return;
 
     isSliceResolving = true;
-    activeSliceOperations = targets.Count;
+    activeSliceOperations += targets.Count;
 
     foreach (Block target in targets)
     {
@@ -3638,8 +3660,6 @@ private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color colo
 
     if (sr != null)
     {
-        sr.color = color;
-
         if (resolvedSprite != null)
             sr.sprite = resolvedSprite;
     }
@@ -3707,10 +3727,7 @@ void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)
 
     SpriteRenderer sr = newBlock.GetComponent<SpriteRenderer>();
 
-
-    sr.color = color;
-
-    if (resolvedSprite != null)
+    if (sr != null && resolvedSprite != null)
         sr.sprite = resolvedSprite;
 
         float worldX = x + (widthValue - 1) * 0.5f;

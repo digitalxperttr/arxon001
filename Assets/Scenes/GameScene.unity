@@ -6036,8 +6036,12 @@ MonoBehaviour:
     medium: {fileID: -4082812798659302950, guid: d3103e17591184bf38f18d975be3a886, type: 3}
     longSprite: {fileID: 8095894668025431291, guid: d3103e17591184bf38f18d975be3a886, type: 3}
   lavaSprite: {fileID: 4076358627677379966, guid: e19f87b5fd0ab45d7b3998622abab177, type: 3}
-  fireSprite: {fileID: -5509541731536557800, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
-  sliceSprite: {fileID: -8413030977811616270, guid: 4c6bd3db3351b4d64b49e9c9d19de1a9, type: 3}
+  fireSprite_S: {fileID: 5783049301640610061, guid: 3c42c1ca74b2f4c88a831ba461a8cdea, type: 3}
+  fireSprite_M: {fileID: 1568275631164052422, guid: 3c42c1ca74b2f4c88a831ba461a8cdea, type: 3}
+  fireSprite_L: {fileID: 5678204668600198272, guid: 3c42c1ca74b2f4c88a831ba461a8cdea, type: 3}
+  sliceSprite_S: {fileID: -7342109667524241327, guid: 24623a0a01ba1465d875ba26c955f34a, type: 3}
+  sliceSprite_M: {fileID: 1087277267478487619, guid: 24623a0a01ba1465d875ba26c955f34a, type: 3}
+  sliceSprite_L: {fileID: -2421002157673639619, guid: 24623a0a01ba1465d875ba26c955f34a, type: 3}
   collectibleDatabase: {fileID: 11400000, guid: d4062123a93f24a458243bba0d128df8, type: 2}
   classicFireChance: 0.107
   classicSliceChance: 0.173
@@ -6073,6 +6077,13 @@ MonoBehaviour:
   shakeStrength: 0.14
   fireWaveDelayBetweenBlocks: 0.18
   enableFireWaveClear: 1
+  enableFireArcFX: 1
+  fireArcMaterial: {fileID: 0}
+  fireArcDuration: 0.2
+  fireArcSegments: 12
+  fireArcDisplacement: 0.2
+  fireArcStartWidth: 0.18
+  fireArcEndWidth: 0.1
   sliceTriggerText: SLICE!
   sliceTriggerTextColor: {r: 0.5, g: 0.9, b: 1, a: 1}
   sliceTriggerTextSize: 8

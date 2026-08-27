@@ -2,15 +2,20 @@
 
 ## Core Principle
 
-Never optimize for speed over correctness.
+Never optimize for speed over correctness on implementation tasks.
 
-Never infer runtime behavior from static code alone.
+Never infer runtime behavior from static code alone during debugging.
 
-Evidence is always preferred over assumptions.
+Evidence is always preferred over assumptions when fixing issues.
 
-When uncertain, investigate first.
+When uncertain about code changes, investigate first.
 
-## Working Rules
+## Query Routing & Interaction Mode
+
+- **General / Conversational Queries**: If the user is asking a casual question, giving feedback, asking for explanations, opinions, or general workflow advice, **respond directly in text**. Do NOT trigger codebase searches, file inspections, or background investigative tools unless explicitly requested.
+- **Implementation / Debugging Tasks**: When the user explicitly requests code changes, bug fixes, or scene inspection, apply the structured investigation and verification phases below.
+
+## Working Rules (Active Code & Debugging Tasks)
 
 - Read the relevant code, scene, prefab, and project context before making assumptions.
 - Separate work into Investigation, Implementation, and Validation phases.

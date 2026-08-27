@@ -139,6 +139,8 @@ public class Block : MonoBehaviour
     private ParticleSystem sliceInternalEnergyRightParticleSystem;
     private ParticleSystemRenderer sliceInternalEnergyLeftRenderer;
     private ParticleSystemRenderer sliceInternalEnergyRightRenderer;
+    private SpriteRenderer sliceSymbolRenderer;
+    private readonly List<SpriteRenderer> sliceSymbolChildRenderers = new List<SpriteRenderer>();
     // FIRE_V2_CLEANUP: Legacy surface renderer remains disabled until its V2 replacement exists.
     private SpriteRenderer fireSurfaceEnergyRenderer = null;
     private SpriteRenderer fireSymbolGlowRenderer;
@@ -229,6 +231,7 @@ public void SetHighlight(bool isHighlighted)
         RefreshChainOverlays();
         RefreshCollectibleVisual();
         RefreshFireSymbolSorting();
+        RefreshSliceSymbolSorting();
         RefreshFireInternalEnergyFlowSorting();
         RefreshSliceInternalEnergyFlowSorting();
 
@@ -367,10 +370,67 @@ private void RefreshFireSymbolSorting()
     }
 }
 
+private void ResolveSliceSymbolRenderers()
+{
+    if (sliceSymbolRoot == null)
+        return;
+
+    if (sliceSymbolRenderer == null)
+        sliceSymbolRenderer = sliceSymbolRoot.GetComponent<SpriteRenderer>();
+
+    if (sliceSymbolChildRenderers.Count == 0)
+    {
+        for (int i = 0; i < sliceSymbolRoot.transform.childCount; i++)
+        {
+            Transform child = sliceSymbolRoot.transform.GetChild(i);
+            SpriteRenderer childSr = child.GetComponent<SpriteRenderer>();
+            if (childSr != null)
+                sliceSymbolChildRenderers.Add(childSr);
+        }
+    }
+}
+
+private void RefreshSliceSymbolSorting()
+{
+    if (sliceSymbolRoot == null)
+        return;
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    if (sr == null)
+        return;
+
+    ResolveSliceSymbolRenderers();
+
+    int sortingLayerId = sr.sortingLayerID;
+    int baseOrder = sr.sortingOrder;
+
+    if (sliceSymbolRenderer != null)
+    {
+        sliceSymbolRenderer.sortingLayerID = sortingLayerId;
+        sliceSymbolRenderer.sortingOrder = baseOrder + 3;
+    }
+
+    for (int i = 0; i < sliceSymbolChildRenderers.Count; i++)
+    {
+        SpriteRenderer childSr = sliceSymbolChildRenderers[i];
+        if (childSr != null)
+        {
+            childSr.sortingLayerID = sortingLayerId;
+            childSr.sortingOrder = baseOrder + 2;
+        }
+    }
+}
+
 private void SetSliceSymbolActive(bool isActive)
 {
     if (sliceSymbolRoot != null)
+    {
         sliceSymbolRoot.SetActive(isActive);
+        if (isActive)
+            RefreshSliceSymbolSorting();
+    }
 }
 
     // YENİ EKLENEN ANİMASYON FONKSİYONU
@@ -572,6 +632,56 @@ public SpriteRenderer GetCollectibleRenderer()
 {
     ResolveCollectibleVisualReferences();
     return collectibleVisualRenderer;
+}
+
+/// <summary>
+/// Returns the world-space position used as the anchor for FireArcFX arcs.
+/// Uses vfxAnchor when assigned, otherwise falls back to the block's own transform.
+/// </summary>
+public Vector3 GetArcAnchorPosition()
+{
+    return vfxAnchor != null ? vfxAnchor.position : transform.position;
+}
+
+/// <summary>
+/// Returns the visual size of the block for target shock arc positioning.
+/// </summary>
+public Vector2 GetArcTargetSize()
+{
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+    if (sr != null && sr.size.sqrMagnitude > 0.01f)
+        return sr.size;
+    return new Vector2(Mathf.Max(1, width), 1f);
+}
+
+/// <summary>
+/// Plays an electric overcharge / shock feedback on the block while the lightning arc strikes it.
+/// Shakes the block with high-frequency electric jitter and flashes the overlay.
+/// </summary>
+public void PlayFireShockFeedback(float duration = 0.22f)
+{
+    StartCoroutine(FireShockFeedbackRoutine(duration));
+}
+
+private IEnumerator FireShockFeedbackRoutine(float duration)
+{
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+    Vector3 origPos = transform.localPosition;
+
+    ShowFlashOverlay();
+
+    float elapsed = 0f;
+    while (elapsed < duration)
+    {
+        float jitterAmt = 0.04f * (1f - (elapsed / duration));
+        Vector2 jitter = Random.insideUnitCircle * jitterAmt;
+        transform.localPosition = origPos + new Vector3(jitter.x, jitter.y, 0f);
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    transform.localPosition = origPos;
 }
 
 public void SetGameOverGreyed(bool greyed)
@@ -880,6 +990,7 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
     ApplySliceInternalEnergyRendererSorting(sliceInternalEnergyRightRenderer, sortingLayerId, sortingOrder);
 
     RefreshFireSymbolSorting();
+    RefreshSliceSymbolSorting();
 
 }
 
