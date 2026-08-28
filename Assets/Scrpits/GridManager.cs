@@ -13,14 +13,14 @@ public class GridManager : MonoBehaviour
     private const int PreviewSortingOrder = -5;
     private const float SpecialRowClearGravityStartDelay = 0.2f;
     private const float NormalRowClearGravityStartDelay = 0f;
-    private const float DefaultRowClearCrunchDuration = 0.15f;
-    private const float NormalRowClearCrunchDuration = 0.09f;
+    private const float DefaultRowClearCrunchDuration = 0.28f;
+    private const float NormalRowClearCrunchDuration = 0.22f;
     private const float PushGravityOverlapPushProgressThreshold = 0.75f;
     private static readonly AnimationCurve GravityMotionCurve = new AnimationCurve(
         new Keyframe(0f, 0f, 1.8f, 1.8f),
         new Keyframe(0.12f, 0.23f, 1.55f, 1.25f),
         new Keyframe(0.55f, 0.72f, 0.95f, 0.75f),
-        new Keyframe(0.85f, 0.94f, 0.55f, 0.35f),
+        new Keyframe(0.82f, 1.04f, 0.55f, 0.35f),
         new Keyframe(1f, 1f, 0.15f, 0.15f));
     private const int DangerSafeEmptyRows = 2;
     private const float BoardDangerAlarmMinAlpha = 0.42f;
@@ -154,7 +154,7 @@ public class GridManager : MonoBehaviour
 
     [Header("Fire Wave Clear Timing")]
     // Neutral cadence retained after each target batch; this replaces the removed FireArc wait.
-    [SerializeField] private float fireWaveDelayBetweenBlocks = 0.045f;
+    [SerializeField] private float fireWaveDelayBetweenBlocks = 0.085f;
     [SerializeField] private bool enableFireWaveClear = true;
     private Block heldFireSourceBlock;
     private bool isFireResolving = false;
@@ -162,7 +162,7 @@ public class GridManager : MonoBehaviour
     [Header("Fire Arc FX")]
     [SerializeField] private bool     enableFireArcFX     = true;
     [SerializeField] private Material fireArcMaterial;             // null → FireArcFX runtime fallback
-    [SerializeField] private float    fireArcDuration     = 0.20f;
+    [SerializeField] private float    fireArcDuration     = 0.50f;
     [SerializeField] private int      fireArcSegments     = 12;
     [SerializeField] private float    fireArcDisplacement = 0.20f;
     [SerializeField] private float    fireArcStartWidth   = 0.18f;
@@ -2284,9 +2284,11 @@ bool ClearRow(int y, out string specialResolutionTypes)
 
             // 2. Etkileri Kır (Oyunda kalmaya devam ederler)
             foreach (Block b in blocksToUnfreeze) {
-        b.SetFrozen(false);
-        b.SetHighlight(false); // <--- BU SATIRI EKLE (Rengi ve boyutu normale döndürür)
-    }
+                b.PlayIceBreakFX();
+                b.TriggerIceBreakFeedback();
+                b.SetFrozen(false);
+                b.SetHighlight(false); // (Rengi ve boyutu normale döndürür)
+            }
 
         // 3. Normal blokları patlat ve yok et
         foreach (Block b in blocksToDestroy)
@@ -3350,6 +3352,7 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
     });
 
     // [Fire Arc FX] Tüm hedeflere aynı anda çok kollu yıldırım arkları bağlanır ve bloklar elektrikle titrer.
+    Dictionary<Block, FireArcFX> activeArcs = new Dictionary<Block, FireArcFX>();
     if (enableFireArcFX && heldFireSourceBlock != null && blocksToDestroy.Count > 0)
     {
         Vector3 arcOrigin = heldFireSourceBlock.GetArcAnchorPosition();
@@ -3357,7 +3360,7 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
         {
             if (arcTarget == null || arcTarget.isBeingDestroyed) continue;
 
-            FireArcFX.Spawn(
+            FireArcFX arc = FireArcFX.Spawn(
                 arcOrigin,
                 arcTarget.GetArcAnchorPosition(),
                 arcTarget.GetArcTargetSize(),
@@ -3368,11 +3371,14 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
                 fireArcEndWidth,
                 fireArcMaterial);
 
-            arcTarget.PlayFireShockFeedback(fireArcDuration);
+            if (arc != null && !activeArcs.ContainsKey(arcTarget))
+                activeArcs.Add(arcTarget, arc);
+
+            arcTarget.PlayFireShockFeedback(1.5f); // Dalga sırası gelene kadar titremeye devam eder
         }
 
         // Elektrik çarpması ve şok hissinin gözlemlenmesi için kısa bir yüklenme beklemesi
-        yield return new WaitForSeconds(0.12f);
+        yield return new WaitForSeconds(0.35f);
     }
 
     foreach (Block block in blocksToDestroy)
@@ -3382,6 +3388,13 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
 
         if (block.isBeingDestroyed)
             continue;
+
+        // Bu bloğa ait arkı ve şoku patlama anında sonlandır
+        if (activeArcs.TryGetValue(block, out FireArcFX arc) && arc != null)
+        {
+            arc.Dismiss(0.08f);
+        }
+        block.StopFireShockFeedback();
 
         SafeDestroyBlock(block);
 

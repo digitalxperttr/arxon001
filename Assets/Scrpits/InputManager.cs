@@ -423,6 +423,23 @@ private void ConfigureGhostRenderers(Block sourceBlock, GameObject ghost)
         renderer.color = GetGhostColor(renderer.color);
         renderer.maskInteraction = SpriteMaskInteraction.None;
     }
+
+    if (sourceBlock != null && sourceBlock.isFrozen)
+    {
+        Transform srcIce = sourceBlock.transform.Find("IceVisual");
+        Transform ghostIce = ghost.transform.Find("IceVisual");
+        if (srcIce != null && ghostIce != null)
+        {
+            SpriteRenderer srcIceSr = srcIce.GetComponent<SpriteRenderer>();
+            SpriteRenderer ghostIceSr = ghostIce.GetComponent<SpriteRenderer>();
+            if (srcIceSr != null && ghostIceSr != null)
+            {
+                MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+                srcIceSr.GetPropertyBlock(mpb);
+                ghostIceSr.SetPropertyBlock(mpb);
+            }
+        }
+    }
 }
 
 private Color GetGhostColor(Color sourceColor)

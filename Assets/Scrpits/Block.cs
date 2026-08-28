@@ -28,6 +28,29 @@ public class Block : MonoBehaviour
     private const float SliceInternalEnergyLifetime = 0.9f;
     private const int SliceInternalEnergyMaxWidth = 6;
 
+    #region Ice Block Visual System
+    private const string IceVisualRootName = "IceFogRoot";
+    private const string IceSparklesEmitterName = "IceSparkles";
+    private const string IceSnowflakesEmitterName = "IceSnowflakes";
+
+    private const float IceSparkleEmissionRatePerWidth = 1.6f;
+    private const float IceSparkleLifetimeMin = 0.50f;
+    private const float IceSparkleLifetimeMax = 0.90f;
+    private const float IceSparkleSpeedMin = 0.01f;
+    private const float IceSparkleSpeedMax = 0.04f;
+    private const float IceSparkleSizeMin = 0.28f;
+    private const float IceSparkleSizeMax = 0.46f;
+
+    private const float IceSnowflakeCycleDuration = 3.6f;
+    private const float IceSnowflakeLifetimeMin = 1.6f;
+    private const float IceSnowflakeLifetimeMax = 2.4f;
+    private const float IceSnowflakeFallSpeedMin = 0.30f;
+    private const float IceSnowflakeFallSpeedMax = 0.55f;
+    private const float IceSnowflakeSizeMin = 0.10f;
+    private const float IceSnowflakeSizeMax = 0.32f;
+    #endregion
+
+
     #region Fire Block Visual System (Slice Style)
     private const string FireSliceVisualRootName = "FireSliceVisualRoot";
     private const string FireSliceLeftEnergyName = "FireSliceEnergy_Left";
@@ -89,13 +112,27 @@ public class Block : MonoBehaviour
     private readonly Dictionary<SpriteRenderer, Color> gameOverOriginalRendererColors = new Dictionary<SpriteRenderer, Color>();
     private readonly Dictionary<SpriteRenderer, Material> gameOverOriginalRendererMaterials = new Dictionary<SpriteRenderer, Material>();
     private readonly Dictionary<SpriteRenderer, bool> gameOverOriginalRendererEnabledStates = new Dictionary<SpriteRenderer, bool>();
+    private Sprite gameOverOriginalSprite;
     private bool isGameOverGreyed = false;
     
     [Header("Görsel Efektler")]
     [SerializeField] private Material gameOverGrayscaleMaterial;
+
+    [Header("Ice Visual")]
+    [SerializeField] private Material iceOverlayMaterial;
+    [SerializeField] private Material iceFogParticleMaterial;
+    [SerializeField] private Material iceSnowflakeParticleMaterial;
+    [SerializeField] private GameObject iceBreakFXPrefab;
+    [SerializeField] private float iceBreakShakeDuration = 0.14f;
+    [SerializeField] private float iceBreakShakeStrength = 0.05f;
+    [SerializeField] private float iceBreakPunchScale = 1.08f;
+    private ParticleSystem iceFogParticleSystem;
+    private ParticleSystem iceSnowflakeParticleSystem;
+    private Coroutine iceBreakFeedbackRoutine;
     public float glowIntensity = 1.3f; // Seçilince parlaklık çarpanı
     private TrailRenderer trail; // Hız izi (Motion Trail) için
     private SpriteRenderer sr;
+
 
     [Header("Fire Idle FX")]
     [SerializeField] private GameObject fireIdleParticlePrefab;
@@ -234,6 +271,8 @@ public void SetHighlight(bool isHighlighted)
         RefreshSliceSymbolSorting();
         RefreshFireInternalEnergyFlowSorting();
         RefreshSliceInternalEnergyFlowSorting();
+        RefreshIceFogSorting();
+
 
         // 3. OVAL IŞIK KESİN ÇÖZÜM: Şalteri tamamen kapat ve izi sil
         if (trail == null) trail = GetComponent<TrailRenderer>();
@@ -451,13 +490,49 @@ private void SetSliceSymbolActive(bool isActive)
 
     while (elapsed < duration)
     {
-        sr.size = Vector2.Lerp(startSize, targetSize, elapsed / duration);
+        Vector2 currentSize = Vector2.Lerp(startSize, targetSize, elapsed / duration);
+        sr.size = currentSize;
+        SyncIceVisualSize(currentSize);
 
         elapsed += Time.deltaTime;
         yield return null;
     }
 
     sr.size = targetSize;
+    SyncIceVisualSize(targetSize);
+}
+
+private void SyncIceVisualSize(Vector2 currentSize)
+{
+    if (iceVisual == null || !iceVisual.activeSelf) return;
+
+    SpriteRenderer iceSr = iceVisual.GetComponent<SpriteRenderer>();
+    if (iceSr == null) return;
+
+    iceSr.size = currentSize;
+
+    if (iceOverlayMaterial != null)
+    {
+        float phaseOffset = (x * 7.319f + y * 13.731f + width * 3.141f) % 100f;
+        MaterialPropertyBlock iceMpb = new MaterialPropertyBlock();
+        iceSr.GetPropertyBlock(iceMpb);
+        iceMpb.SetVector("_BlockSize", new Vector4(currentSize.x, currentSize.y, 0f, 0f));
+        iceMpb.SetFloat("_PhaseOffset", phaseOffset);
+        iceSr.SetPropertyBlock(iceMpb);
+    }
+
+    if (iceFogParticleSystem != null && iceFogParticleSystem.gameObject.activeSelf)
+    {
+        var shape = iceFogParticleSystem.shape;
+        shape.scale = new Vector3(currentSize.x * 0.84f, currentSize.y * 0.78f, 0.01f);
+    }
+
+    if (iceSnowflakeParticleSystem != null && iceSnowflakeParticleSystem.gameObject.activeSelf)
+    {
+        var shape = iceSnowflakeParticleSystem.shape;
+        shape.scale = new Vector3(currentSize.x * 1.18f, 0.15f, 0.01f);
+        iceSnowflakeParticleSystem.transform.localPosition = new Vector3(0f, currentSize.y * 0.48f, -0.06f);
+    }
 }
     
 public void SetRock(bool rockStatus)
@@ -550,6 +625,7 @@ public void SetVisual(Sprite newSprite, Color colorData, int blockWidth)
 
         SyncFlashOverlay();
         transform.localScale = Vector3.one;
+        SyncIceVisualSize(originalSize);
         UpdateSpecialVisualState();
         UpdateTrailColor(colorData);
         RefreshChainOverlays();
@@ -654,13 +730,25 @@ public Vector2 GetArcTargetSize()
     return new Vector2(Mathf.Max(1, width), 1f);
 }
 
+private Coroutine fireShockRoutine;
+
 /// <summary>
 /// Plays an electric overcharge / shock feedback on the block while the lightning arc strikes it.
 /// Shakes the block with high-frequency electric jitter and flashes the overlay.
 /// </summary>
-public void PlayFireShockFeedback(float duration = 0.22f)
+public void PlayFireShockFeedback(float duration = 0.60f)
 {
-    StartCoroutine(FireShockFeedbackRoutine(duration));
+    if (fireShockRoutine != null) StopCoroutine(fireShockRoutine);
+    fireShockRoutine = StartCoroutine(FireShockFeedbackRoutine(duration));
+}
+
+public void StopFireShockFeedback()
+{
+    if (fireShockRoutine != null)
+    {
+        StopCoroutine(fireShockRoutine);
+        fireShockRoutine = null;
+    }
 }
 
 private IEnumerator FireShockFeedbackRoutine(float duration)
@@ -671,9 +759,9 @@ private IEnumerator FireShockFeedbackRoutine(float duration)
     ShowFlashOverlay();
 
     float elapsed = 0f;
-    while (elapsed < duration)
+    while (elapsed < duration && !isBeingDestroyed)
     {
-        float jitterAmt = 0.04f * (1f - (elapsed / duration));
+        float jitterAmt = 0.04f;
         Vector2 jitter = Random.insideUnitCircle * jitterAmt;
         transform.localPosition = origPos + new Vector3(jitter.x, jitter.y, 0f);
 
@@ -682,6 +770,7 @@ private IEnumerator FireShockFeedbackRoutine(float duration)
     }
 
     transform.localPosition = origPos;
+    fireShockRoutine = null;
 }
 
 public void SetGameOverGreyed(bool greyed)
@@ -699,6 +788,25 @@ public void SetGameOverGreyed(bool greyed)
         mpb.SetColor(BaseColorProperty, blockColor);
         sr.SetPropertyBlock(mpb);
         isGameOverGreyed = false;
+
+        Transform sliceFlow = transform.Find(SliceInternalEnergyRootName);
+        if (sliceFlow != null)
+            sliceFlow.gameObject.SetActive(true);
+
+        Transform fireFlow = transform.Find(LegacyFireInternalEnergyRootName);
+        if (fireFlow != null)
+            fireFlow.gameObject.SetActive(true);
+
+        if (isFrozen)
+        {
+            if (iceVisual != null)
+                iceVisual.SetActive(true);
+            SyncIceVisualSize(sr.size);
+            SetupIceFogParticles();
+        }
+
+        if (isSpecialVisualActive)
+            UpdateSpecialVisualState();
         return;
     }
 
@@ -708,26 +816,30 @@ public void SetGameOverGreyed(bool greyed)
     }
 
     Material grayscaleMaterial = GetGameOverGrayscaleMaterial();
-    bool canUseGrayscaleShader =
-        blockType == BlockType.Normal ||
-        blockType == BlockType.Ice ||
-        blockType == BlockType.Chained;
-    if (canUseGrayscaleShader)
+    sr.SetPropertyBlock(null);
+    sr.color = GetSpecialBlockGameOverTint();
+    if (grayscaleMaterial != null)
     {
-        sr.color = Color.white;
-        if (grayscaleMaterial != null)
-        {
-            sr.sharedMaterial = grayscaleMaterial;
-        }
-    }
-    else
-    {
-        sr.color = GetSpecialBlockGameOverTint();
+        sr.sharedMaterial = grayscaleMaterial;
     }
 
+    if (blockType == BlockType.Slice || blockType == BlockType.Fire || isRock || blockType == BlockType.Rock || blockType == BlockType.Ice || isFrozen)
+    {
+        if (GridManager.Instance != null)
+        {
+            Sprite normalStoneSprite = GridManager.Instance.GetNormalGemSpriteForLength(0, width, sr.sprite);
+            if (normalStoneSprite != null)
+                sr.sprite = normalStoneSprite;
+        }
+    }
+
+    StopSliceInternalEnergyFlow();
+    StopFireInternalEnergyFlow();
+    StopIceFogParticles();
+    SetSliceSymbolActive(false);
+    ClearFireSymbol();
+
     HideGameOverChildRenderers();
-    ApplyIceVisualGameOverState(grayscaleMaterial);
-    ApplyChainVisualGameOverState(grayscaleMaterial);
 
     isGameOverGreyed = true;
 }
@@ -737,6 +849,7 @@ private void CacheGameOverRendererColors()
     gameOverOriginalRendererColors.Clear();
     gameOverOriginalRendererMaterials.Clear();
     gameOverOriginalRendererEnabledStates.Clear();
+    gameOverOriginalSprite = sr != null ? sr.sprite : null;
 
     SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
     foreach (SpriteRenderer renderer in renderers)
@@ -766,77 +879,21 @@ private void HideGameOverChildRenderers()
     SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
     foreach (SpriteRenderer renderer in renderers)
     {
-        if (renderer != null &&
-            renderer != sr &&
-            !IsIceVisualRenderer(renderer) &&
-            !IsChainOverlayRenderer(renderer))
+        if (renderer != null && renderer != sr)
         {
             renderer.enabled = false;
         }
     }
-}
 
-private void ApplyIceVisualGameOverState(Material grayscaleMaterial)
-{
-    if (!isFrozen || iceVisual == null || !iceVisual.activeSelf)
-        return;
-
-    SpriteRenderer iceRenderer = iceVisual.GetComponent<SpriteRenderer>();
-    if (iceRenderer == null)
-        return;
-
-    iceRenderer.enabled = true;
-    if (grayscaleMaterial != null)
-        iceRenderer.sharedMaterial = grayscaleMaterial;
-
-    iceRenderer.SetPropertyBlock(null);
-    iceRenderer.color = Color.white;
-}
-
-private bool IsIceVisualRenderer(SpriteRenderer renderer)
-{
-    return iceVisual != null &&
-        renderer != null &&
-        renderer.gameObject == iceVisual;
-}
-
-private void ApplyChainVisualGameOverState(Material grayscaleMaterial)
-{
-    if (!isChained)
-        return;
-
-    for (int i = 0; i < spawnedChainOverlays.Count; i++)
+    ParticleSystem[] particleSystems = GetComponentsInChildren<ParticleSystem>(true);
+    foreach (ParticleSystem ps in particleSystems)
     {
-        GameObject overlay = spawnedChainOverlays[i];
-        if (overlay == null || !overlay.activeSelf)
-            continue;
-
-        SpriteRenderer overlayRenderer = overlay.GetComponent<SpriteRenderer>();
-        if (overlayRenderer == null)
-            continue;
-
-        overlayRenderer.enabled = true;
-        if (grayscaleMaterial != null)
-            overlayRenderer.sharedMaterial = grayscaleMaterial;
-
-        overlayRenderer.SetPropertyBlock(null);
-        overlayRenderer.color = Color.white;
+        if (ps != null)
+        {
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.Clear(true);
+        }
     }
-}
-
-private bool IsChainOverlayRenderer(SpriteRenderer renderer)
-{
-    if (renderer == null)
-        return false;
-
-    for (int i = 0; i < spawnedChainOverlays.Count; i++)
-    {
-        GameObject overlay = spawnedChainOverlays[i];
-        if (overlay != null && renderer.gameObject == overlay)
-            return true;
-    }
-
-    return false;
 }
 
 private void RestoreGameOverRendererColors()
@@ -865,6 +922,12 @@ private void RestoreGameOverRendererColors()
         }
     }
 
+    if (sr != null && gameOverOriginalSprite != null)
+    {
+        sr.sprite = gameOverOriginalSprite;
+    }
+
+    gameOverOriginalSprite = null;
     gameOverOriginalRendererColors.Clear();
     gameOverOriginalRendererMaterials.Clear();
     gameOverOriginalRendererEnabledStates.Clear();
@@ -872,6 +935,7 @@ private void RestoreGameOverRendererColors()
 
 private void ClearGameOverGreyCache()
 {
+    gameOverOriginalSprite = null;
     gameOverOriginalRendererColors.Clear();
     gameOverOriginalRendererMaterials.Clear();
     gameOverOriginalRendererEnabledStates.Clear();
@@ -932,22 +996,280 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
         SpriteRenderer iceSr = iceVisual.GetComponent<SpriteRenderer>();
         if (sr == null) sr = GetComponent<SpriteRenderer>();
 
-        iceSr.sprite = iceSprite;
-        iceSr.drawMode = SpriteDrawMode.Sliced;
-        
+        iceSr.sprite    = iceSprite;
+        iceSr.drawMode  = SpriteDrawMode.Sliced;
+
         // Boyutları ana blokla birebir eşitle
-        iceSr.size = sr.size; 
-        iceSr.color = sr.color;
+        iceSr.size           = sr.size;
+        iceSr.color          = Color.white; // tint shader'a devredildi
         iceSr.sortingLayerID = sr.sortingLayerID;
-        iceSr.sortingOrder = sr.sortingOrder + 1;
-        
+        iceSr.sortingOrder   = sr.sortingOrder + 1;
+
+        // IceOverlay shader materyali varsa uygula;
+        // yoksa eski davranış (default sprite material) korunur.
+        if (iceOverlayMaterial != null)
+        {
+            iceSr.sharedMaterial = iceOverlayMaterial;
+
+            // Her bloğa özgün phase offset → blok grid pozisyonundan deterministik hash
+            // İki ice bloğun aynı noise desenini paylaşmasını engeller
+            float phaseOffset = (x * 7.319f + y * 13.731f + width * 3.141f) % 100f;
+
+            MaterialPropertyBlock iceMpb = new MaterialPropertyBlock();
+            iceSr.GetPropertyBlock(iceMpb);
+            iceMpb.SetVector("_BlockSize",   new Vector4(sr.size.x, sr.size.y, 0f, 0f));
+            iceMpb.SetFloat ("_PhaseOffset", phaseOffset);
+            iceSr.SetPropertyBlock(iceMpb);
+        }
+
         iceVisual.SetActive(true);
+        SetupIceFogParticles();
     }
     else
     {
         if (iceVisual != null) iceVisual.SetActive(false);
+        StopIceFogParticles();
     }
 }
+
+private void SetupIceFogParticles()
+{
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+    Transform root = transform.Find(IceVisualRootName);
+    if (root == null)
+    {
+        GameObject rootObj = new GameObject(IceVisualRootName);
+        rootObj.transform.SetParent(transform, false);
+        root = rootObj.transform;
+    }
+
+    root.localPosition = Vector3.zero;
+    root.localRotation = Quaternion.identity;
+    root.localScale = Vector3.one;
+    root.gameObject.SetActive(true);
+
+    float blockW = sr.size.x;
+    float blockH = sr.size.y;
+
+    // ── 1. Keskin Kristal Yıldız Parıltıları (Sparkles) ─────────────
+    Transform sparkleT = root.Find(IceSparklesEmitterName);
+    if (sparkleT == null)
+    {
+        GameObject sparkleObj = new GameObject(IceSparklesEmitterName);
+        sparkleObj.transform.SetParent(root, false);
+        sparkleT = sparkleObj.transform;
+    }
+    sparkleT.localPosition = new Vector3(0f, 0f, -0.05f);
+    sparkleT.localRotation = Quaternion.identity;
+    sparkleT.gameObject.SetActive(true);
+
+    iceFogParticleSystem = sparkleT.GetComponent<ParticleSystem>();
+    if (iceFogParticleSystem == null)
+        iceFogParticleSystem = sparkleT.gameObject.AddComponent<ParticleSystem>();
+
+    if (iceFogParticleSystem.isPlaying)
+        iceFogParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+    var sparkleMain = iceFogParticleSystem.main;
+    sparkleMain.loop            = true;
+    sparkleMain.playOnAwake     = false;
+    sparkleMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+    sparkleMain.maxParticles    = 25;
+    sparkleMain.startLifetime   = new ParticleSystem.MinMaxCurve(IceSparkleLifetimeMin, IceSparkleLifetimeMax);
+    sparkleMain.startSpeed      = new ParticleSystem.MinMaxCurve(IceSparkleSpeedMin, IceSparkleSpeedMax);
+    sparkleMain.startSize       = new ParticleSystem.MinMaxCurve(IceSparkleSizeMin, IceSparkleSizeMax);
+    sparkleMain.startRotation   = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
+    sparkleMain.startColor      = new ParticleSystem.MinMaxGradient(
+        new Color(1.0f, 1.0f, 1.0f, 0.95f),
+        new Color(0.70f, 0.92f, 1.0f, 0.85f)
+    );
+    sparkleMain.gravityModifier = 0f;
+
+    var sparkleEmission = iceFogParticleSystem.emission;
+    sparkleEmission.enabled      = true;
+    sparkleEmission.rateOverTime = Mathf.Max(1.6f, blockW * IceSparkleEmissionRatePerWidth);
+
+    var sparkleShape = iceFogParticleSystem.shape;
+    sparkleShape.enabled        = true;
+    sparkleShape.shapeType      = ParticleSystemShapeType.Box;
+    sparkleShape.position       = Vector3.zero;
+    sparkleShape.scale          = new Vector3(blockW * 0.84f, blockH * 0.78f, 0.01f);
+
+    var sparkleSizeOL = iceFogParticleSystem.sizeOverLifetime;
+    sparkleSizeOL.enabled       = true;
+    sparkleSizeOL.size          = new ParticleSystem.MinMaxCurve(1.0f, new AnimationCurve(
+        new Keyframe(0f,    0.0f),
+        new Keyframe(0.25f, 1.0f),
+        new Keyframe(0.65f, 0.85f),
+        new Keyframe(1.0f,  0.0f)
+    ));
+
+    var sparkleRotOL = iceFogParticleSystem.rotationOverLifetime;
+    sparkleRotOL.enabled        = true;
+    sparkleRotOL.z              = new ParticleSystem.MinMaxCurve(-35f * Mathf.Deg2Rad, 35f * Mathf.Deg2Rad);
+
+    var sparkleColorOL = iceFogParticleSystem.colorOverLifetime;
+    sparkleColorOL.enabled      = true;
+    Gradient sGrad = new Gradient();
+    sGrad.SetKeys(
+        new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.75f, 0.95f, 1.0f), 1f) },
+        new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.95f, 0.2f), new GradientAlphaKey(0.95f, 0.7f), new GradientAlphaKey(0f, 1f) }
+    );
+    sparkleColorOL.color        = new ParticleSystem.MinMaxGradient(sGrad);
+
+    var sparkleRend = iceFogParticleSystem.GetComponent<ParticleSystemRenderer>();
+    if (iceFogParticleMaterial != null)
+        sparkleRend.sharedMaterial = iceFogParticleMaterial;
+    sparkleRend.renderMode      = ParticleSystemRenderMode.Billboard;
+    sparkleRend.maxParticleSize = 0.5f;
+    sparkleRend.sortingLayerID  = sr.sortingLayerID;
+    sparkleRend.sortingOrder    = sr.sortingOrder + 2;
+
+    if (!iceFogParticleSystem.isPlaying)
+        iceFogParticleSystem.Play();
+
+    // ── 2. Dökülen Kar Taneleri / Buz Kristalleri (Snowflakes) ────────
+    Transform snowT = root.Find(IceSnowflakesEmitterName);
+    if (snowT == null)
+    {
+        GameObject snowObj = new GameObject(IceSnowflakesEmitterName);
+        snowObj.transform.SetParent(root, false);
+        snowT = snowObj.transform;
+    }
+    snowT.localPosition = new Vector3(0f, blockH * 0.48f, -0.06f);
+    snowT.localRotation = Quaternion.identity;
+    snowT.gameObject.SetActive(true);
+
+    iceSnowflakeParticleSystem = snowT.GetComponent<ParticleSystem>();
+    if (iceSnowflakeParticleSystem == null)
+        iceSnowflakeParticleSystem = snowT.gameObject.AddComponent<ParticleSystem>();
+
+    if (iceSnowflakeParticleSystem.isPlaying)
+        iceSnowflakeParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+    var snowMain = iceSnowflakeParticleSystem.main;
+    snowMain.duration           = IceSnowflakeCycleDuration;
+    snowMain.loop               = true;
+    snowMain.playOnAwake        = false;
+    snowMain.simulationSpace    = ParticleSystemSimulationSpace.Local;
+    snowMain.maxParticles       = 20;
+    snowMain.startLifetime      = new ParticleSystem.MinMaxCurve(IceSnowflakeLifetimeMin, IceSnowflakeLifetimeMax);
+    snowMain.startSpeed         = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
+    snowMain.startSize          = new ParticleSystem.MinMaxCurve(IceSnowflakeSizeMin, IceSnowflakeSizeMax);
+    snowMain.startRotation      = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
+    snowMain.startColor         = new ParticleSystem.MinMaxGradient(
+        new Color(1.0f, 1.0f, 1.0f, 0.95f),
+        new Color(0.82f, 0.95f, 1.0f, 0.85f)
+    );
+    snowMain.gravityModifier    = 0f;
+
+    var snowEmission = iceSnowflakeParticleSystem.emission;
+    snowEmission.enabled        = true;
+    snowEmission.rateOverTime   = 0f; // Sürekli akış kapalı, aralıklı sakin esintiler
+
+    short burst1Count = (short)Mathf.Clamp(Mathf.RoundToInt(blockW * 0.9f), 1, 4);
+    short burst2Count = (short)Mathf.Clamp(Mathf.RoundToInt(blockW * 0.7f), 1, 3);
+    snowEmission.SetBursts(new ParticleSystem.Burst[]
+    {
+        new ParticleSystem.Burst(0.0f, burst1Count),
+        new ParticleSystem.Burst(0.8f, burst2Count)
+    });
+
+    var snowShape = iceSnowflakeParticleSystem.shape;
+    snowShape.enabled           = true;
+    snowShape.shapeType         = ParticleSystemShapeType.Box;
+    snowShape.position          = Vector3.zero;
+    snowShape.scale             = new Vector3(blockW * 1.18f, 0.15f, 0.01f);
+
+    var snowVel = iceSnowflakeParticleSystem.velocityOverLifetime;
+    snowVel.enabled             = true;
+    snowVel.space               = ParticleSystemSimulationSpace.Local;
+    snowVel.x                   = new ParticleSystem.MinMaxCurve(-0.05f, 0.05f);
+    snowVel.y                   = new ParticleSystem.MinMaxCurve(-IceSnowflakeFallSpeedMax, -IceSnowflakeFallSpeedMin);
+    snowVel.z                   = new ParticleSystem.MinMaxCurve(0f, 0f);
+
+    var snowNoise = iceSnowflakeParticleSystem.noise;
+    snowNoise.enabled           = true;
+    snowNoise.strength          = 0.07f;
+    snowNoise.frequency         = 0.7f;
+    snowNoise.scrollSpeed       = 0.35f;
+    snowNoise.damping           = true;
+
+    var snowSizeOL = iceSnowflakeParticleSystem.sizeOverLifetime;
+    snowSizeOL.enabled          = true;
+    snowSizeOL.size             = new ParticleSystem.MinMaxCurve(1.0f, new AnimationCurve(
+        new Keyframe(0f,    0.3f),
+        new Keyframe(0.15f, 1.0f),
+        new Keyframe(0.75f, 0.9f),
+        new Keyframe(1.0f,  0.0f)
+    ));
+
+    var snowRotOL = iceSnowflakeParticleSystem.rotationOverLifetime;
+    snowRotOL.enabled           = true;
+    snowRotOL.z                 = new ParticleSystem.MinMaxCurve(-35f * Mathf.Deg2Rad, 35f * Mathf.Deg2Rad);
+
+    var snowColorOL = iceSnowflakeParticleSystem.colorOverLifetime;
+    snowColorOL.enabled         = true;
+    Gradient snowGrad = new Gradient();
+    snowGrad.SetKeys(
+        new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.80f, 0.95f, 1.0f), 1f) },
+        new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.95f, 0.12f), new GradientAlphaKey(0.85f, 0.75f), new GradientAlphaKey(0f, 1f) }
+    );
+    snowColorOL.color           = new ParticleSystem.MinMaxGradient(snowGrad);
+
+    var snowRend = iceSnowflakeParticleSystem.GetComponent<ParticleSystemRenderer>();
+    if (iceSnowflakeParticleMaterial != null)
+        snowRend.sharedMaterial = iceSnowflakeParticleMaterial;
+    snowRend.renderMode         = ParticleSystemRenderMode.Billboard;
+    snowRend.maxParticleSize    = 0.5f;
+    snowRend.sortingLayerID     = sr.sortingLayerID;
+    snowRend.sortingOrder       = 50;
+
+    if (!iceSnowflakeParticleSystem.isPlaying)
+    {
+        float startOffset = (x * 0.83f + y * 1.37f + width * 0.59f) % IceSnowflakeCycleDuration;
+        iceSnowflakeParticleSystem.time = startOffset;
+        iceSnowflakeParticleSystem.Play();
+    }
+}
+
+private void StopIceFogParticles()
+{
+    Transform root = transform.Find(IceVisualRootName);
+    if (root != null)
+    {
+        ParticleSystem[] systems = root.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in systems)
+        {
+            if (ps != null)
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        root.gameObject.SetActive(false);
+    }
+}
+
+private void RefreshIceFogSorting()
+{
+    if (sr == null) return;
+    Transform root = transform.Find(IceVisualRootName);
+    if (root == null) return;
+
+    Transform sparkleT = root.Find(IceSparklesEmitterName);
+    if (sparkleT != null && sparkleT.TryGetComponent<ParticleSystemRenderer>(out var sparkleRend))
+    {
+        sparkleRend.sortingLayerID = sr.sortingLayerID;
+        sparkleRend.sortingOrder   = sr.sortingOrder + 2;
+    }
+
+    Transform snowT = root.Find(IceSnowflakesEmitterName);
+    if (snowT != null && snowT.TryGetComponent<ParticleSystemRenderer>(out var snowRend))
+    {
+        snowRend.sortingLayerID = sr.sortingLayerID;
+        snowRend.sortingOrder   = 50;
+    }
+}
+
 
 public void ApplyPreviewRendererSorting(int sortingOrder)
 {
@@ -1118,6 +1440,69 @@ private void PlayChainBreakFX(Vector3 pos)
         return;
 
     Instantiate(chainBreakFXPrefab, pos, Quaternion.identity);
+}
+
+public void PlayIceBreakFX()
+{
+    if (iceBreakFXPrefab == null)
+        return;
+
+    Vector3 pos = vfxAnchor != null ? vfxAnchor.position : transform.position;
+    PlayIceBreakFX(pos);
+}
+
+public void PlayIceBreakFX(Vector3 pos)
+{
+    if (iceBreakFXPrefab == null)
+        return;
+
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    Vector3 spawnPos = new Vector3(pos.x, pos.y, -0.6f);
+    GameObject fxObj = Instantiate(iceBreakFXPrefab, spawnPos, Quaternion.identity);
+    if (fxObj != null && fxObj.TryGetComponent<IceBreakFXController>(out var controller))
+    {
+        int layerId = sr != null ? sr.sortingLayerID : 0;
+        controller.Initialize(width, layerId, 100);
+    }
+}
+
+public void TriggerIceBreakFeedback()
+{
+    if (iceBreakFeedbackRoutine != null)
+        StopCoroutine(iceBreakFeedbackRoutine);
+    iceBreakFeedbackRoutine = StartCoroutine(PlayIceBreakFeedback());
+}
+
+public IEnumerator PlayIceBreakFeedback()
+{
+    if (sr == null)
+        sr = GetComponent<SpriteRenderer>();
+
+    Vector3 originalLocalPosition = transform.localPosition;
+    Vector3 originalLocalScale = transform.localScale;
+    Vector3 punchScale = originalLocalScale * iceBreakPunchScale;
+    float elapsed = 0f;
+
+    ShowFlashOverlay();
+
+    while (elapsed < iceBreakShakeDuration)
+    {
+        float t = elapsed / iceBreakShakeDuration;
+        float shakeStrength = iceBreakShakeStrength * (1f - t);
+        Vector2 shakeOffset = Random.insideUnitCircle * shakeStrength;
+
+        transform.localPosition = originalLocalPosition + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
+        transform.localScale = Vector3.Lerp(punchScale, originalLocalScale, t);
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    transform.localPosition = originalLocalPosition;
+    transform.localScale = originalLocalScale;
+    iceBreakFeedbackRoutine = null;
 }
 
 private void UpdateChainVisual()
@@ -2464,6 +2849,14 @@ private void StopFireInternalEnergyFlow()
 {
     StopFireInternalEnergyEmitter(fireInternalEnergyLeftParticleSystem);
     StopFireInternalEnergyEmitter(fireInternalEnergyRightParticleSystem);
+
+    Transform flowRoot = transform.Find(FireInternalEnergyRootName);
+    if (flowRoot != null)
+        flowRoot.gameObject.SetActive(false);
+
+    Transform legacyFlowRoot = transform.Find(LegacyFireInternalEnergyRootName);
+    if (legacyFlowRoot != null)
+        legacyFlowRoot.gameObject.SetActive(false);
 }
 
 private void StopFireInternalEnergyEmitter(ParticleSystem particleSystem)
@@ -2771,6 +3164,10 @@ private void StopSliceInternalEnergyFlow()
 {
     StopSliceInternalEnergyEmitter(sliceInternalEnergyLeftParticleSystem);
     StopSliceInternalEnergyEmitter(sliceInternalEnergyRightParticleSystem);
+
+    Transform flowRoot = transform.Find(SliceInternalEnergyRootName);
+    if (flowRoot != null)
+        flowRoot.gameObject.SetActive(false);
 }
 
 private static void StopSliceInternalEnergyEmitter(ParticleSystem particleSystem)
@@ -3218,12 +3615,17 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
             Destroy(effect, 1f);
         }
 
+        if (isFrozen)
+        {
+            PlayIceBreakFX();
+        }
+
         // İzi kapat (Gariplik yapmasın)
         if (trail != null) trail.emitting = false;
 
         // DİKKAT: O 9-Sliced kapatma (Simple yapma) satırını TAMAMEN SİLDİK!
 
-        // 2. Temiz İçe Çökme (Pürüzsüz Küçülme)
+        // 2. Scale Punch: önce patlar (büyür), sonra yok olur
         Vector3 originalScale = transform.localScale;
         Vector3 originalPosition = transform.position;
         float originalVisualHeight = 0f;
@@ -3232,20 +3634,36 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
             if (sr == null) sr = GetComponent<SpriteRenderer>();
             originalVisualHeight = sr != null ? sr.bounds.size.y : 0f;
         }
+
+        // Phase 1: Punch up (0 → punchDuration): scale 1 → 1.35
+        float punchDuration = duration * 0.40f;
+        float shrinkDuration = duration * 0.60f;
         float elapsed = 0f;
 
-        while (elapsed < duration)
+        while (elapsed < punchDuration)
         {
-            // Orijinal boyutundan sıfıra doğru, döndürmeden, temizce küçült
-            float progress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
-            float remainingScale = 1f - progress;
-            transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, progress);
+            float progress = punchDuration > 0f ? Mathf.Clamp01(elapsed / punchDuration) : 1f;
+            float punchScale = Mathf.Lerp(1f, 1.35f, progress);
+            transform.localScale = originalScale * punchScale;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Phase 2: Shrink to zero (1.35 → 0)
+        elapsed = 0f;
+        Vector3 punchedScale = originalScale * 1.35f;
+
+        while (elapsed < shrinkDuration)
+        {
+            float progress = shrinkDuration > 0f ? Mathf.Clamp01(elapsed / shrinkDuration) : 1f;
+            transform.localScale = Vector3.Lerp(punchedScale, Vector3.zero, progress);
 
             if (collapseDownward && originalVisualHeight > 0f)
             {
+                float remainingScale = 1f - progress;
                 transform.position = originalPosition + Vector3.down * (originalVisualHeight * (1f - remainingScale) * 0.5f);
             }
-            
+
             elapsed += Time.deltaTime;
             yield return null;
         }

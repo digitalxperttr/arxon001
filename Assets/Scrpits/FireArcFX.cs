@@ -4,8 +4,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Multi-branched procedural lightning arc effect for the Fire Block.
-/// Spawns a main glowing lightning bolt along with side branches and target shock sparks.
-/// Fades in with intense white-hot core, flickers at high frequency, and cleans itself up.
+/// Spawns a main glowing lightning bolt along with side branches and target box outline shock sparks.
+/// Stays active with continuous electric flow until dismissed (when target block explodes).
 /// </summary>
 public class FireArcFX : MonoBehaviour
 {
@@ -15,17 +15,16 @@ public class FireArcFX : MonoBehaviour
     private static readonly Color ArcOrangeAura  = new Color(1.00f, 0.55f, 0.05f, 1f); // Fiery orange rim
 
     // ── Default Tunings ───────────────────────────────────────────────────────
-    public const float DefaultDuration    = 0.24f;
     public const float DefaultStartWidth  = 0.16f;
     public const float DefaultEndWidth    = 0.08f;
     private const float BranchStartWidth  = 0.08f;
     private const float BranchEndWidth    = 0.02f;
-    private const float ShockSparkWidth   = 0.06f;
+    private const float ShockSparkWidth   = 0.07f;
 
     // ── Runtime components ────────────────────────────────────────────────────
     private LineRenderer       mainLine;
     private List<LineRenderer> branchLines = new List<LineRenderer>();
-    private List<LineRenderer> shockSparks  = new List<LineRenderer>();
+    private List<LineRenderer> shockSparks  = new List<LineRenderer>(); // 4 outline lines for rectangle edges
 
     private Vector3 fromPos;
     private Vector3 toPos;
@@ -34,20 +33,24 @@ public class FireArcFX : MonoBehaviour
     private float   displacement;
     private Material resolvedMaterial;
 
+    private bool isDismissed = false;
+    private Coroutine activeLoopCoroutine;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public factory
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Spawns a multi-branching electric lightning arc from <paramref name="from"/> to <paramref name="to"/>.
+    /// Spawns a sustained multi-branching electric lightning arc from <paramref name="from"/> to <paramref name="to"/>.
+    /// Stays active until <see cref="Dismiss"/> is called.
     /// </summary>
     public static FireArcFX Spawn(
         Vector3  from,
         Vector3  to,
         Vector2  targetSize,
-        float    duration     = DefaultDuration,
+        float    duration     = 0.50f,
         int      segments     = 14,
-        float    displacement = 0.22f,
+        float    displacement = 0.20f,
         float    startWidth   = DefaultStartWidth,
         float    endWidth     = DefaultEndWidth,
         Material lineMaterial = null)
@@ -92,10 +95,10 @@ public class FireArcFX : MonoBehaviour
             branchLines.Add(branch);
         }
 
-        // 3. Setup 3 Target Shock Sparks (crawling around target block boundary)
-        for (int i = 0; i < 3; i++)
+        // 3. Setup 4 Box Outline Shock Sparks (Top, Bottom, Left, Right edges of block)
+        for (int i = 0; i < 4; i++)
         {
-            LineRenderer spark = CreateLine($"ShockSpark_{i}", ShockSparkWidth, 0.01f, 66);
+            LineRenderer spark = CreateLine($"OutlineEdge_{i}", ShockSparkWidth, ShockSparkWidth * 0.7f, 66);
             shockSparks.Add(spark);
         }
 
@@ -103,8 +106,8 @@ public class FireArcFX : MonoBehaviour
         RebuildAllGeometry();
         ApplyGlobalAlpha(1f);
 
-        // Run animation
-        StartCoroutine(PlayArcAnimation(duration));
+        // Start continuous live streaming loop
+        activeLoopCoroutine = StartCoroutine(ContinuousStreamingRoutine());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -132,7 +135,40 @@ public class FireArcFX : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Geometry Generation
+    // Dismiss API (Called when the target block explodes)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Dismisses and fades out the lightning arc and shock box rapidly.
+    /// </summary>
+    public void Dismiss(float fadeDuration = 0.08f)
+    {
+        if (isDismissed) return;
+        isDismissed = true;
+
+        if (activeLoopCoroutine != null)
+            StopCoroutine(activeLoopCoroutine);
+
+        StartCoroutine(FadeOutAndDestroyRoutine(fadeDuration));
+    }
+
+    private IEnumerator FadeOutAndDestroyRoutine(float fadeDuration)
+    {
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            float alpha = 1f - (elapsed / fadeDuration);
+            ApplyGlobalAlpha(alpha);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        ApplyGlobalAlpha(0f);
+        Destroy(gameObject);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Geometry Generation (Box Outline Form for Rectangular Blocks)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void RebuildAllGeometry()
@@ -153,7 +189,6 @@ public class FireArcFX : MonoBehaviour
                 LineRenderer branch = branchLines[i];
                 if (branch == null) continue;
 
-                // Pick a joint on the main line (e.g. at 1/3 or 2/3)
                 int startIdx = Mathf.Clamp((i + 1) * (mainPts.Length / (branchLines.Count + 1)), 1, mainPts.Length - 2);
                 Vector3 branchStart = mainPts[startIdx];
 
@@ -161,7 +196,7 @@ public class FireArcFX : MonoBehaviour
                 Vector3 perp = new Vector3(-mainDir.y, mainDir.x, 0f);
                 float sideSign = (i % 2 == 0) ? 1f : -1f;
 
-                Vector3 branchEnd = branchStart + (mainDir * 0.4f + perp * (0.35f * sideSign)) + (Vector3)(Random.insideUnitCircle * 0.15f);
+                Vector3 branchEnd = branchStart + (mainDir * 0.35f + perp * (0.30f * sideSign)) + (Vector3)(Random.insideUnitCircle * 0.10f);
 
                 Vector3[] branchPts = BuildZigzagPoints(branchStart, branchEnd, 4, displacement * 0.5f);
                 branch.positionCount = branchPts.Length;
@@ -169,25 +204,48 @@ public class FireArcFX : MonoBehaviour
             }
         }
 
-        // 3. Target Shock Sparks (crawling around the target block perimeter)
-        float halfW = Mathf.Max(0.4f, targetBlockSize.x * 0.5f);
-        float halfH = Mathf.Max(0.4f, targetBlockSize.y * 0.5f);
+        // 3. Rectangular Box Outline Shock Sparks (Strictly following the 4 block edges)
+        float halfW = Mathf.Max(0.48f, targetBlockSize.x * 0.5f);
+        float halfH = Mathf.Max(0.48f, targetBlockSize.y * 0.5f);
 
-        for (int i = 0; i < shockSparks.Count; i++)
+        // Define the 4 corners of the block box
+        Vector3 topLeft     = toPos + new Vector3(-halfW,  halfH, 0f);
+        Vector3 topRight    = toPos + new Vector3( halfW,  halfH, 0f);
+        Vector3 bottomRight = toPos + new Vector3( halfW, -halfH, 0f);
+        Vector3 bottomLeft  = toPos + new Vector3(-halfW, -halfH, 0f);
+
+        // Edge 0: Top edge (TopLeft -> TopRight)
+        if (shockSparks.Count > 0 && shockSparks[0] != null)
         {
-            LineRenderer spark = shockSparks[i];
-            if (spark == null) continue;
+            int segs = Mathf.Max(3, Mathf.RoundToInt(targetBlockSize.x * 3f));
+            Vector3[] pts = BuildZigzagPoints(topLeft, topRight, segs, 0.06f);
+            shockSparks[0].positionCount = pts.Length;
+            shockSparks[0].SetPositions(pts);
+        }
 
-            // Pick two points around the target block perimeter
-            float angle1 = Random.Range(0f, Mathf.PI * 2f);
-            float angle2 = angle1 + Random.Range(0.8f, 1.8f);
+        // Edge 1: Right edge (TopRight -> BottomRight)
+        if (shockSparks.Count > 1 && shockSparks[1] != null)
+        {
+            Vector3[] pts = BuildZigzagPoints(topRight, bottomRight, 3, 0.06f);
+            shockSparks[1].positionCount = pts.Length;
+            shockSparks[1].SetPositions(pts);
+        }
 
-            Vector3 p1 = toPos + new Vector3(Mathf.Cos(angle1) * halfW * Random.Range(0.7f, 1.1f), Mathf.Sin(angle1) * halfH * Random.Range(0.7f, 1.1f), 0f);
-            Vector3 p2 = toPos + new Vector3(Mathf.Cos(angle2) * halfW * Random.Range(0.8f, 1.2f), Mathf.Sin(angle2) * halfH * Random.Range(0.8f, 1.2f), 0f);
+        // Edge 2: Bottom edge (BottomRight -> BottomLeft)
+        if (shockSparks.Count > 2 && shockSparks[2] != null)
+        {
+            int segs = Mathf.Max(3, Mathf.RoundToInt(targetBlockSize.x * 3f));
+            Vector3[] pts = BuildZigzagPoints(bottomRight, bottomLeft, segs, 0.06f);
+            shockSparks[2].positionCount = pts.Length;
+            shockSparks[2].SetPositions(pts);
+        }
 
-            Vector3[] sparkPts = BuildZigzagPoints(p1, p2, 4, displacement * 0.4f);
-            spark.positionCount = sparkPts.Length;
-            spark.SetPositions(sparkPts);
+        // Edge 3: Left edge (BottomLeft -> TopLeft)
+        if (shockSparks.Count > 3 && shockSparks[3] != null)
+        {
+            Vector3[] pts = BuildZigzagPoints(bottomLeft, topLeft, 3, 0.06f);
+            shockSparks[3].positionCount = pts.Length;
+            shockSparks[3].SetPositions(pts);
         }
     }
 
@@ -212,51 +270,29 @@ public class FireArcFX : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Animation Coroutine
+    // Continuous Electric Streaming Loop
     // ─────────────────────────────────────────────────────────────────────────
 
-    private IEnumerator PlayArcAnimation(float totalDuration)
+    private IEnumerator ContinuousStreamingRoutine()
     {
-        float flashInDuration = totalDuration * 0.15f; // Fast strike
-        float holdDuration    = totalDuration * 0.50f; // Sustained shock
-        float fadeOutDuration = totalDuration * 0.35f; // Dissipation
-
+        // Initial flash strike in (0.04s)
         float elapsed = 0f;
-
-        // Strike in
-        while (elapsed < flashInDuration)
+        while (elapsed < 0.04f)
         {
             RebuildAllGeometry();
-            ApplyGlobalAlpha(Mathf.Clamp01(elapsed / flashInDuration));
+            ApplyGlobalAlpha(Mathf.Clamp01(elapsed / 0.04f));
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Sustained electric flicker hold
-        float holdElapsed = 0f;
-        while (holdElapsed < holdDuration)
+        // Sustained electric flicker (remains alive until Dismiss() is called)
+        while (!isDismissed)
         {
             RebuildAllGeometry();
-            float flickerAlpha = Random.Range(0.80f, 1.0f);
-            ApplyGlobalAlpha(flickerAlpha);
-            holdElapsed += Time.deltaTime;
+            float flicker = Random.Range(0.85f, 1.0f);
+            ApplyGlobalAlpha(flicker);
             yield return null;
         }
-
-        // Fade out with erratic flicker
-        elapsed = 0f;
-        while (elapsed < fadeOutDuration)
-        {
-            RebuildAllGeometry();
-            float t = 1f - (elapsed / fadeOutDuration);
-            float flicker = Random.Range(0.6f, 1.0f);
-            ApplyGlobalAlpha(t * flicker);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        ApplyGlobalAlpha(0f);
-        Destroy(gameObject);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -277,7 +313,7 @@ public class FireArcFX : MonoBehaviour
         for (int i = 0; i < shockSparks.Count; i++)
         {
             if (shockSparks[i] != null)
-                SetLineGradient(shockSparks[i], alpha * 0.90f, 0.8f);
+                SetLineGradient(shockSparks[i], alpha * 0.95f, 0.9f);
         }
     }
 

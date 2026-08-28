@@ -361,6 +361,13 @@ MonoBehaviour:
   chainBreakShakeStrength: 0.06
   chainBreakPunchScale: 1.08
   gameOverGrayscaleMaterial: {fileID: 2100000, guid: 0438e060388e4bed827d428355f9efcd, type: 2}
+  iceOverlayMaterial: {fileID: 2100000, guid: 581ee4b8c10d24b52ab2d9716e555c94, type: 2}
+  iceFogParticleMaterial: {fileID: 2100000, guid: b8d4f2a019e3c5b780a1c2e3f4d5a6b7, type: 2}
+  iceSnowflakeParticleMaterial: {fileID: 2100000, guid: e3f5a7b912c4d6e80135792468acebdf, type: 2}
+  iceBreakFXPrefab: {fileID: 6019401466192459572, guid: 538329faa80d948f499d6d3aa68ddcf4, type: 3}
+  iceBreakShakeDuration: 0.14
+  iceBreakShakeStrength: 0.05
+  iceBreakPunchScale: 1.08
   glowIntensity: 2.5
   fireIdleParticlePrefab: {fileID: 5931205428725586556, guid: a071c6ccfaa364d9b886b036ca8ced71, type: 3}
   fireInternalEnergyTrailMaterial: {fileID: 2100000, guid: c5df1245fad5c4e63b771b349e865cde, type: 2}
