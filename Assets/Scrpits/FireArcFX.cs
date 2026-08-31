@@ -285,9 +285,17 @@ public class FireArcFX : MonoBehaviour
             yield return null;
         }
 
-        // Sustained electric flicker (remains alive until Dismiss() is called)
+        // Sustained electric flicker (remains alive until Dismiss() is called or 2.0s safety timeout expires)
+        float totalLifetime = 0f;
         while (!isDismissed)
         {
+            totalLifetime += Time.deltaTime;
+            if (totalLifetime > 2.0f)
+            {
+                Dismiss(0.08f);
+                yield break;
+            }
+
             RebuildAllGeometry();
             float flicker = Random.Range(0.85f, 1.0f);
             ApplyGlobalAlpha(flicker);

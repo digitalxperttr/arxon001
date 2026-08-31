@@ -11,8 +11,8 @@ public class GridManager : MonoBehaviour
 {
     private static readonly bool TutorialBoardOverrideEnabled = false;
     private const int PreviewSortingOrder = -5;
-    private const float SpecialRowClearGravityStartDelay = 0.2f;
-    private const float NormalRowClearGravityStartDelay = 0f;
+    private const float SpecialRowClearGravityStartDelay = 0.24f;
+    private const float NormalRowClearGravityStartDelay = 0.20f;
     private const float DefaultRowClearCrunchDuration = 0.28f;
     private const float NormalRowClearCrunchDuration = 0.22f;
     private const float PushGravityOverlapPushProgressThreshold = 0.75f;
@@ -2027,12 +2027,14 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
 
             if (clearedRowCount >= 2)
             {
-                StartCoroutine(FreezeFrameRoutine());
+                StartCoroutine(SlowMotionClearRoutine(clearedRowCount));
             }
 
-            if (chainDepth >= 2)
+            if (chainDepth >= 2 || clearedRowCount >= 3)
             {
-                StartCoroutine(CameraShakeRoutine(shakeDuration, shakeStrength));
+                float shakeDur = clearedRowCount >= 3 ? 0.28f : shakeDuration;
+                float shakeStr = clearedRowCount >= 3 ? 0.14f : shakeStrength;
+                StartCoroutine(CameraShakeRoutine(shakeDur, shakeStr));
             }
 
             if (isPlayerMove && ScoreManager.Instance != null) {
@@ -2145,6 +2147,31 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             ChangeState(GameState.IDLE); 
         }
     }
+
+private IEnumerator SlowMotionClearRoutine(int rowCount)
+{
+    if (!enableFreezeFrame)
+        yield break;
+
+    float originalScale = 1.0f;
+    float targetScale = rowCount >= 3 ? 0.22f : 0.45f;
+    float duration = rowCount >= 3 ? 0.90f : 0.25f;
+
+    Time.timeScale = targetScale;
+    yield return new WaitForSecondsRealtime(duration);
+
+    // Yumuşakça normal hıza geri dönüş (smooth ramp back)
+    float rampElapsed = 0f;
+    float rampDuration = 0.20f;
+    while (rampElapsed < rampDuration)
+    {
+        rampElapsed += Time.unscaledDeltaTime;
+        Time.timeScale = Mathf.Lerp(targetScale, originalScale, Mathf.Clamp01(rampElapsed / rampDuration));
+        yield return null;
+    }
+
+    Time.timeScale = originalScale;
+}
 
 private IEnumerator FreezeFrameRoutine()
 {
@@ -3383,24 +3410,33 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
 
     foreach (Block block in blocksToDestroy)
     {
-        if (block == null)
-            continue;
-
-        if (block.isBeingDestroyed)
-            continue;
-
-        // Bu bloğa ait arkı ve şoku patlama anında sonlandır
-        if (activeArcs.TryGetValue(block, out FireArcFX arc) && arc != null)
+        // Bu bloğa ait arkı ve şoku her koşulda sonlandır (blok önceden yok edilmiş olsa bile!)
+        if (block != null)
         {
-            arc.Dismiss(0.08f);
+            if (activeArcs.TryGetValue(block, out FireArcFX targetArc) && targetArc != null)
+            {
+                targetArc.Dismiss(0.08f);
+                activeArcs.Remove(block);
+            }
+            block.StopFireShockFeedback();
         }
-        block.StopFireShockFeedback();
+
+        if (block == null || block.isBeingDestroyed)
+            continue;
 
         SafeDestroyBlock(block);
 
         // Preserve a non-zero wave cadence after removing the old per-target arc wait.
         yield return new WaitForSeconds(fireWaveDelayBetweenBlocks);
     }
+
+    // [Garanti Temizlik] Listede kalmış olabilecek tüm aktif arkları topluca kapat
+    foreach (var kvp in activeArcs)
+    {
+        if (kvp.Value != null)
+            kvp.Value.Dismiss(0.08f);
+    }
+    activeArcs.Clear();
 
     yield return StartCoroutine(RebuildAndApplyGravityRoutine());
 

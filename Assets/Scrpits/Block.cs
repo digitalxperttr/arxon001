@@ -748,6 +748,7 @@ public void StopFireShockFeedback()
     {
         StopCoroutine(fireShockRoutine);
         fireShockRoutine = null;
+        transform.localPosition = new Vector3(x, y, 0f);
     }
 }
 
@@ -1534,8 +1535,6 @@ private void ShowFlashOverlay()
 
 private IEnumerator FlashOverlayRoutine()
 {
-    Debug.Log("FLASH OVERLAY START: " + flashOverlayRenderer);
-
     if (flashOverlayRenderer == null)
         yield break;
 
@@ -3604,16 +3603,30 @@ public System.Collections.IEnumerator CrunchAndDestroy(GameObject explosionPrefa
         if (effectPrefab != null) {
             GameObject effect = Instantiate(effectPrefab, transform.position, Quaternion.identity);
 
+            Color finalColor = blockColor;
+            finalColor.a = 1.0f;
+
             if (effect.TryGetComponent<ParticleSystem>(out ParticleSystem ps))
             {
                 var main = ps.main;
-                Color finalColor = blockColor;
-                finalColor.a = 1.0f;
                 main.startColor = new ParticleSystem.MinMaxGradient(finalColor);
+            }
+
+            // URP Particles shader: _BaseColor/_Color üzerinden renk alır
+            if (effect.TryGetComponent<ParticleSystemRenderer>(out ParticleSystemRenderer psr))
+            {
+                // MaterialPropertyBlock ile rengi shader'a ilet (materyal instance yaratmadan)
+                MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+                mpb.SetColor("_BaseColor", finalColor);
+                mpb.SetColor("_Color", finalColor);
+                psr.SetPropertyBlock(mpb);
             }
 
             Destroy(effect, 1f);
         }
+
+        // 1b. Kırık Gem Parçaları — bloğun kendi sprite'ından küçük kopya parçalar fırlat
+        SpawnDebrisChunks();
 
         if (isFrozen)
         {
@@ -3686,6 +3699,7 @@ private void SetupEffect()
             break;
     }
 }
+
 public void TriggerSpecial()
 {
     UpdateSpecialVisualState();
@@ -3717,4 +3731,129 @@ public System.Collections.IEnumerator SliceFeedback()
     transform.localScale = originalScale;
 }
 
+    private static Sprite[] cachedGemDebrisSprites = null;
+
+    private void SpawnDebrisChunks()
+    {
+        if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+        // Load gem chunk sprites if not already cached
+        if (cachedGemDebrisSprites == null || cachedGemDebrisSprites.Length == 0)
+        {
+            cachedGemDebrisSprites = Resources.LoadAll<Sprite>("GemDebris");
+        }
+
+        bool hasGemSprites = cachedGemDebrisSprites != null && cachedGemDebrisSprites.Length > 0;
+        if (!hasGemSprites && (sr == null || sr.sprite == null)) return;
+
+        // Calculate chunk count based on block width
+        int blockWidth = Mathf.Max(1, width);
+        int chunkCount = Mathf.Clamp(blockWidth * 4 + 2, 6, 18);
+        const float minChunkScale = 0.15f;
+        const float maxChunkScale = 1.00f;
+        const float burstForceMin = 3.8f;
+        const float burstForceMax = 7.5f;
+        const float angularVelMax = 450f;
+        const int sortingOrderAboveBlocks = 50;
+
+        Bounds b = sr != null ? sr.bounds : new Bounds(transform.position, new Vector3(blockWidth, 1f, 0f));
+        string sortingLayer = sr != null && !string.IsNullOrEmpty(sr.sortingLayerName) ? sr.sortingLayerName : "Default";
+
+        for (int i = 0; i < chunkCount; i++)
+        {
+            GameObject chunk = new GameObject("GemDebrisChunk");
+            
+            // Distribute spawn position evenly across the block width
+            float t = (i + Random.Range(0.15f, 0.85f)) / (float)chunkCount;
+            float spawnX = Mathf.Lerp(b.min.x, b.max.x, t);
+            float spawnY = Random.Range(b.min.y + 0.1f, b.max.y - 0.1f);
+            chunk.transform.position = new Vector3(spawnX, spawnY, transform.position.z);
+            chunk.transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+            
+            float chunkScale = Random.Range(minChunkScale, maxChunkScale);
+            chunk.transform.localScale = Vector3.one * chunkScale;
+
+            SpriteRenderer chunkSr = chunk.AddComponent<SpriteRenderer>();
+            if (hasGemSprites)
+            {
+                chunkSr.sprite = cachedGemDebrisSprites[Random.Range(0, cachedGemDebrisSprites.Length)];
+            }
+            else
+            {
+                chunkSr.sprite = sr.sprite;
+            }
+
+            // Slight jewel sparkle variation
+            Color chunkColor = Color.Lerp(blockColor, Color.white, Random.Range(0f, 0.10f));
+            chunkColor.a = 1f;
+            chunkSr.color = chunkColor;
+            chunkSr.sortingLayerName = sortingLayer;
+            chunkSr.sortingOrder = sortingOrderAboveBlocks;
+
+            Rigidbody2D rb = chunk.AddComponent<Rigidbody2D>();
+            rb.gravityScale = 3.5f;
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
+            
+            // Upward fountain burst arc (35° to 145°)
+            float angle = Random.Range(35f, 145f);
+            Vector2 dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+            rb.linearVelocity = dir * Random.Range(burstForceMin, burstForceMax);
+            rb.angularVelocity = Random.Range(-angularVelMax, angularVelMax);
+
+            float lifetime = Random.Range(0.65f, 0.85f);
+            DebrisChunkFader fader = chunk.AddComponent<DebrisChunkFader>();
+            fader.Init(chunkSr, lifetime);
+        }
+    }
+
+} // class Block sonu
+
+/// <summary>
+/// Debris parça nesnelerine eklenir; Block yok olsa bile kendi fade+destroy döngüsünü tamamlar.
+/// </summary>
+internal class DebrisChunkFader : MonoBehaviour
+{
+    private SpriteRenderer targetSr;
+    private float lifetime;
+    private float elapsed;
+    private float fadeStart;
+    private Color baseColor;
+    private Vector3 initialScale;
+
+    public void Init(SpriteRenderer sr, float lt)
+    {
+        targetSr = sr;
+        lifetime = lt;
+        fadeStart = lt * 0.50f;
+        baseColor = sr.color;
+        initialScale = transform.localScale;
+    }
+
+    private void Update()
+    {
+        if (targetSr == null) { Destroy(gameObject); return; }
+
+        elapsed += Time.deltaTime;
+
+        if (elapsed >= lifetime)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        if (elapsed > fadeStart)
+        {
+            float t = (elapsed - fadeStart) / (lifetime - fadeStart);
+            
+            // Alpha fade
+            Color c = baseColor;
+            c.a = Mathf.Lerp(1f, 0f, t);
+            targetSr.color = c;
+
+            // Smooth shrink near the end
+            transform.localScale = Vector3.Lerp(initialScale, initialScale * 0.3f, t);
+        }
+    }
 }
+
+
