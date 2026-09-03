@@ -6,10 +6,11 @@
       "source": "git",
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2",
+        "com.unity.test-framework": "1.1.33",
         "com.unity.timeline": "1.7.7",
         "com.unity.ugui": "1.0.0"
       },
-      "hash": "c145265f5a2f3a876e171e3940d5072e55d9c604"
+      "hash": "2708bb632cad8d8184c062a46ddd4b6d4f0d2148"
     },
     "com.coplaydev.unity-mcp": {
       "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
@@ -26,7 +27,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "4ce7dd3cc54e37e2ed6dc59cb5a047f3dccb3f50"
+      "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
     },
     "com.unity.2d.animation": {
       "version": "14.0.3",

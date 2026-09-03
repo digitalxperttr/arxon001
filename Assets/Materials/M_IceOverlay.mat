@@ -29,24 +29,24 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BodyOpacity: 0.136
-    - _CrackScale: 3.69
-    - _CrackSharpness: 0.08
-    - _CrackStrength: 0.64
-    - _CrackThickness: 0.093
-    - _FrameFrostStrength: 0
+    - _BodyOpacity: 0.05
+    - _CrackScale: 2.8
+    - _CrackStrength: 1.40
+    - _CrackThickness: 0.075
+    - _EdgeOpacity: 0.75
+    - _FrameFrostStrength: 0.85
+    - _GlintSpeed: 1.80
     - _PhaseOffset: 0
-    - _RimPower: 1.05
-    - _RimStrength: 0.59
-    - _SheenSpeed: 1.29
-    - _SheenStrength: 0.49
-    - _SheenWidth: 4.9
-    - _TopHighlight: 0.873
+    - _RimPower: 1.80
+    - _RimStrength: 1.35
+    - _SpecularStrength: 1.20
+    - _TopHighlight: 0.45
     m_Colors:
     - _BlockSize: {r: 1, g: 1, b: 0, a: 0}
-    - _CrackColor: {r: 0.7122642, g: 0.928066, b: 1, a: 1}
-    - _IceTint: {r: 0.72, g: 0.92, b: 1, a: 1}
-    - _RimColor: {r: 0.7913849, g: 0.91289324, b: 0.9811321, a: 1}
-    - _SheenColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CoreClearTint: {r: 0.75, g: 0.94, b: 1, a: 1}
+    - _CrackColor: {r: 0.88, g: 0.98, b: 1, a: 1}
+    - _IceTint: {r: 0.28, g: 0.76, b: 0.98, a: 1}
+    - _RimColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

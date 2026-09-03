@@ -5,7 +5,7 @@ using System;
 
 public class InputManager : MonoBehaviour
 {
-    private static readonly bool TutorialInputHooksEnabled = false;
+    private static readonly bool TutorialInputHooksEnabled = true;
 
     public static event Action UserInputStarted;
     public static event Action SuccessfulPlacement;
@@ -121,7 +121,13 @@ void Update()
             }
             else
             {
-                // Eğer kayaysa (veya blok yoksa) seçimi iptal et, oyuncu onu tutamasın.
+                // Eğer kaya veya kafesli (zincirli) blok ise taşınamadığı geribildirimini ver
+                if (selectedBlock != null && (selectedBlock.isRock || selectedBlock.isChained))
+                {
+                    selectedBlock.PlayImmovableShake();
+                }
+
+                // Seçimi iptal et, oyuncu onu tutamasın.
                 selectedBlock = null; 
             }
         }
@@ -268,7 +274,9 @@ private bool CanSelectBlock(Block block)
         if (!TutorialInputHooksEnabled)
             return true;
 
-        firstTimeTutorial = FindAnyObjectByType<FirstTimeTutorial>();
+        firstTimeTutorial = FirstTimeTutorial.Instance != null
+            ? FirstTimeTutorial.Instance
+            : FindAnyObjectByType<FirstTimeTutorial>();
     }
 
     return firstTimeTutorial == null || firstTimeTutorial.CanSelectBlock(block);
@@ -281,7 +289,9 @@ private bool IsAllowedPlacement(Block block, int snappedX)
         if (!TutorialInputHooksEnabled)
             return true;
 
-        firstTimeTutorial = FindAnyObjectByType<FirstTimeTutorial>();
+        firstTimeTutorial = FirstTimeTutorial.Instance != null
+            ? FirstTimeTutorial.Instance
+            : FindAnyObjectByType<FirstTimeTutorial>();
     }
 
     return firstTimeTutorial == null || firstTimeTutorial.IsCorrectPlacement(block, snappedX);
@@ -552,17 +562,18 @@ System.Collections.IEnumerator FinishMovementRoutine()
     grid.ChangeState(GameState.CHECKING);
     yield return StartCoroutine(grid.CheckAndClearRowsRoutine(true));
 
-    if (TutorialInputHooksEnabled && firstTimeTutorial != null && firstTimeTutorial.IsRunning)
+    FirstTimeTutorial activeTutorial = firstTimeTutorial != null ? firstTimeTutorial : FirstTimeTutorial.Instance;
+    if (TutorialInputHooksEnabled && activeTutorial != null && activeTutorial.IsRunning)
     {
-        yield return StartCoroutine(firstTimeTutorial.PlaySuccessBeforePushUp());
+        yield return StartCoroutine(activeTutorial.PlaySuccessBeforePushUp());
     }
     
     // 4. BOARD'U YUKARI İT VE SÜRECİ BİTİR
     yield return StartCoroutine(grid.PushBoardUpRoutine());
 
-    if (TutorialInputHooksEnabled && firstTimeTutorial != null && firstTimeTutorial.IsRunning)
+    if (TutorialInputHooksEnabled && activeTutorial != null && activeTutorial.IsRunning)
     {
-        yield return StartCoroutine(firstTimeTutorial.CompleteAfterPushUp());
+        yield return StartCoroutine(activeTutorial.CompleteAfterPushUp());
     }
 
     grid.ChangeState(GameState.IDLE);

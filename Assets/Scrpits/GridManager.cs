@@ -9,7 +9,7 @@ public enum GameState { IDLE, MOVING, FALLING, CHECKING, SPAWNING }
 
 public class GridManager : MonoBehaviour
 {
-    private static readonly bool TutorialBoardOverrideEnabled = false;
+    private static readonly bool TutorialBoardOverrideEnabled = true;
     private const int PreviewSortingOrder = -5;
     private const float SpecialRowClearGravityStartDelay = 0.24f;
     private const float NormalRowClearGravityStartDelay = 0.20f;
@@ -121,6 +121,7 @@ public class GridManager : MonoBehaviour
     [Header("Grid Ayarları")]
     public int width = 8;
     public int height = 10;
+    [SerializeField] private int initialRowCount = 5;
     public float cellSize = 1f; // HATAYI DÜZELTEN SATIR
     public GameObject[] activeFogRows; // Sis objelerini tutacak dizi
     [SerializeField] private GameObject fogOverlayPrefab;
@@ -186,6 +187,11 @@ public class GridManager : MonoBehaviour
 
     [Header("Chain Break Feedback")]
     [SerializeField] private float chainBreakImpactPause = 0.16f;
+
+    [Header("Debug Settings")]
+    [Tooltip("Test amaçlı başlangıç seviyesi (Klasik mod). 1'den büyük girilirse oyun o seviyeden ve o seviyenin gereken skoruyla başlar.")]
+    [SerializeField] [Min(1)] private int debugStartLevel = 1;
+    public static int SessionDebugStartLevel = 1;
 
     [SerializeField] private bool enableClassicDoubleRowSpawn = true;
     private BlockTestSpawner blockTestSpawner;
@@ -366,13 +372,27 @@ private ClassicDifficultyProfile GetClassicDifficultyProfile(int level)
     return profile;
 }
 
+private int GetBaseRowScore(int clearedRowCount)
+{
+    switch (clearedRowCount)
+    {
+        case 1: return 100;
+        case 2: return 300;
+        case 3: return 700;
+        case 4: return 1500;
+        default:
+            if (clearedRowCount <= 0) return 0;
+            return 1500 + (clearedRowCount - 4) * 1000;
+    }
+}
+
 private int GetClassicScoreMultiplier(int level)
 {
     if (level >= 15)
-        return 8;
+        return 4;
 
     if (level >= 10)
-        return 4;
+        return 3;
 
     if (level >= 5)
         return 2;
@@ -383,18 +403,18 @@ private int GetClassicScoreMultiplier(int level)
 private int GetPerfectClearBonus(int level)
 {
     if (level >= 13)
-        return 800;
+        return 8000;
 
     if (level >= 10)
-        return 400;
+        return 4000;
 
     if (level >= 7)
-        return 200;
+        return 2500;
 
     if (level >= 4)
-        return 150;
+        return 1500;
 
-    return 100;
+    return 1000;
 }
   
     void Awake()
@@ -417,6 +437,16 @@ private int GetPerfectClearBonus(int level)
             ? FindAnyObjectByType<FirstTimeTutorial>()
             : null;
         gridArray = new Block[width, height];
+        EnsureHintManager();
+    }
+
+    private void EnsureHintManager()
+    {
+        if (HintManager.Instance == null && FindAnyObjectByType<HintManager>() == null)
+        {
+            GameObject hintObj = new GameObject("HintManager");
+            hintObj.AddComponent<HintManager>();
+        }
     }
 
 
@@ -430,6 +460,12 @@ void Start()
         // 1. Grid'i tertemiz hazırla
         gridArray = new Block[width, height];
         activeBlocks.Clear();
+
+        int effectiveDebugLevel = Mathf.Max(debugStartLevel, SessionDebugStartLevel);
+        if (effectiveDebugLevel > 1 && ScoreManager.Instance != null && IsClassicRun())
+        {
+            ScoreManager.Instance.SetDebugStartLevel(effectiveDebugLevel);
+        }
 
         // 2. Başlangıç tahtasını kur (debug spawner varsa onu kullan, yoksa normal akış)
         bool usedTutorialBoard =
@@ -445,7 +481,7 @@ void Start()
 
         if (!usedTutorialBoard && !usedDebugBoard)
         {
-            SetupInitialBoard(4);
+            SetupInitialBoard(Mathf.Clamp(initialRowCount, 1, height - 2));
         }
 
         SpawnInitialCollectibles();
@@ -1313,6 +1349,15 @@ public bool IsClassicRun()
         LevelManager.Instance.currentLevel == null;
 }
 
+[ContextMenu("Apply Debug Start Level")]
+public void ApplyDebugStartLevel()
+{
+    if (debugStartLevel > 1 && ScoreManager.Instance != null && IsClassicRun())
+    {
+        ScoreManager.Instance.SetDebugStartLevel(debugStartLevel);
+    }
+}
+
 private List<GravityPlanEntry> BuildGravityPlan(out List<string> validationFailures)
 {
     validationFailures = new List<string>();
@@ -2043,7 +2088,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             }
 
             int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
-            int baseScore = 8 * clearedRowCount * clearedRowCount;
+            int baseScore = GetBaseRowScore(clearedRowCount);
             int moveMultiplier = ScoreManager.Instance != null ? ScoreManager.Instance.comboMultiplier : 1;
             int chainMultiplier = chainDepth + 1;
             int levelMultiplier = IsClassicRun() ? GetClassicScoreMultiplier(level) : 1;

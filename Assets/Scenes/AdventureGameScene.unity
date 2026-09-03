@@ -2292,6 +2292,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FirstTimeTutorial
   tutorialFont: {fileID: 11400000, guid: 3c1a5489c90fb4e969a30469559b1340, type: 2}
+  customHandSprite: {fileID: 1915413256509587028, guid: 72a3e8a8a31444604916082cd4a9fc5a, type: 3}
   startDelay: 0.35
   hintFadeDuration: 0.25
   hintVisibleDuration: 1

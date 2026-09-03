@@ -893,6 +893,7 @@ MonoBehaviour:
   - {r: 1, g: 0, b: 1, a: 1}
   width: 8
   height: 10
+  initialRowCount: 5
   cellSize: 1
   activeFogRows: []
   fogOverlayPrefab: {fileID: 0}
@@ -937,6 +938,7 @@ MonoBehaviour:
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
   chainBreakImpactPause: 0.16
+  debugStartLevel: 1
   enableClassicDoubleRowSpawn: 1
   activeBlocks: []
   blockPrefab: {fileID: 4165942794352353875, guid: c68cd50a2b94e4ed5ac370d3e673a80e, type: 3}
@@ -1036,13 +1038,13 @@ MonoBehaviour:
   - x: 0
     y: 2
     width: 2
-    blockType: 2
+    blockType: 1
     specialType: 0
     normalGemIndex: 4
   - x: 4
     y: 2
     width: 4
-    blockType: 2
+    blockType: 0
     specialType: 0
     normalGemIndex: 1
   - x: 3
@@ -1054,7 +1056,7 @@ MonoBehaviour:
   - x: 2
     y: 3
     width: 2
-    blockType: 0
+    blockType: 3
     specialType: 0
     normalGemIndex: 0
   - x: 2
@@ -1066,7 +1068,7 @@ MonoBehaviour:
   - x: 3
     y: 5
     width: 4
-    blockType: 4
+    blockType: 0
     specialType: 0
     normalGemIndex: 4
   - x: 0
@@ -1084,7 +1086,7 @@ MonoBehaviour:
   - x: 2
     y: 5
     width: 1
-    blockType: 4
+    blockType: 0
     specialType: 0
     normalGemIndex: 0
 --- !u!1 &469545359

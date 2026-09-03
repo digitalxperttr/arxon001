@@ -96,6 +96,13 @@ public class Block : MonoBehaviour
     [SerializeField] private float chainBreakShakeDuration = 0.15f;
     [SerializeField] private float chainBreakShakeStrength = 0.04f;
     [SerializeField] private float chainBreakPunchScale = 1.06f;
+
+    [Header("Immovable Shake Settings")]
+    [SerializeField] private float immovableShakeDuration = 0.22f;
+    [SerializeField] private float immovableShakeFrequency = 22f;
+    [SerializeField] private float immovableRockShakeStrength = 0.09f;
+    [SerializeField] private float immovableCageShakeStrength = 0.07f;
+    private Coroutine immovableShakeRoutine;
     private const int MaxChainHealth = 2;
     private int chainHealth = 0;
     private Sprite chainIntactSprite;
@@ -123,12 +130,17 @@ public class Block : MonoBehaviour
     [SerializeField] private Material iceFogParticleMaterial;
     [SerializeField] private Material iceSnowflakeParticleMaterial;
     [SerializeField] private GameObject iceBreakFXPrefab;
+    [SerializeField] private Sprite iceFrameFrostSprite;
+    [SerializeField] private Sprite iceSymbolSprite;
+    [SerializeField] private SpriteRenderer iceSymbolRenderer;
     [SerializeField] private float iceBreakShakeDuration = 0.14f;
     [SerializeField] private float iceBreakShakeStrength = 0.05f;
     [SerializeField] private float iceBreakPunchScale = 1.08f;
     private ParticleSystem iceFogParticleSystem;
     private ParticleSystem iceSnowflakeParticleSystem;
     private Coroutine iceBreakFeedbackRoutine;
+    private Coroutine iceSymbolPulseRoutine;
+    private GameObject iceFrameFrost;
     public float glowIntensity = 1.3f; // Seçilince parlaklık çarpanı
     private TrailRenderer trail; // Hız izi (Motion Trail) için
     private SpriteRenderer sr;
@@ -255,20 +267,21 @@ public void SetHighlight(bool isHighlighted)
 
         // 1. PARLAMA (Glow): Rengi doğrudan şiddetlendiriyoruz
         float intensity = isHighlighted ? 1.45f : 1.0f;
-        sr.color = isHighlighted ? new Color(intensity, intensity, intensity, 1f) : Color.white;
+        Color baseColor = isFrozen ? new Color(0.60f, 0.85f, 1.10f, 1.0f) : Color.white;
+        sr.color = isHighlighted ? (baseColor * intensity) : baseColor;
 
         // 2. KATMAN: Tutulan blok öne çıksın
         sr.sortingOrder = isHighlighted ? 30 : 10;
         if (iceVisual != null && iceVisual.activeSelf)
         {
             iceVisual.GetComponent<SpriteRenderer>().sortingOrder = sr.sortingOrder + 1;
-            iceVisual.GetComponent<SpriteRenderer>().color = sr.color;
         }
 
         RefreshChainOverlays();
         RefreshCollectibleVisual();
         RefreshFireSymbolSorting();
         RefreshSliceSymbolSorting();
+        RefreshIceSymbolSorting();
         RefreshFireInternalEnergyFlowSorting();
         RefreshSliceInternalEnergyFlowSorting();
         RefreshIceFogSorting();
@@ -983,19 +996,29 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
     else if (!isRock && !isChained)
         blockType = BlockType.Normal;
 
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+
     if (isFrozen)
     {
+        // 1. Ana mücevheri içten dışa soğutarak soğuk buzul/kristal tonuna büründür
+        if (sr != null)
+        {
+            sr.color = new Color(0.60f, 0.85f, 1.10f, 1.0f);
+        }
+
+        // 2. Merkezdeki ARXON kristal buz rünü sembolünü yerleştir ve parlat
+        SetupIceSymbol();
+
+        // 3. Fasetli berrak kristal buz kabuğu (Bloğun boyutlarına tam oturan)
         if (iceVisual == null)
         {
             iceVisual = new GameObject("IceVisual");
             iceVisual.transform.SetParent(this.transform);
-            // Z değerini -0.1f yaparak "perde" gibi titremesini engelliyoruz
-            iceVisual.transform.localPosition = new Vector3(0, 0, -0.1f); 
+            iceVisual.transform.localPosition = new Vector3(0, 0, -0.05f); 
             iceVisual.AddComponent<SpriteRenderer>();
         }
 
         SpriteRenderer iceSr = iceVisual.GetComponent<SpriteRenderer>();
-        if (sr == null) sr = GetComponent<SpriteRenderer>();
 
         iceSr.sprite    = iceSprite;
         iceSr.drawMode  = SpriteDrawMode.Sliced;
@@ -1006,14 +1029,11 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
         iceSr.sortingLayerID = sr.sortingLayerID;
         iceSr.sortingOrder   = sr.sortingOrder + 1;
 
-        // IceOverlay shader materyali varsa uygula;
-        // yoksa eski davranış (default sprite material) korunur.
+        // IceOverlay shader materyali varsa uygula
         if (iceOverlayMaterial != null)
         {
             iceSr.sharedMaterial = iceOverlayMaterial;
 
-            // Her bloğa özgün phase offset → blok grid pozisyonundan deterministik hash
-            // İki ice bloğun aynı noise desenini paylaşmasını engeller
             float phaseOffset = (x * 7.319f + y * 13.731f + width * 3.141f) % 100f;
 
             MaterialPropertyBlock iceMpb = new MaterialPropertyBlock();
@@ -1028,8 +1048,103 @@ public void SetFrozen(bool frozen, Sprite iceSprite = null)
     }
     else
     {
+        // Çözüldüğünde taşı anında orijinal canlı sıcak rengine döndür
+        if (sr != null)
+        {
+            sr.color = Color.white;
+        }
+
+        HideIceSymbol();
         if (iceVisual != null) iceVisual.SetActive(false);
         StopIceFogParticles();
+    }
+}
+
+private void SetupIceSymbol()
+{
+    ResolveIceSymbolRenderer();
+    if (iceSymbolRenderer == null)
+        return;
+
+    Sprite symbol = iceSymbolSprite;
+    if (symbol == null)
+    {
+#if UNITY_EDITOR
+        symbol = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ART/Textures/frost_rune.png");
+        if (symbol != null)
+            iceSymbolSprite = symbol;
+#endif
+    }
+
+    if (symbol == null)
+        return;
+
+    if (sr == null) sr = GetComponent<SpriteRenderer>();
+
+    iceSymbolRenderer.sprite = symbol;
+    iceSymbolRenderer.drawMode = SpriteDrawMode.Simple;
+    iceSymbolRenderer.color = new Color(0.90f, 0.97f, 1.0f, 0.95f);
+    iceSymbolRenderer.transform.localPosition = new Vector3(0f, 0f, -0.15f);
+    iceSymbolRenderer.transform.localRotation = Quaternion.identity;
+    float initialScale = (width == 1) ? 0.425f : 0.50f;
+    iceSymbolRenderer.transform.localScale = new Vector3(initialScale, initialScale, 1f);
+    if (sr != null)
+    {
+        iceSymbolRenderer.sortingLayerID = sr.sortingLayerID;
+        iceSymbolRenderer.sortingOrder = sr.sortingOrder + 3;
+    }
+    iceSymbolRenderer.enabled = true;
+
+    if (iceSymbolPulseRoutine != null)
+        StopCoroutine(iceSymbolPulseRoutine);
+    iceSymbolPulseRoutine = StartCoroutine(IceSymbolPulseRoutine());
+}
+
+private void ResolveIceSymbolRenderer()
+{
+    if (iceSymbolRenderer != null)
+        return;
+
+    Transform symbolTransform = transform.Find("IceSymbol");
+    if (symbolTransform == null)
+    {
+        GameObject go = new GameObject("IceSymbol");
+        go.transform.SetParent(transform, false);
+        symbolTransform = go.transform;
+    }
+
+    iceSymbolRenderer = symbolTransform.GetComponent<SpriteRenderer>();
+    if (iceSymbolRenderer == null)
+        iceSymbolRenderer = symbolTransform.gameObject.AddComponent<SpriteRenderer>();
+}
+
+private void HideIceSymbol()
+{
+    if (iceSymbolPulseRoutine != null)
+    {
+        StopCoroutine(iceSymbolPulseRoutine);
+        iceSymbolPulseRoutine = null;
+    }
+    if (iceSymbolRenderer != null)
+        iceSymbolRenderer.enabled = false;
+}
+
+private IEnumerator IceSymbolPulseRoutine()
+{
+    float baseScale = (width == 1) ? 0.425f : 0.50f;
+    float phase = (x * 1.7f + y * 2.3f + width * 0.9f) % 6.28f;
+
+    while (isFrozen && iceSymbolRenderer != null && iceSymbolRenderer.enabled)
+    {
+        float t = Time.time * 2.2f + phase;
+        float pulse = Mathf.Sin(t) * 0.5f + 0.5f; // 0..1
+        float scale = baseScale * (0.95f + 0.08f * pulse);
+        iceSymbolRenderer.transform.localScale = new Vector3(scale, scale, 1f);
+
+        float alpha = 0.85f + 0.15f * pulse;
+        iceSymbolRenderer.color = new Color(0.90f + 0.10f * pulse, 0.96f + 0.04f * pulse, 1f, alpha);
+
+        yield return null;
     }
 }
 
@@ -1271,6 +1386,16 @@ private void RefreshIceFogSorting()
     }
 }
 
+private void RefreshIceSymbolSorting()
+{
+    if (sr == null) return;
+    if (iceSymbolRenderer != null)
+    {
+        iceSymbolRenderer.sortingLayerID = sr.sortingLayerID;
+        iceSymbolRenderer.sortingOrder = sr.sortingOrder + 3;
+    }
+}
+
 
 public void ApplyPreviewRendererSorting(int sortingOrder)
 {
@@ -1292,6 +1417,9 @@ public void ApplyPreviewRendererSorting(int sortingOrder)
             iceSr.sortingOrder = sortingOrder + 1;
         }
     }
+
+    RefreshIceSymbolSorting();
+    RefreshIceFogSorting();
 
     for (int i = 0; i < spawnedChainOverlays.Count; i++)
     {
@@ -1424,6 +1552,57 @@ public IEnumerator PlayChainBreakFeedback()
     transform.localScale = originalLocalScale;
 
     chainBreakFeedbackRoutine = null;
+}
+
+public bool HasAdjacentFreeSpace()
+{
+    if (GridManager.Instance == null || GridManager.Instance.gridArray == null)
+        return true;
+
+    int leftX = x - 1;
+    bool hasLeftSpace = leftX >= 0 && GridManager.Instance.gridArray[leftX, y] == null;
+
+    int rightX = x + width;
+    bool hasRightSpace = rightX < GridManager.Instance.width && GridManager.Instance.gridArray[rightX, y] == null;
+
+    return hasLeftSpace || hasRightSpace;
+}
+
+public void PlayImmovableShake()
+{
+    if (isMoving || isBeingDestroyed)
+        return;
+
+    if (!HasAdjacentFreeSpace())
+        return;
+
+    if (immovableShakeRoutine != null)
+    {
+        StopCoroutine(immovableShakeRoutine);
+    }
+    immovableShakeRoutine = StartCoroutine(ImmovableShakeRoutine());
+}
+
+private IEnumerator ImmovableShakeRoutine()
+{
+    Vector3 basePos = new Vector3(x + (width - 1) * 0.5f, y, transform.position.z);
+    float elapsed = 0f;
+    float strength = isRock ? immovableRockShakeStrength : immovableCageShakeStrength;
+    float frequency = isRock ? (immovableShakeFrequency * 0.85f) : immovableShakeFrequency;
+
+    while (elapsed < immovableShakeDuration)
+    {
+        elapsed += Time.deltaTime;
+        float t = Mathf.Clamp01(elapsed / immovableShakeDuration);
+        float decay = 1f - t;
+        float xOffset = Mathf.Sin(elapsed * frequency * Mathf.PI * 2f) * strength * decay;
+
+        transform.position = new Vector3(basePos.x + xOffset, basePos.y, basePos.z);
+        yield return null;
+    }
+
+    transform.position = basePos;
+    immovableShakeRoutine = null;
 }
 
 private void PlayChainBreakFX()
@@ -3463,6 +3642,11 @@ private void StopFireSurfaceEnergyRoutine()
 
 private void OnDisable()
 {
+    if (immovableShakeRoutine != null)
+    {
+        StopCoroutine(immovableShakeRoutine);
+        immovableShakeRoutine = null;
+    }
     StopFireInternalEnergyFlow();
     StopSliceInternalEnergyFlow();
     SetSliceSymbolActive(false);

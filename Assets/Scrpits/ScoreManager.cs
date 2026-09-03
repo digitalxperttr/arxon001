@@ -34,9 +34,9 @@ public class ScoreManager : MonoBehaviour
     public int comboMultiplier { get { return comboCount > 0 ? comboCount : 1; } }
 
     // SEVİYE (LEVEL) DEĞİŞKENLERİ
-    [SerializeField] private int[] scoreLevelThresholds = { 0, 200, 450, 750, 1100, 1600, 2200, 2900, 3700, 4600 };
-    [SerializeField] private int postThresholdBaseGap = 1200;
-    [SerializeField] private int postThresholdGapIncrease = 200;
+    [SerializeField] private int[] scoreLevelThresholds = { 0, 1000, 2500, 4500, 7000, 10500, 15000, 20500, 27000, 35000 };
+    [SerializeField] private int postThresholdBaseGap = 12000;
+    [SerializeField] private int postThresholdGapIncrease = 2000;
     public int currentLevel = 1;
 
     public void IncrementCombo()
@@ -74,6 +74,15 @@ public class ScoreManager : MonoBehaviour
         bestScore = 0;
         PreviousBestScoreAtRunStart = 0;
         ResetScoreAndLevel();
+    }
+
+    public void SetDebugStartLevel(int level)
+    {
+        int sanitizedLevel = Mathf.Max(1, level);
+        currentLevel = sanitizedLevel;
+        currentScore = GetThresholdForLevelStart(sanitizedLevel);
+        UpdateScoreUI();
+        Debug.Log($"[ScoreManager] Debug start level applied: Level {currentLevel} (Score: {currentScore})");
     }
 
     public void AddClearedLines(int count)

@@ -1093,6 +1093,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FirstTimeTutorial
   tutorialFont: {fileID: 11400000, guid: 3c1a5489c90fb4e969a30469559b1340, type: 2}
+  customHandSprite: {fileID: 1915413256509587028, guid: 72a3e8a8a31444604916082cd4a9fc5a, type: 3}
   startDelay: 0.35
   hintFadeDuration: 0.25
   hintVisibleDuration: 1
@@ -6097,6 +6098,7 @@ MonoBehaviour:
   sliceCutFxScale: {x: 1, y: 1, z: 1}
   sliceCutFxLifetime: 0.35
   chainBreakImpactPause: 0.16
+  debugStartLevel: 1
   enableClassicDoubleRowSpawn: 1
   activeBlocks: []
   blockPrefab: {fileID: 4165942794352353875, guid: c68cd50a2b94e4ed5ac370d3e673a80e, type: 3}
@@ -9374,6 +9376,7 @@ GameObject:
   - component: {fileID: 1900030001}
   - component: {fileID: 1900040001}
   - component: {fileID: 1900100001}
+  - component: {fileID: 1900100002}
   m_Layer: 0
   m_Name: HUDCanvas
   m_TagString: Untagged
@@ -14909,6 +14912,21 @@ MonoBehaviour:
   - {fileID: 621232009}
   - {fileID: 1900080201}
   totalDuration: 0.9
+--- !u!114 &1900100002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1162543557}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b65d2d39adf547d7857a4093dc5db39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DebugLevelSelectorUI
+  autoCreateButton: 1
+  buttonAnchoredPosition: {x: 25, y: -65}
+  buttonSize: {x: 85, y: 44}
 --- !u!1 &1900100101
 GameObject:
   m_ObjectHideFlags: 0

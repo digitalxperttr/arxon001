@@ -66,15 +66,17 @@ MonoBehaviour:
   comboCount: 0
   scoreLevelThresholds:
   - 0
-  - 200
-  - 450
-  - 750
-  - 1100
-  - 1600
-  - 2200
-  - 2900
-  - 3700
-  - 4600
+  - 1000
+  - 2500
+  - 4500
+  - 7000
+  - 10500
+  - 15000
+  - 20500
+  - 27000
+  - 35000
+  postThresholdBaseGap: 12000
+  postThresholdGapIncrease: 2000
   currentLevel: 1
 --- !u!114 &7920278384887831759
 MonoBehaviour:
