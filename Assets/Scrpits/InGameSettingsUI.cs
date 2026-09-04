@@ -80,6 +80,7 @@ public class InGameSettingsUI : MonoBehaviour
     public void ResetClassicScoreForTesting()
     {
         PlayerPrefs.SetInt(TutorialCompletedKey, 0);
+        SpecialBlockIntroManager.ResetAllIntrosForTesting();
 
         if (ScoreManager.Instance != null)
         {

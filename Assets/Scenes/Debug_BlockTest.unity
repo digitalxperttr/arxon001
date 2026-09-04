@@ -1020,13 +1020,13 @@ MonoBehaviour:
   - x: 1
     y: 1
     width: 4
-    blockType: 2
+    blockType: 0
     specialType: 0
     normalGemIndex: 1
   - x: 6
     y: 1
     width: 1
-    blockType: 2
+    blockType: 4
     specialType: 0
     normalGemIndex: 0
   - x: 5
@@ -1038,7 +1038,7 @@ MonoBehaviour:
   - x: 0
     y: 2
     width: 2
-    blockType: 1
+    blockType: 4
     specialType: 0
     normalGemIndex: 4
   - x: 4
@@ -1086,7 +1086,7 @@ MonoBehaviour:
   - x: 2
     y: 5
     width: 1
-    blockType: 0
+    blockType: 2
     specialType: 0
     normalGemIndex: 0
 --- !u!1 &469545359

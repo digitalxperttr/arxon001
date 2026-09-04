@@ -578,6 +578,9 @@ System.Collections.IEnumerator FinishMovementRoutine()
 
     grid.ChangeState(GameState.IDLE);
     
+    // Yeni bir özel blok geldiyse ve ilk kez görünüyorsa tanıtımını tetikle
+    SpecialBlockIntroManager.Instance?.CheckActiveBoardForSpecialIntros(grid);
+    
     // === YENİ EKLENEN KISIM ===
     // Tahta tamamen duruldu, patlamalar bitti. Hamle hakkı bitmiş mi ŞİMDİ kontrol et!
     if (LevelManager.Instance != null && LevelManager.Instance.enabled)

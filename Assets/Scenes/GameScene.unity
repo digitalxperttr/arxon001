@@ -1093,17 +1093,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FirstTimeTutorial
   tutorialFont: {fileID: 11400000, guid: 3c1a5489c90fb4e969a30469559b1340, type: 2}
-  customHandSprite: {fileID: 1915413256509587028, guid: 72a3e8a8a31444604916082cd4a9fc5a, type: 3}
+  customHandSprite: {fileID: 21300000, guid: 72a3e8a8a31444604916082cd4a9fc5a, type: 3}
   startDelay: 0.35
-  hintFadeDuration: 0.25
-  hintVisibleDuration: 1
   dimAlpha: 0.45
-  ghostStartDelay: 1.35
-  ghostRepeatDelay: 3.25
-  ghostMoveDuration: 1.15
-  ghostTravelPercent: 0.7
-  ghostAlpha: 0.5
-  passivePreviewAlpha: 0.4
+  dimFadeDuration: 0.35
+  handFadeDuration: 0.28
+  handSlideDuration: 0.75
   successVisibleDuration: 0.8
 --- !u!1 &351901941
 GameObject:
@@ -6054,6 +6049,7 @@ MonoBehaviour:
   - {r: 1, g: 0, b: 1, a: 1}
   width: 8
   height: 10
+  initialRowCount: 5
   cellSize: 1
   activeFogRows: []
   fogOverlayPrefab: {fileID: 4228708024784001848, guid: 69f51acd41b3540688522965135f6373, type: 3}

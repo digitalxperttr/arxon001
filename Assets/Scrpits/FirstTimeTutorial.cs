@@ -72,6 +72,17 @@ public class FirstTimeTutorial : MonoBehaviour
             tutorialRunning = false;
             enabled = false;
         }
+
+        if (tutorialFont == null)
+        {
+            tutorialFont = Resources.Load<TMP_FontAsset>("Fonts/SweetToneTR SDF");
+#if UNITY_EDITOR
+            if (tutorialFont == null)
+            {
+                tutorialFont = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ART/TextMesh Pro/Fonts/SweetToneTR SDF.asset");
+            }
+#endif
+        }
     }
 
     private void Start()
@@ -256,8 +267,12 @@ public class FirstTimeTutorial : MonoBehaviour
 
         if (customHandSprite == null)
         {
+            customHandSprite = Resources.Load<Sprite>("UI/tut_hand");
 #if UNITY_EDITOR
-            customHandSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ART/UI/tut_hand.png");
+            if (customHandSprite == null)
+            {
+                customHandSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ART/UI/tut_hand.png");
+            }
 #endif
         }
 
@@ -597,6 +612,9 @@ public class FirstTimeTutorial : MonoBehaviour
         label.color = new Color(1f, 0.88f, 0.22f, 1f); // Parlak Altın Sarısı
         label.raycastTarget = false;
         label.textWrappingMode = TextWrappingModes.NoWrap;
+
+        if (tutorialFont == null)
+            tutorialFont = Resources.Load<TMP_FontAsset>("Fonts/SweetToneTR SDF");
 
         if (tutorialFont != null)
             label.font = tutorialFont;

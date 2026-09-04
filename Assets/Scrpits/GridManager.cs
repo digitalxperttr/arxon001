@@ -207,6 +207,7 @@ public class GridManager : MonoBehaviour
     public bool IsBoardBusy =>
         isGameOver ||
         currentState != GameState.IDLE ||
+        (SpecialBlockIntroManager.Instance != null && SpecialBlockIntroManager.Instance.IsIntroActive) ||
         isResolvingNoMove ||
         isRunningDifficultyPush ||
         isSliceResolving ||
@@ -425,6 +426,10 @@ private int GetPerfectClearBonus(int level)
         if (Instance == null)
         {
             Instance = this;
+            if (floatingTextPrefab != null)
+            {
+                FloatingText.SetDefaultPrefab(floatingTextPrefab);
+            }
         }
         else
         {
@@ -438,6 +443,7 @@ private int GetPerfectClearBonus(int level)
             : null;
         gridArray = new Block[width, height];
         EnsureHintManager();
+        EnsureSpecialBlockIntroManager();
     }
 
     private void EnsureHintManager()
@@ -446,6 +452,15 @@ private int GetPerfectClearBonus(int level)
         {
             GameObject hintObj = new GameObject("HintManager");
             hintObj.AddComponent<HintManager>();
+        }
+    }
+
+    private void EnsureSpecialBlockIntroManager()
+    {
+        if (SpecialBlockIntroManager.Instance == null && FindAnyObjectByType<SpecialBlockIntroManager>() == null)
+        {
+            GameObject introObj = new GameObject("SpecialBlockIntroManager");
+            introObj.AddComponent<SpecialBlockIntroManager>();
         }
     }
 
@@ -2118,31 +2133,32 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             float spawnX = (width - 1) / 2f; 
             Vector3 spawnPos = new Vector3(spawnX, lowestClearedY + (clearedRowCount / 2f), 0);
             
-            // Puan Yazısı
+            // Puan Yazısı (Referanstaki Buzul/Cyan stili)
             FloatingText pointText = Instantiate(floatingTextPrefab, spawnPos, Quaternion.identity);
-            pointText.SetText($"+{pointsToGive}", Color.yellow, 6f);
+            pointText.SetStyle($"+{pointsToGive}", FloatingTextStyle.ScoreCyan, 6.5f);
 
-            // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar
-            if (moveMultiplier > 1)
+            // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar (Referanstaki COMBO × N altın/ateş stili)
+            if (moveMultiplier > 1 || (ScoreManager.Instance != null && ScoreManager.Instance.comboCount > 1))
             {
+                int comboVal = ScoreManager.Instance != null && ScoreManager.Instance.comboCount > 0 ? ScoreManager.Instance.comboCount : moveMultiplier;
                 Vector3 comboPos = spawnPos + new Vector3(0, 1.2f, 0);
                 FloatingText comboText = Instantiate(floatingTextPrefab, comboPos, Quaternion.identity);
-                comboText.SetText($"{moveMultiplier}x COMBO!", new Color(1f, 0.4f, 0f), 8f); // Turuncu renk
+                comboText.SetStyle($"COMBO \u00D7 {comboVal}", FloatingTextStyle.ComboGold, 7.5f);
             }
 
             if (chainMultiplier > 1)
             {
                 Vector3 chainPos = spawnPos + new Vector3(0, 2.1f, 0);
                 FloatingText chainText = Instantiate(floatingTextPrefab, chainPos, Quaternion.identity);
-                chainText.SetText($"CHAIN x{chainMultiplier}!", Color.cyan, 8f);
+                chainText.SetStyle($"CHAIN \u00D7 {chainMultiplier}!", FloatingTextStyle.ChainMagenta, 8f);
+            }
 
-                if (chainDepth >= 3)
-                {
-                    StartCoroutine(CameraShakeRoutine(
-                        shakeDuration * 1.5f,
-                        shakeStrength * 1.8f
-                    ));
-                }
+            if (chainDepth >= 3)
+            {
+                StartCoroutine(CameraShakeRoutine(
+                    shakeDuration * 1.5f,
+                    shakeStrength * 1.8f
+                ));
             }
         }
         // ================================================
@@ -3441,7 +3457,8 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
                 fireArcDisplacement,
                 fireArcStartWidth,
                 fireArcEndWidth,
-                fireArcMaterial);
+                fireArcMaterial,
+                arcTarget);
 
             if (arc != null && !activeArcs.ContainsKey(arcTarget))
                 activeArcs.Add(arcTarget, arc);

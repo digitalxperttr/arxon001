@@ -62,6 +62,10 @@ public static class FireV2SpriteLibrary
 #endif
 
         // 2. Resources.Load (Eğer Resources klasöründeyse)
+        Sprite singleSprite = Resources.Load<Sprite>(resourcePath);
+        if (singleSprite != null)
+            return singleSprite;
+
         Sprite[] importedSprites = Resources.LoadAll<Sprite>(resourcePath);
         if (importedSprites != null && importedSprites.Length > 0)
         {

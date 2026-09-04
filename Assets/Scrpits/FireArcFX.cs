@@ -32,6 +32,7 @@ public class FireArcFX : MonoBehaviour
     private int     segmentCount;
     private float   displacement;
     private Material resolvedMaterial;
+    private Block   targetBlock;
 
     private bool isDismissed = false;
     private Coroutine activeLoopCoroutine;
@@ -42,7 +43,7 @@ public class FireArcFX : MonoBehaviour
 
     /// <summary>
     /// Spawns a sustained multi-branching electric lightning arc from <paramref name="from"/> to <paramref name="to"/>.
-    /// Stays active until <see cref="Dismiss"/> is called.
+    /// Automatically dismisses as soon as <paramref name="target"/> is destroyed or when <see cref="Dismiss"/> is called.
     /// </summary>
     public static FireArcFX Spawn(
         Vector3  from,
@@ -53,13 +54,14 @@ public class FireArcFX : MonoBehaviour
         float    displacement = 0.20f,
         float    startWidth   = DefaultStartWidth,
         float    endWidth     = DefaultEndWidth,
-        Material lineMaterial = null)
+        Material lineMaterial = null,
+        Block    target       = null)
     {
         if (from == to) return null;
 
         GameObject go = new GameObject("FireArcFX");
         FireArcFX fx = go.AddComponent<FireArcFX>();
-        fx.Initialize(from, to, targetSize, duration, segments, displacement, startWidth, endWidth, lineMaterial);
+        fx.Initialize(from, to, targetSize, duration, segments, displacement, startWidth, endWidth, lineMaterial, target);
         return fx;
     }
 
@@ -76,7 +78,8 @@ public class FireArcFX : MonoBehaviour
         float    disp,
         float    startWidth,
         float    endWidth,
-        Material lineMaterial)
+        Material lineMaterial,
+        Block    target)
     {
         fromPos          = from;
         toPos            = to;
@@ -84,6 +87,7 @@ public class FireArcFX : MonoBehaviour
         segmentCount     = Mathf.Max(3, segments);
         displacement     = disp;
         resolvedMaterial = ResolveMaterial(lineMaterial);
+        targetBlock      = target;
 
         // 1. Setup Main Bolt LineRenderer
         mainLine = CreateLine("MainBolt", startWidth, endWidth, 65);
@@ -285,16 +289,26 @@ public class FireArcFX : MonoBehaviour
             yield return null;
         }
 
-        // Sustained electric flicker (remains alive until Dismiss() is called or 2.0s safety timeout expires)
+        // Sustained electric flicker (remains alive until Dismiss() is called or targetBlock is destroyed or 2.0s timeout)
         float totalLifetime = 0f;
         while (!isDismissed)
         {
+            // Hedef blok herhangi bir nedenle (ör. satır patlaması, erken yok olma) yok olduysa anında kapan
+            if (targetBlock == null || targetBlock.isBeingDestroyed)
+            {
+                Dismiss(0.06f);
+                yield break;
+            }
+
             totalLifetime += Time.deltaTime;
             if (totalLifetime > 2.0f)
             {
                 Dismiss(0.08f);
                 yield break;
             }
+
+            // Blok hareket ettiyse veya yerçekimiyle kaydıysa anlık olarak takip et
+            toPos = targetBlock.GetArcAnchorPosition();
 
             RebuildAllGeometry();
             float flicker = Random.Range(0.85f, 1.0f);
