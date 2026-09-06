@@ -94,6 +94,8 @@ public class FloatingText : MonoBehaviour
         Material selectedMat = GetMaterialForStyle(style);
         if (selectedMat != null)
         {
+            if (textMesh.font != null && selectedMat.mainTexture != textMesh.font.atlasTexture)
+                selectedMat.SetTexture(ShaderUtilities.ID_MainTex, textMesh.font.atlasTexture);
             textMesh.fontSharedMaterial = selectedMat;
         }
 
@@ -208,6 +210,91 @@ public class FloatingText : MonoBehaviour
             yield return null;
         }
 
+        Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// Patlama anından sonra kaybolmak yerine verilen hedef dünya koordinatına süzülüp kenetlenir.
+    /// </summary>
+    public void FlyAndDock(string text, FloatingTextStyle style, Vector3 targetWorldPos, float size = 7f, float flyDuration = 0.50f, System.Action onArrived = null)
+    {
+        EnsureComponents();
+        if (textMesh == null) return;
+
+        if (defaultFontAsset != null)
+            textMesh.font = defaultFontAsset;
+
+        Material selectedMat = GetMaterialForStyle(style);
+        if (selectedMat != null)
+        {
+            if (textMesh.font != null && selectedMat.mainTexture != textMesh.font.atlasTexture)
+                selectedMat.SetTexture(ShaderUtilities.ID_MainTex, textMesh.font.atlasTexture);
+            textMesh.fontSharedMaterial = selectedMat;
+        }
+
+        textMesh.text = text;
+        textMesh.fontSize = size;
+        textMesh.sortingOrder = 35; // Uçuş esnasında her şeyin en üstünde
+
+        if (animRoutine != null)
+            StopCoroutine(animRoutine);
+
+        animRoutine = StartCoroutine(FlyAndDockRoutine(targetWorldPos, flyDuration, onArrived));
+    }
+
+    private IEnumerator FlyAndDockRoutine(Vector3 targetWorldPos, float flyDuration, System.Action onArrived)
+    {
+        Vector3 startPos = transform.position;
+        Vector3 baseScale = Vector3.one;
+        transform.localScale = Vector3.zero;
+
+        Color originalColor = textMesh.color;
+        originalColor.a = 1f;
+        textMesh.color = originalColor;
+
+        // 1. POP & PUNCH (Yerinde aniden belirme)
+        float elapsed = 0f;
+        while (elapsed < punchDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / punchDuration);
+            transform.localScale = Vector3.LerpUnclamped(Vector3.zero, baseScale * punchScale, EaseOutBack(t));
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < settleDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / settleDuration);
+            transform.localScale = Vector3.Lerp(baseScale * punchScale, baseScale, t);
+            yield return null;
+        }
+        transform.localScale = baseScale;
+
+        // 2. KISA HANG TIME (Okunabilirlik için çok kısa duraklama)
+        yield return new WaitForSeconds(0.12f);
+
+        // 3. SWOOP / FLY TO TARGET (Kavisli yukarı süzülme)
+        elapsed = 0f;
+        Vector3 flyStartPos = transform.position;
+        while (elapsed < flyDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / flyDuration);
+            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+
+            Vector3 currentPos = Vector3.Lerp(flyStartPos, targetWorldPos, smoothT);
+            transform.position = currentPos;
+
+            // Hedefe yaklaştıkça hafif küçülme
+            transform.localScale = Vector3.Lerp(baseScale, baseScale * 0.85f, smoothT);
+
+            yield return null;
+        }
+
+        transform.position = targetWorldPos;
+        onArrived?.Invoke();
         Destroy(gameObject);
     }
 

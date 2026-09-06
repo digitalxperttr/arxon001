@@ -28,10 +28,13 @@ public class ScoreManager : MonoBehaviour
     private int currentScore = 0;
     public int CurrentScore => currentScore;
 
-    // KOMBO DEĞİŞKENLERİ
+    // KOMBO DEĞİŞKENLERİ VE EVENTLERİ
     public int comboCount = 0;
     // Kombo sıfırsa çarpan 1'dir, değilse kombonun kendisidir.
     public int comboMultiplier { get { return comboCount > 0 ? comboCount : 1; } }
+
+    public static event System.Action<int> OnComboChanged;
+    public static event System.Action OnComboReset;
 
     // SEVİYE (LEVEL) DEĞİŞKENLERİ
     [SerializeField] private int[] scoreLevelThresholds = { 0, 1000, 2500, 4500, 7000, 10500, 15000, 20500, 27000, 35000 };
@@ -42,9 +45,10 @@ public class ScoreManager : MonoBehaviour
     public void IncrementCombo()
     {
         comboCount++;
+        OnComboChanged?.Invoke(comboCount);
+
         if (comboCount > 1) 
         {
-            // Şimdilik Konsola yazdırıyoruz, Adım 4'te bunu Ekranda uçan yazı yapacağız!
             Debug.Log($"<color=orange>HARİKA! {comboCount}x COMBO!</color>");
         }
     }
@@ -55,6 +59,7 @@ public class ScoreManager : MonoBehaviour
             Debug.Log("<color=red>Kombo Bozuldu!</color>");
         }
         comboCount = 0;
+        OnComboReset?.Invoke();
     }
 
     public void ResetScoreAndLevel()

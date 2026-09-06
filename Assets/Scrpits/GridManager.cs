@@ -444,6 +444,7 @@ private int GetPerfectClearBonus(int level)
         gridArray = new Block[width, height];
         EnsureHintManager();
         EnsureSpecialBlockIntroManager();
+        EnsureComboBadgeController();
     }
 
     private void EnsureHintManager()
@@ -461,6 +462,15 @@ private int GetPerfectClearBonus(int level)
         {
             GameObject introObj = new GameObject("SpecialBlockIntroManager");
             introObj.AddComponent<SpecialBlockIntroManager>();
+        }
+    }
+
+    private void EnsureComboBadgeController()
+    {
+        if (ComboBadgeController.Instance == null && FindAnyObjectByType<ComboBadgeController>() == null)
+        {
+            GameObject badgeObj = new GameObject("ComboBadgeController");
+            badgeObj.AddComponent<ComboBadgeController>();
         }
     }
 
@@ -2137,13 +2147,26 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             FloatingText pointText = Instantiate(floatingTextPrefab, spawnPos, Quaternion.identity);
             pointText.SetStyle($"+{pointsToGive}", FloatingTextStyle.ScoreCyan, 6.5f);
 
-            // Eğer kombo varsa, kombo yazısını puanın biraz üstünde çıkar (Referanstaki COMBO × N altın/ateş stili)
-            if (moveMultiplier > 1 || (ScoreManager.Instance != null && ScoreManager.Instance.comboCount > 1))
+            // Eğer ardışık kombo varsa (2 veya daha fazla patlama), kombo yazısını puanın biraz üstünde çıkar ve yukarıdaki taş panele doğru süzülüp kenetlensin!
+            int comboVal = ScoreManager.Instance != null && ScoreManager.Instance.comboCount > 0 ? ScoreManager.Instance.comboCount : moveMultiplier;
+            if (comboVal >= 2)
             {
-                int comboVal = ScoreManager.Instance != null && ScoreManager.Instance.comboCount > 0 ? ScoreManager.Instance.comboCount : moveMultiplier;
                 Vector3 comboPos = spawnPos + new Vector3(0, 1.2f, 0);
                 FloatingText comboText = Instantiate(floatingTextPrefab, comboPos, Quaternion.identity);
-                comboText.SetStyle($"COMBO \u00D7 {comboVal}", FloatingTextStyle.ComboGold, 7.5f);
+
+                if (ComboBadgeController.Instance != null)
+                {
+                    Vector3 targetDockPos = ComboBadgeController.Instance.GetDockingWorldPosition();
+                    comboText.FlyAndDock($"COMBO \u00D7 {comboVal}", FloatingTextStyle.ComboGold, targetDockPos, 7.5f, 0.48f, () =>
+                    {
+                        if (ComboBadgeController.Instance != null)
+                            ComboBadgeController.Instance.Dock(comboVal);
+                    });
+                }
+                else
+                {
+                    comboText.SetStyle($"COMBO \u00D7 {comboVal}", FloatingTextStyle.ComboGold, 7.5f);
+                }
             }
 
             if (chainMultiplier > 1)

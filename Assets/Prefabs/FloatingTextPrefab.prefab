@@ -109,7 +109,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: Sample text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 46df7ed4dcf2c4c999cdecce00ce0821, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8c5c95b1758bd4ab7ac6eda3725a65cf, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 1e570e1ef12c54fa4a50e198ea558d18, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -200,7 +200,7 @@ MonoBehaviour:
   bonusPurpleMat: {fileID: 2100000, guid: ff2ea73f070a84a51b2c057444ca60da, type: 2}
   coinYellowMat: {fileID: 2100000, guid: 710fd2f5e904744c8900bb3221c0a714, type: 2}
   warningRedMat: {fileID: 2100000, guid: 09d03bc827832441dae1c1b290c4f2e9, type: 2}
-  defaultFontAsset: {fileID: 11400000, guid: 46df7ed4dcf2c4c999cdecce00ce0821, type: 2}
+  defaultFontAsset: {fileID: 11400000, guid: 8c5c95b1758bd4ab7ac6eda3725a65cf, type: 2}
   punchScale: 1.35
   punchDuration: 0.12
   settleDuration: 0.08
