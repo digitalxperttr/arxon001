@@ -60,6 +60,9 @@ public class InputManager : MonoBehaviour
 
 void Update()
 {
+    if (grid == null) grid = GridManager.Instance;
+    if (grid == null || !grid.IsInitialized) return;
+
     if (Input.GetMouseButtonDown(0))
     {
         UserInputStarted?.Invoke();
@@ -562,6 +565,13 @@ System.Collections.IEnumerator FinishMovementRoutine()
     grid.ChangeState(GameState.CHECKING);
     yield return StartCoroutine(grid.CheckAndClearRowsRoutine(true));
 
+    if (LevelManager.Instance != null && LevelManager.Instance.IsVictoryPending)
+    {
+        grid.ChangeState(GameState.IDLE);
+        grid.TryFinalizePendingAdventureVictory();
+        yield break;
+    }
+
     FirstTimeTutorial activeTutorial = firstTimeTutorial != null ? firstTimeTutorial : FirstTimeTutorial.Instance;
     if (TutorialInputHooksEnabled && activeTutorial != null && activeTutorial.IsRunning)
     {
@@ -571,12 +581,19 @@ System.Collections.IEnumerator FinishMovementRoutine()
     // 4. BOARD'U YUKARI İT VE SÜRECİ BİTİR
     yield return StartCoroutine(grid.PushBoardUpRoutine());
 
+    grid.TryFinalizePendingAdventureVictory();
+    if (grid.isGameOver)
+        yield break;
+
     if (TutorialInputHooksEnabled && activeTutorial != null && activeTutorial.IsRunning)
     {
         yield return StartCoroutine(activeTutorial.CompleteAfterPushUp());
     }
 
     grid.ChangeState(GameState.IDLE);
+    grid.TryFinalizePendingAdventureVictory();
+    if (grid.isGameOver)
+        yield break;
     
     // Yeni bir özel blok geldiyse ve ilk kez görünüyorsa tanıtımını tetikle
     SpecialBlockIntroManager.Instance?.CheckActiveBoardForSpecialIntros(grid);

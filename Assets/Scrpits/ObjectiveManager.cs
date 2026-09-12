@@ -53,36 +53,30 @@ public class ObjectiveManager : MonoBehaviour
         return managerObject.AddComponent<ObjectiveManager>();
     }
 
-    public void Initialize(AdventureLevelConfig config)
-    {
-        Initialize(config, null);
-    }
+    public LevelData RuntimeLevel { get; private set; }
 
-    public void Initialize(AdventureLevelConfig config, LevelData legacyRuntimeLevel)
+    public void Initialize(LevelData level)
     {
         objectives.Clear();
         loggedCompletedObjectives.Clear();
         allObjectivesLogged = false;
         IsInitialized = false;
-
-        if (config == null)
+        RuntimeLevel = null;
+        if (level == null || !level.IsRuntimeLevel)
         {
-            Debug.LogWarning("[ObjectiveManager] Initialize called with no AdventureLevelConfig.");
+            Debug.LogError("[ObjectiveManager] Resolved Adventure runtime data required.");
             return;
         }
-
-        if (config.HasObjectiveV2())
+        if (!LevelData.ValidateObjectives(level.Objectives, out string error))
         {
-            LoadObjectiveV2(config.objectives);
+            Debug.LogError(error);
+            return;
         }
-        else
-        {
-            LoadLegacyObjectives(config, legacyRuntimeLevel);
-        }
-
+        RuntimeLevel = level;
+        for (int i = 0; i < level.Objectives.Count; i++)
+            objectives.Add(CreateRuntimeState(level.Objectives[i]));
         IsInitialized = true;
-        Debug.Log($"[ObjectiveManager] Loaded {objectives.Count} objective(s) from {config.name}.");
-        CheckCompletionLogs();
+        Debug.Log($"[ObjectiveManager] Loaded {objectives.Count} objective(s) from runtime level {level.levelNumber}.");
     }
 
     public void ReportRowsCleared(int amount)
@@ -147,6 +141,40 @@ public class ObjectiveManager : MonoBehaviour
         CheckCompletionLogs();
     }
 
+    public void ReportObstacleDestroyed(AdventureObjectiveTarget obstacleTarget)
+    {
+        if (!IsActive || obstacleTarget == AdventureObjectiveTarget.None)
+        {
+            return;
+        }
+
+        for (int i = 0; i < objectives.Count; i++)
+        {
+            ObjectiveRuntimeState state = objectives[i];
+            AdventureObjectiveDefinition definition = state.definition;
+            if (definition == null)
+            {
+                continue;
+            }
+
+            bool matches = definition.action == AdventureObjectiveAction.DestroyObstacle &&
+                (definition.target == obstacleTarget || definition.target == AdventureObjectiveTarget.AnyObstacle);
+            bool matchesChainObjective = definition.action == AdventureObjectiveAction.BreakChain &&
+                obstacleTarget == AdventureObjectiveTarget.Chain;
+
+            if (matches || matchesChainObjective)
+            {
+                AddProgress(state, 1);
+            }
+        }
+
+        CheckCompletionLogs();
+        if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+        {
+            LevelManager.Instance.EvaluateObjectiveCompletion();
+        }
+    }
+
     public bool AreAllObjectivesComplete()
     {
         if (!IsActive)
@@ -168,66 +196,6 @@ public class ObjectiveManager : MonoBehaviour
     public IReadOnlyList<ObjectiveRuntimeState> GetObjectives()
     {
         return objectives;
-    }
-
-    private void LoadObjectiveV2(List<AdventureObjectiveDefinition> definitions)
-    {
-        if (definitions == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < definitions.Count; i++)
-        {
-            AdventureObjectiveDefinition definition = definitions[i];
-            if (definition == null)
-            {
-                continue;
-            }
-
-            objectives.Add(CreateRuntimeState(definition));
-        }
-    }
-
-    private void LoadLegacyObjectives(AdventureLevelConfig config, LevelData legacyRuntimeLevel)
-    {
-        int targetLines = legacyRuntimeLevel != null ? legacyRuntimeLevel.targetLines : config.targetLines;
-        int targetScore = legacyRuntimeLevel != null ? legacyRuntimeLevel.targetScore : config.targetScore;
-        ObjectiveType objectiveType = legacyRuntimeLevel != null ? legacyRuntimeLevel.objectiveType : config.objective;
-
-        if (objectiveType == ObjectiveType.ReachScore && targetScore > 0)
-        {
-            objectives.Add(CreateRuntimeState(new AdventureObjectiveDefinition
-            {
-                action = AdventureObjectiveAction.ReachScore,
-                target = AdventureObjectiveTarget.Score,
-                requiredAmount = targetScore,
-                displayLabel = "Reach Score"
-            }));
-
-            return;
-        }
-
-        if (targetLines > 0)
-        {
-            objectives.Add(CreateRuntimeState(new AdventureObjectiveDefinition
-            {
-                action = AdventureObjectiveAction.ClearRows,
-                target = AdventureObjectiveTarget.Rows,
-                requiredAmount = targetLines,
-                displayLabel = "Clear Rows"
-            }));
-        }
-        else if (targetScore > 0)
-        {
-            objectives.Add(CreateRuntimeState(new AdventureObjectiveDefinition
-            {
-                action = AdventureObjectiveAction.ReachScore,
-                target = AdventureObjectiveTarget.Score,
-                requiredAmount = targetScore,
-                displayLabel = "Reach Score"
-            }));
-        }
     }
 
     private ObjectiveRuntimeState CreateRuntimeState(AdventureObjectiveDefinition definition)

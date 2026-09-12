@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class AdventureMapController : MonoBehaviour
@@ -17,6 +19,9 @@ public class AdventureMapController : MonoBehaviour
 
     [Header("UI References")]
     public TMP_Text eventNameText;
+    [Tooltip("Node'ların arkasındaki gerçek AdventureMap arka planı. Boş etkinlik atamasında bu Image'ın sahne sprite'ı kullanılır.")]
+    [FormerlySerializedAs("eventBackgroundImage")]
+    [SerializeField] private Image mapBackgroundImage;
     public Button leftPageButton;
     public Button rightPageButton;
     public Button backButton;
@@ -39,18 +44,80 @@ public class AdventureMapController : MonoBehaviour
     private RectTransform currentAmberTransform;
     private Image currentAmberImage;
     private Vector3 currentAmberBaseScale = Vector3.one;
+    private Sprite defaultMapBackgroundSprite;
+    private AdventureEventConfig appliedLocalEvent;
 
     private void Awake()
     {
         WireButtons();
+        defaultMapBackgroundSprite = mapBackgroundImage != null ? mapBackgroundImage.sprite : null;
     }
 
     private void Start()
     {
-        if (eventNameText != null && string.IsNullOrWhiteSpace(eventNameText.text))
-            eventNameText.text = defaultEventName;
+        ApplySelectedEventPresentation();
 
         SetPage(currentPage);
+        // The persistent manager can be created by MainMenu's initializer in the same scene-change frame.
+        // Reapply once without touching the captured attempt or selected source if that bootstrap was late.
+        StartCoroutine(ApplySelectedEventPresentationNextFrame());
+    }
+
+    private IEnumerator ApplySelectedEventPresentationNextFrame()
+    {
+        yield return null;
+        ApplySelectedEventPresentation();
+    }
+
+    private void ApplySelectedEventPresentation()
+    {
+        AdventureEventConfig localEvent = ProgressManager.Instance != null ? ProgressManager.Instance.SelectedLocalEvent : null;
+        if (localEvent == appliedLocalEvent)
+        {
+            return;
+        }
+
+        if (localEvent == null)
+        {
+            if (eventNameText != null && string.IsNullOrWhiteSpace(eventNameText.text)) eventNameText.text = defaultEventName;
+            ApplyMapBackgroundSprite(mapBackgroundImage, defaultMapBackgroundSprite, null);
+            appliedLocalEvent = null;
+            return;
+        }
+
+        if (eventNameText != null) eventNameText.text = string.IsNullOrWhiteSpace(localEvent.eventName) ? defaultEventName : localEvent.eventName;
+        ApplyMapBackgroundSprite(mapBackgroundImage, defaultMapBackgroundSprite, localEvent.mapBackgroundVisual);
+        appliedLocalEvent = localEvent;
+    }
+
+    public static void ApplyMapBackgroundSprite(Image target, Sprite fallbackSprite, Sprite eventSprite)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        Sprite selectedSprite = eventSprite != null ? eventSprite : fallbackSprite;
+        target.sprite = selectedSprite;
+        target.enabled = selectedSprite != null;
+        target.raycastTarget = false;
+        target.type = Image.Type.Simple;
+        target.preserveAspect = false;
+
+        AspectRatioFitter aspectFitter = target.GetComponent<AspectRatioFitter>();
+        if (selectedSprite == null)
+        {
+            if (aspectFitter != null)
+                aspectFitter.enabled = false;
+            return;
+        }
+
+        if (aspectFitter == null)
+            aspectFitter = target.gameObject.AddComponent<AspectRatioFitter>();
+
+        aspectFitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+        aspectFitter.aspectRatio = selectedSprite.rect.width / selectedSprite.rect.height;
+        aspectFitter.enabled = true;
     }
 
     private void OnValidate()
@@ -89,9 +156,9 @@ public class AdventureMapController : MonoBehaviour
         int levelNumber = GetLevelNumberForNode(nodeIndex);
         int highestLevelUnlocked = GetHighestLevelUnlocked();
 
-        if (levelNumber > highestLevelUnlocked)
+        if (levelNumber > highestLevelUnlocked || (ProgressManager.Instance != null && !ProgressManager.Instance.HasAdventureLevel(levelNumber)))
         {
-            Debug.Log($"[AdventureMap] Level {levelNumber} is locked. Highest unlocked level: {highestLevelUnlocked}.");
+            Debug.Log($"[AdventureMap] Level {levelNumber} is locked or has no active event content. Highest unlocked level: {highestLevelUnlocked}.");
             return;
         }
 
@@ -166,7 +233,8 @@ public class AdventureMapController : MonoBehaviour
         {
             TMP_Text nodeText = nodeTexts[i];
             int levelNumber = GetLevelNumberForNode(i);
-            bool isUnlocked = levelNumber <= highestLevelUnlocked;
+            bool hasBackingLevel = ProgressManager.Instance == null || ProgressManager.Instance.HasAdventureLevel(levelNumber);
+            bool isUnlocked = hasBackingLevel && levelNumber <= highestLevelUnlocked;
 
             if (nodeText != null)
             {
@@ -177,7 +245,7 @@ public class AdventureMapController : MonoBehaviour
             Image amberImage = GetNodeAmberImage(i);
             if (amberImage != null)
             {
-                bool showAmber = levelNumber <= highestLevelUnlocked;
+                bool showAmber = isUnlocked;
                 amberImage.gameObject.SetActive(showAmber);
 
                 if (showAmber)
@@ -211,6 +279,8 @@ public class AdventureMapController : MonoBehaviour
 
     private void Update()
     {
+        ApplySelectedEventPresentation();
+
         if (currentAmberTransform == null || currentAmberImage == null || !currentAmberImage.gameObject.activeInHierarchy)
             return;
 

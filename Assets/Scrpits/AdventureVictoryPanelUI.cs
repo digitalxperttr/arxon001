@@ -107,26 +107,16 @@ public class AdventureVictoryPanelUI : MonoBehaviour
         SetSharedModalDimVisible(false);
         Time.timeScale = 1f;
 
-        if (ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null)
+        AdventureAttemptSnapshot completedAttempt = LevelManager.Instance != null ? LevelManager.Instance.AdventureAttempt : null;
+        if (ProgressManager.Instance == null || completedAttempt == null)
         {
             LoadAdventureMap();
             return;
         }
 
-        int completedLevel = ProgressManager.Instance.currentSelectedLevelNumber;
-        if (completedLevel > 0 && completedLevel % 10 == 0)
+        if (ProgressManager.Instance.TryStartNextAdventureAttempt(completedAttempt))
         {
-            Debug.Log($"[AdventureVictoryPanelUI] Level {completedLevel} completed. Returning to AdventureMap for next page.");
-            LoadAdventureMap();
-            return;
-        }
-
-        int nextLevel = completedLevel + 1;
-        if (completedLevel > 0 &&
-            completedLevel < ProgressManager.Instance.GetAdventureLevelCount() &&
-            ProgressManager.Instance.TrySelectAdventureLevel(nextLevel))
-        {
-            Debug.Log($"[AdventureVictoryPanelUI] Loading next Adventure level: {nextLevel}");
+            Debug.Log($"[AdventureVictoryPanelUI] Loading next Adventure level after {completedAttempt.Identity.LevelId}.");
             LoadAdventureGameScene();
             return;
         }

@@ -12,9 +12,54 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f76d7ea8bc4c4f139da57caa8fbec1e, type: 3}
   m_Name: L04
   m_EditorClassIdentifier: Assembly-CSharp::AdventureLevelConfig
+  levelId: event-001-s03
+  eventId: event-001
+  contentVersion: 1
+  displayedLevelNumber: 4
   levelNumber: 4
   displayName: Adventure Level
-  designerNotes: Medium / ObstacleDense / ClearRows / Ice
+  designerNotes: 'Medium / ObstacleDense / ClearRows / Ice
+
+
+    Legacy Source:
+
+    Difficulty=Hard
+
+    Pressure=ObstacleDense
+
+    Obstacle=Rock
+
+    Focus=Fire
+
+    EffectiveSupport=Disabled
+    (legacy custom spawn rules were off)'
+  authoringMode: 1
+  directRecipe:
+    hasMoveLimit: 1
+    moveLimit: 20
+    gapChance: 0.23
+    minBlockWidth: 1
+    maxBlockWidth: 4
+    useCustomWidthRules: 0
+    largeBlockChance: 0.15
+    rock:
+      enabled: 1
+      chance: 0.18
+    chain:
+      enabled: 1
+      chance: 0.07
+    ice:
+      enabled: 1
+      chance: 0.07
+    fire:
+      enabled: 0
+      chance: 0
+    slice:
+      enabled: 0
+      chance: 0
+    fogDensity: 0
+    fogCoveragePercent: 0
+    fogStartingRow: -1
   difficulty: 2
   pressure: 2
   objective: 1
@@ -22,7 +67,13 @@ MonoBehaviour:
   specialMechanicFocus: 1
   fogDensity: 0
   fogCoveragePercent: 0
-  objectives: []
+  objectives:
+  - action: 0
+    target: 2
+    requiredAmount: 4
+    collectibleId: 
+    displayLabel: 
+    displayIcon: {fileID: 0}
   targetLines: 0
   targetScore: 500
   targetObstacleCount: 0

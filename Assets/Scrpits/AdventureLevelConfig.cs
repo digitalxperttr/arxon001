@@ -11,6 +11,79 @@ public enum AdventureObjectiveAction
     ComboTarget
 }
 
+public enum AdventureStageAuthoringMode
+{
+    LegacyMacroAuthoring,
+    DirectRecipeAuthoring
+}
+
+[System.Serializable]
+public class AdventureStageSpawnSetting
+{
+    public bool enabled;
+    [Range(0f, 1f)] public float chance;
+}
+
+[System.Serializable]
+public class AdventureStageRecipe
+{
+    [Tooltip("When disabled, this Stage never loses because of move count.")]
+    public bool hasMoveLimit = true;
+    [Min(1)] public int moveLimit = 30;
+    [Range(0f, 1f)] public float gapChance = 0.38f;
+    [Min(1)] public int minBlockWidth = 1;
+    [Min(1)] public int maxBlockWidth = 4;
+    [Tooltip("Custom width rules use the explicit minimum/maximum range. Fire or Slice automatically enables this at runtime.")]
+    public bool useCustomWidthRules;
+    [Range(0f, 1f)] public float largeBlockChance = 0.09f;
+    [Tooltip("0 keeps historical packages unchanged. A positive value caps each targeted Ice/Rock/Chain objective's opening-board plus first-preview supply.")]
+    [Min(0)] public int openingTargetObstacleLimit = 0;
+    [Tooltip("0 keeps historical packages unchanged. A positive value caps the total number of incomplete objective Ice/Rock/Chain blocks in each newly generated row.")]
+    [Min(0)] public int targetObstaclePerRowLimit = 0;
+    [Tooltip("0 keeps historical packages unchanged. A positive value pauses an incomplete objective obstacle type while this many of that type are on the active board.")]
+    [Min(0)] public int targetObstacleActiveBoardLimit = 0;
+
+    public AdventureStageSpawnSetting rock = new AdventureStageSpawnSetting();
+    public AdventureStageSpawnSetting chain = new AdventureStageSpawnSetting();
+    public AdventureStageSpawnSetting ice = new AdventureStageSpawnSetting();
+    public AdventureStageSpawnSetting fire = new AdventureStageSpawnSetting();
+    public AdventureStageSpawnSetting slice = new AdventureStageSpawnSetting();
+
+    public FogDensity fogDensity = FogDensity.None;
+    [Range(0f, 1f)] public float fogCoveragePercent;
+    public int fogStartingRow = -1;
+
+    public void CopyFrom(LevelData level)
+    {
+        hasMoveLimit = level.hasMoveLimit;
+        moveLimit = level.moveLimit;
+        gapChance = level.baseGapChance;
+        minBlockWidth = level.minBlockSize;
+        maxBlockWidth = level.maxBlockSize;
+        useCustomWidthRules = level.useCustomSpawnRules;
+        largeBlockChance = level.largeBlockChance;
+        openingTargetObstacleLimit = level.openingTargetObstacleLimit;
+        targetObstaclePerRowLimit = level.targetObstaclePerRowLimit;
+        targetObstacleActiveBoardLimit = level.targetObstacleActiveBoardLimit;
+        CopySpawn(rock, level.rockBlockChance, level.rockBlockChance > 0f);
+        CopySpawn(chain, level.chainedBlockChance, level.chainedBlockChance > 0f);
+        CopySpawn(ice, level.frozenBlockChance, level.frozenBlockChance > 0f);
+
+        // Fire/Slice have no gameplay effect unless legacy custom spawning was enabled.
+        CopySpawn(fire, level.fireBlockChance, level.useCustomSpawnRules && level.fireBlockChance > 0f);
+        CopySpawn(slice, level.sliceBlockChance, level.useCustomSpawnRules && level.sliceBlockChance > 0f);
+        fogDensity = level.fogDensity;
+        fogCoveragePercent = level.fogCoveragePercent;
+        fogStartingRow = level.fogStartingRow;
+    }
+
+    private static void CopySpawn(AdventureStageSpawnSetting setting, float chance, bool enabled)
+    {
+        setting.enabled = enabled;
+        setting.chance = enabled ? Mathf.Clamp01(chance) : 0f;
+    }
+}
+
 public enum AdventureObjectiveTarget
 {
     None,
@@ -124,12 +197,33 @@ public class AdventureLevelOverrides
 public class AdventureLevelConfig : ScriptableObject
 {
     [Header("Kimlik")]
+    [Tooltip("Event içinde sabit kalan insan-okunur bölüm kimliği. Dizi sırası değildir.")]
+    public string levelId;
+    [Tooltip("Bu bölümün ait olduğu event için sabit insan-okunur kimlik.")]
+    public string eventId = AdventureIdentity.DefaultEventId;
+    [Tooltip("Bu event içeriğinin authoring sürümü.")]
+    public string contentVersion = AdventureIdentity.DefaultContentVersion;
+    [Tooltip("Yalnız harita/UI sırası. Kalıcı bölüm kimliği değildir.")]
+    [Min(0)] public int displayedLevelNumber;
     [InspectorName("Seviye Numarası")]
     [Min(1)] public int levelNumber = 1;
     [InspectorName("Görünen Ad")]
     public string displayName = "Adventure Level";
     [InspectorName("Tasarımcı Notları")]
     [TextArea(2, 4)] public string designerNotes;
+
+    [Header("Generated Package Metadata")]
+    [Tooltip("When enabled, bulk regeneration leaves this authored stage unchanged.")]
+    public bool protectFromRegeneration;
+    [Tooltip("Authoring label, not measured player difficulty.")]
+    public string generatedDifficultyLabel;
+    [Tooltip("Authoring rhythm role, not a runtime rule.")]
+    public string generatedRhythmRole;
+    [HideInInspector] public string generatedWithVersion;
+
+    [Header("Stage Authoring")]
+    [HideInInspector] public AdventureStageAuthoringMode authoringMode = AdventureStageAuthoringMode.LegacyMacroAuthoring;
+    [HideInInspector] public AdventureStageRecipe directRecipe = new AdventureStageRecipe();
 
     [Header("Temel Tasarım")]
     [InspectorName("Zorluk")]
@@ -198,6 +292,18 @@ public class AdventureLevelConfig : ScriptableObject
     public bool HasObjectiveV2()
     {
         return objectives != null && objectives.Count > 0;
+    }
+
+    public int GetStageNumber()
+    {
+        return Mathf.Max(1, displayedLevelNumber > 0 ? displayedLevelNumber : levelNumber);
+    }
+
+    private void Reset()
+    {
+        authoringMode = AdventureStageAuthoringMode.DirectRecipeAuthoring;
+        directRecipe = new AdventureStageRecipe();
+        directRecipe.hasMoveLimit = false;
     }
 
     private void OnValidate()

@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13a9eeb6b85fa43bc88c6c31dddf08db, type: 3}
+  m_Name: ARXON_LocalTrial_03_Tuning
+  m_EditorClassIdentifier: Assembly-CSharp::AdventureEventConfig
+  eventId: local-trial-03-tuning
+  contentVersion: 3.0.0
+  eventName: ARXON Yerel Denge Turu
+  eventTheme: Local Draft
+  eventDescription: "LocalTrial_02 hedefleri korunarak a\xE7\u0131l\u0131\u015F engel
+    arz\u0131, Fire ritmi ve sis bask\u0131s\u0131 i\xE7in \xFCretilen kar\u015F\u0131la\u015Ft\u0131rma
+    paketi."
+  mapBackgroundVisual: {fileID: 21300000, guid: 0e1048f4ccc2a4d1bb05428b82570b93, type: 3}
+  gameplayBackgroundVisual: {fileID: 21300000, guid: 73ab399f50be9477cb3da4171425c39d, type: 3}
+  plannedStartDate: 
+  plannedEndDate: 
+  levelCount: 50
+  startingDifficulty: 0
+  endingDifficulty: 3
+  featuredTheme: 5
+  featuredMechanic: 0
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rewardMetadata:
+    rewardId: 
+    rewardDisplayName: 
+    rewardDescription: 
+  levelConfigs:
+  - {fileID: 11400000, guid: 59957cb019a7d41319114b9cb63b0499, type: 2}
+  - {fileID: 11400000, guid: 347c38e2dd29549a798195940c5a1d5a, type: 2}
+  - {fileID: 11400000, guid: 07fb0b9890fbd4bd487e71f581f86913, type: 2}
+  - {fileID: 11400000, guid: 65b84bd79c3334964b755a5b74608b10, type: 2}
+  - {fileID: 11400000, guid: e4413aa08b0ca4b13b69727084c28fd9, type: 2}
+  - {fileID: 11400000, guid: 6cfe21e9fe82c4deb83604c8956a2162, type: 2}
+  - {fileID: 11400000, guid: a26b8d4fe28794080a0f561fb78b7f8e, type: 2}
+  - {fileID: 11400000, guid: 021a229ebca7f4a5ab6eaf80c1956fec, type: 2}
+  - {fileID: 11400000, guid: d99d26a2a2fab457d9dc3d181795c311, type: 2}
+  - {fileID: 11400000, guid: f51116a8560b0459793dde9f5bbe911c, type: 2}
+  - {fileID: 11400000, guid: 48f04a992db794b15a6999d6c4fe9c60, type: 2}
+  - {fileID: 11400000, guid: 556eaf8740f284ddf87e67a3aaf48694, type: 2}
+  - {fileID: 11400000, guid: 77d39afd2dd0742c691a42ce344aefac, type: 2}
+  - {fileID: 11400000, guid: 6f1298251e45048ac94f77d5528f764b, type: 2}
+  - {fileID: 11400000, guid: d7712ed485a7e4656be0b5d10826ef2d, type: 2}
+  - {fileID: 11400000, guid: b61fc50b9f15e4f4980da97c17e2b54c, type: 2}
+  - {fileID: 11400000, guid: 9b241f0c18a5648a38cbbf4a3dda0029, type: 2}
+  - {fileID: 11400000, guid: 3e07c10fdf3c84adcada197effb83e1c, type: 2}
+  - {fileID: 11400000, guid: 9ccff7934d5d6484a850f1ad0f2ac699, type: 2}
+  - {fileID: 11400000, guid: 54ee58f7383ad437aa21ec7769989cde, type: 2}
+  - {fileID: 11400000, guid: 85dc99226fefd4d4faffbc6c8ac2123a, type: 2}
+  - {fileID: 11400000, guid: d9de03248d1924504bd0b2d4587e2103, type: 2}
+  - {fileID: 11400000, guid: d9cf11fbdded84f2db86570e7659aa89, type: 2}
+  - {fileID: 11400000, guid: 427d1a223bf094d95a0868723c472dbf, type: 2}
+  - {fileID: 11400000, guid: 633d8b37be97e4980acb363862873059, type: 2}
+  - {fileID: 11400000, guid: 1c92471ce5d634deba88b621d1836546, type: 2}
+  - {fileID: 11400000, guid: 6493847e559f146e69db2c7b6ba7fb54, type: 2}
+  - {fileID: 11400000, guid: 647afb0d3a35646ff8cce6034e013aa8, type: 2}
+  - {fileID: 11400000, guid: 46dbaf6076f9b4106bdb9dd477872f47, type: 2}
+  - {fileID: 11400000, guid: 02ac546b6c5e64624ad88679cf939cd8, type: 2}
+  - {fileID: 11400000, guid: 26fe1bb87afaa45f88bec7d373379a16, type: 2}
+  - {fileID: 11400000, guid: 1ae5694eff64c4091b45f3a2241a7a51, type: 2}
+  - {fileID: 11400000, guid: 9d4a326de24db492e90c24dcd42c9c29, type: 2}
+  - {fileID: 11400000, guid: fe62530a3a7574d54af401ead4d98cdb, type: 2}
+  - {fileID: 11400000, guid: 0d0c4cf4d031f4c33a6e8c6d44accf6f, type: 2}
+  - {fileID: 11400000, guid: 08eb5141cb6784d60b04e3804dfca6f9, type: 2}
+  - {fileID: 11400000, guid: b9d445281c34741f38659ddca0ddfad2, type: 2}
+  - {fileID: 11400000, guid: c1624707a7160414e966cd3b46f9826b, type: 2}
+  - {fileID: 11400000, guid: 1066c120f948746e098e10d36657f98e, type: 2}
+  - {fileID: 11400000, guid: db8f6e7a0bca648e58068b4b9114bfec, type: 2}
+  - {fileID: 11400000, guid: 05f7d9c0e5b954899aec1d0b61a34816, type: 2}
+  - {fileID: 11400000, guid: fd4f0ecec565a425e9378bd9e61b5f22, type: 2}
+  - {fileID: 11400000, guid: bd709e1c8a46a4deb9951c112c80f921, type: 2}
+  - {fileID: 11400000, guid: 474468c0bb2ee42aaa16be36217b6a2e, type: 2}
+  - {fileID: 11400000, guid: 7d2577ab4caa842f18b2ca6af78254ea, type: 2}
+  - {fileID: 11400000, guid: b7116d179cde347f192f0f0f803d4925, type: 2}
+  - {fileID: 11400000, guid: 88a6bb87419d24bdfb21fe5ca1ac51ec, type: 2}
+  - {fileID: 11400000, guid: ced54c47c606f498088f63d1038ad945, type: 2}
+  - {fileID: 11400000, guid: 729ea2a124b204d26adca4988fa2c31a, type: 2}
+  - {fileID: 11400000, guid: 0b904aff6ef074e6a9c7f5f6ecb21837, type: 2}
+  generationSettings:
+    seed: 20260908
+    generatorVersion: local-direct-50-v3-opening-pressure
+    defaultLevelCount: 50
+  collectibleDatabase: {fileID: 11400000, guid: b43b0f27c76524129b7b0deea6f36b9f, type: 2}

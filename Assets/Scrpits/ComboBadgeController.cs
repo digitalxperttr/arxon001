@@ -80,6 +80,12 @@ public class ComboBadgeController : MonoBehaviour
     /// </summary>
     public void Dock(int comboCount)
     {
+        if (!AdventureScorePresentation.ShouldShowForCurrentRun())
+        {
+            HideImmediately();
+            return;
+        }
+
         if (comboCount < 2) return;
         EnsureBadgeSetup();
         if (badgeRoot == null || badgeText == null) return;
@@ -133,6 +139,33 @@ public class ComboBadgeController : MonoBehaviour
     private void OnComboResetReceived()
     {
         BreakCombo();
+    }
+
+    private void HideImmediately()
+    {
+        currentComboLevel = 0;
+        if (idlePulseRoutine != null)
+        {
+            StopCoroutine(idlePulseRoutine);
+            idlePulseRoutine = null;
+        }
+
+        if (activeAnimRoutine != null)
+        {
+            StopCoroutine(activeAnimRoutine);
+            activeAnimRoutine = null;
+        }
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 0f;
+        }
+
+        if (badgeRoot != null)
+        {
+            badgeRoot.localScale = Vector3.one;
+            badgeRoot.gameObject.SetActive(false);
+        }
     }
 
     private IEnumerator DockPunchRoutine()

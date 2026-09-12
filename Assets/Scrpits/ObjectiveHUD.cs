@@ -62,39 +62,8 @@ public class ObjectiveHUD : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(DelayedBuildRoutine());
-    }
-
-    private IEnumerator DelayedBuildRoutine()
-    {
-        if (!ShouldShowForCurrentRun())
-        {
-            if (ProgressManager.Instance == null || ProgressManager.Instance.currentSelectedLevel == null)
-            {
-                gameObject.SetActive(false);
-                yield break;
-            }
-
-            float elapsed = 0f;
-            while (!ShouldShowForCurrentRun() && elapsed < 1f)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                yield return null;
-            }
-        }
-
-        if (hasBuilt)
-        {
-            yield break;
-        }
-
-        if (!ShouldShowForCurrentRun())
-        {
-            gameObject.SetActive(false);
-            yield break;
-        }
-
-        BuildFromObjectiveManager();
+        // GridManager builds and activates the HUD only after the board is ready.
+        if (!hasBuilt) gameObject.SetActive(false);
     }
 
     public static ObjectiveHUD EnsureInstance()
@@ -175,6 +144,13 @@ public class ObjectiveHUD : MonoBehaviour
         }
 
         SetObjectiveDescriptionText();
+
+        // The authored panel has a fixed width. Refit every active slot after the
+        // final objective count is known so one-, two-, and three-goal stages fit.
+        for (int i = 0; i < slots.Count; i++)
+        {
+            RefreshSlot(i, true);
+        }
 
         if (usingSceneAuthoredSlots)
         {
@@ -258,7 +234,7 @@ public class ObjectiveHUD : MonoBehaviour
             {
                 Sprite icon = GetIcon(state);
                 slot.iconImage.sprite = icon;
-                slot.iconImage.enabled = ShouldShowIcon(state) && icon != null;
+                slot.iconImage.enabled = icon != null;
                 slot.iconImage.gameObject.SetActive(slot.iconImage.enabled);
                 slot.iconImage.preserveAspect = true;
             }
@@ -266,11 +242,13 @@ public class ObjectiveHUD : MonoBehaviour
 
         if (slot.progressText != null)
         {
-            slot.progressText.text = $"{state.currentAmount}/{state.requiredAmount}";
+            slot.progressText.text = $"{GetObjectiveShortLabel(state)} {state.currentAmount}/{state.requiredAmount}";
             slot.progressText.color = state.IsComplete ? CompleteColor : InProgressColor;
-            slot.progressText.alignment = ShouldShowIcon(state)
+            bool hasIcon = slot.iconImage != null && slot.iconImage.enabled;
+            slot.progressText.alignment = hasIcon
                 ? TextAlignmentOptions.MidlineLeft
                 : TextAlignmentOptions.Center;
+            ConfigureSceneAuthoredSlotLayout(slot, hasIcon);
         }
 
         if (slot.completedCheckmarkImage != null)
@@ -358,11 +336,40 @@ public class ObjectiveHUD : MonoBehaviour
         return slot;
     }
 
-    private bool ShouldShowIcon(ObjectiveRuntimeState state)
+    private void ConfigureSceneAuthoredSlotLayout(ObjectiveSlot slot, bool hasIcon)
     {
-        return state != null &&
-               state.definition != null &&
-               state.definition.action == AdventureObjectiveAction.CollectItem;
+        if (!HasSceneAuthoredObjectiveSlots() || slot == null)
+        {
+            return;
+        }
+
+        RectTransform slotRect = slot.transform as RectTransform;
+        if (slotRect == null || largeObjectiveArea == null)
+        {
+            return;
+        }
+
+        int visibleSlots = Mathf.Max(1, slots.Count);
+        float availableWidth = Mathf.Max(120f, largeObjectiveArea.rect.width - 16f * (visibleSlots - 1));
+        float slotWidth = Mathf.Floor(availableWidth / visibleSlots);
+        slotRect.sizeDelta = new Vector2(slotWidth, slotRect.sizeDelta.y);
+
+        RectTransform progressRect = slot.progressText != null ? slot.progressText.rectTransform : null;
+        if (progressRect != null)
+        {
+            progressRect.anchoredPosition = new Vector2(hasIcon ? 16f : 0f, 4f);
+            progressRect.sizeDelta = new Vector2(slotWidth - (hasIcon ? 48f : 8f), progressRect.sizeDelta.y);
+            slot.progressText.enableAutoSizing = true;
+            slot.progressText.fontSizeMin = 18f;
+            slot.progressText.fontSizeMax = 30f;
+        }
+
+        if (slot.iconImage != null)
+        {
+            RectTransform iconRect = slot.iconImage.rectTransform;
+            iconRect.anchoredPosition = new Vector2(-slotWidth * .5f + 20f, 4f);
+            iconRect.sizeDelta = new Vector2(36f, 36f);
+        }
     }
 
     private Image CreateImage(string name, Transform parent, Vector2 size)
@@ -778,7 +785,45 @@ public class ObjectiveHUD : MonoBehaviour
             return genericScoreIcon;
         }
 
-        return genericRowIcon;
+        return definition.action == AdventureObjectiveAction.ClearRows ? genericRowIcon : null;
+    }
+
+    private string GetObjectiveShortLabel(ObjectiveRuntimeState state)
+    {
+        AdventureObjectiveDefinition definition = state != null ? state.definition : null;
+        if (definition == null)
+        {
+            return "Hedef";
+        }
+
+        switch (definition.action)
+        {
+            case AdventureObjectiveAction.ClearRows:
+                return "Satır";
+            case AdventureObjectiveAction.ReachScore:
+                return "Puan";
+            case AdventureObjectiveAction.CollectItem:
+                return !string.IsNullOrWhiteSpace(definition.displayLabel)
+                    ? definition.displayLabel
+                    : GetCollectibleDisplayName(definition.collectibleId);
+            case AdventureObjectiveAction.BreakChain:
+                return "Zincir";
+            case AdventureObjectiveAction.DestroyObstacle:
+                return GetObstacleShortLabel(definition.target);
+            default:
+                return !string.IsNullOrWhiteSpace(definition.displayLabel) ? definition.displayLabel : "Hedef";
+        }
+    }
+
+    private static string GetObstacleShortLabel(AdventureObjectiveTarget target)
+    {
+        switch (target)
+        {
+            case AdventureObjectiveTarget.Ice: return "Buz";
+            case AdventureObjectiveTarget.Chain: return "Zincir";
+            case AdventureObjectiveTarget.Rock: return "Kaya";
+            default: return "Engel";
+        }
     }
 
     private string GetCollectibleDisplayName(string collectibleId)
@@ -814,31 +859,15 @@ public class ObjectiveHUD : MonoBehaviour
 
     private int GetCurrentAdventureLevelNumber()
     {
-        if (ProgressManager.Instance == null)
-        {
-            return 1;
-        }
-
-        AdventureLevelConfig config = ProgressManager.Instance.currentSelectedAdventureConfig;
-        if (config != null)
-        {
-            return Mathf.Max(1, config.levelNumber);
-        }
-
-        if (ProgressManager.Instance.currentSelectedLevelNumber > 0)
-        {
-            return ProgressManager.Instance.currentSelectedLevelNumber;
-        }
-
-        LevelData levelData = ProgressManager.Instance.currentSelectedLevel;
-        return levelData != null ? Mathf.Max(1, levelData.levelNumber) : 1;
+        LevelData level = ObjectiveManager.Instance != null ? ObjectiveManager.Instance.RuntimeLevel : null;
+        return level != null ? level.levelNumber : 1;
     }
 
     private bool ShouldShowForCurrentRun()
     {
-        return ProgressManager.Instance != null &&
-               ProgressManager.Instance.currentSelectedLevel != null &&
-               ObjectiveManager.Instance != null &&
+        return GridManager.Instance != null && GridManager.Instance.HasInitializedBoard &&
+               GridManager.Instance.RuntimeLevel != null && ObjectiveManager.Instance != null &&
+               ObjectiveManager.Instance.RuntimeLevel == GridManager.Instance.RuntimeLevel &&
                ObjectiveManager.Instance.IsActive;
     }
 

@@ -12,10 +12,18 @@ public class LevelManager : MonoBehaviour
     
     public LevelData currentLevel { get; private set; }
     private int remainingMoves;
+    private bool hasMoveLimit;
     private int currentTargetLines;
     private int currentTargetScore;
     private bool hasFinishedLevel;
+    private bool isVictoryPending;
     private bool shouldWriteLegacyHud;
+    private AdventureAttemptSnapshot adventureAttempt;
+
+    public bool IsVictoryPending => isVictoryPending;
+    public AdventureAttemptSnapshot AdventureAttempt => adventureAttempt;
+    public bool HasMoveLimit => hasMoveLimit;
+    public int RemainingMoves => remainingMoves;
     
 
     void Awake() 
@@ -23,77 +31,68 @@ public class LevelManager : MonoBehaviour
         Instance = this; 
     }
 
-    void Start()
+    // GridManager is the single startup entry point, after every scene Awake has run.
+    public bool TryInitializeAdventure(GridManager grid, out string error)
     {
-        shouldWriteLegacyHud = SceneManager.GetActiveScene().name == "GameScene";
-
-        if (ProgressManager.Instance != null && ProgressManager.Instance.currentSelectedLevel != null)
+        error = null;
+        currentLevel = null;
+        shouldWriteLegacyHud = false;
+        adventureAttempt = ProgressManager.Instance != null ? ProgressManager.Instance.CurrentAdventureAttempt : null;
+        LevelData selected = adventureAttempt != null ? adventureAttempt.RuntimeLevel : null;
+        if (selected == null)
         {
-            // --- MACERA MODU ---
-            currentLevel = ProgressManager.Instance.currentSelectedLevel;
-            remainingMoves = currentLevel.moveLimit;
-            currentTargetLines = currentLevel.targetLines;
-            currentTargetScore = currentLevel.targetScore;
-            hasFinishedLevel = false;
-
-            AdventureLevelConfig objectiveConfig = ProgressManager.Instance.currentSelectedAdventureConfig;
-            if (objectiveConfig == null)
-            {
-                objectiveConfig = CreateLegacyObjectiveConfig(currentLevel);
-            }
-
-            if (objectiveConfig != null)
-            {
-                ObjectiveManager.EnsureInstance().Initialize(objectiveConfig, currentLevel);
-                if (ScoreManager.Instance != null)
-                {
-                    ObjectiveManager.Instance.ReportScoreChanged(ScoreManager.Instance.CurrentScore);
-                }
-
-                ObjectiveHUD objectiveHUD = ObjectiveHUD.EnsureInstance();
-                if (objectiveHUD != null)
-                {
-                    objectiveHUD.BuildFromObjectiveManager();
-                }
-            }
-
-            UpdateUI();
+            error = "Adventure seçimi eksik. Bölümü Adventure haritasından seçin.";
+            return false;
         }
-        else
+        if (!selected.ValidateRuntime(grid.CollectibleDatabase, out error)) return false;
+
+        AdventureContentValidationResult validation = AdventureContentValidator.ValidateLevel(
+            selected,
+            grid.CollectibleDatabase,
+            grid.CreateAdventureRowGenerationContext(selected));
+        foreach (string warning in validation.Warnings)
+            Debug.LogWarning($"[Adventure Validation] {warning}");
+        foreach (string riskNote in validation.RiskNotes)
+            Debug.LogWarning($"[Adventure Validation Risk] {riskNote}");
+        if (validation.HasErrors)
         {
-            // --- KLASİK MOD (Sonsuz) ---
-            currentLevel = null;
-            if (movesText != null) movesText.gameObject.SetActive(false);
-            if (targetText != null) targetText.gameObject.SetActive(false);
-            this.enabled = false; // Klasik moddaysak bu script kendini kapatsın, boşuna çalışmasın
+            error = "Adventure content validation failed:\n- " + string.Join("\n- ", validation.Errors);
+            Debug.LogError($"[Adventure Validation] {error}");
+            return false;
         }
+
+        currentLevel = selected;
+        enabled = true;
+        hasMoveLimit = selected.hasMoveLimit;
+        remainingMoves = selected.moveLimit;
+        if (!hasMoveLimit && movesText != null)
+            movesText.gameObject.SetActive(false);
+        currentTargetLines = selected.targetLines;
+        currentTargetScore = selected.targetScore;
+        hasFinishedLevel = false;
+        isVictoryPending = false;
+        ObjectiveManager.EnsureInstance().Initialize(selected);
+        return ObjectiveManager.Instance.IsActive;
+    }
+
+    public void InitializeClassic()
+    {
+        currentLevel = null;
+        adventureAttempt = null;
+        shouldWriteLegacyHud = false;
+        if (movesText != null) movesText.gameObject.SetActive(false);
+        if (targetText != null) targetText.gameObject.SetActive(false);
+        enabled = false;
     }
 
     public void PlayerDidMove()
     {
         if (currentLevel == null) return;
 
-        remainingMoves--;
+        if (hasMoveLimit)
+            remainingMoves--;
         UpdateUI();
 
-    }
-
-    private AdventureLevelConfig CreateLegacyObjectiveConfig(LevelData levelData)
-    {
-        if (levelData == null)
-        {
-            return null;
-        }
-
-        AdventureLevelConfig config = ScriptableObject.CreateInstance<AdventureLevelConfig>();
-        config.hideFlags = HideFlags.DontSave;
-        config.name = $"LegacyAdventureObjectiveConfig_{levelData.levelNumber}";
-        config.objective = levelData.objectiveType;
-        config.targetLines = levelData.targetLines;
-        config.targetScore = levelData.targetScore;
-        config.targetObstacleCount = levelData.targetObstacleCount;
-        config.targetComboCount = levelData.targetComboCount;
-        return config;
     }
 
     public void LinesCleared(int count)
@@ -119,7 +118,11 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        if (movesText != null) movesText.text = $"Hamle: {remainingMoves}";
+        if (movesText != null)
+        {
+            movesText.gameObject.SetActive(hasMoveLimit);
+            if (hasMoveLimit) movesText.text = $"Hamle: {remainingMoves}";
+        }
         if (targetText != null)
         {
             if (currentLevel.objectiveType == ObjectiveType.ReachScore && currentTargetScore > 0)
@@ -136,7 +139,7 @@ public class LevelManager : MonoBehaviour
 
     private void CheckWinLoss()
     {
-        if (hasFinishedLevel)
+        if (hasFinishedLevel || isVictoryPending)
         {
             return;
         }
@@ -145,7 +148,7 @@ public class LevelManager : MonoBehaviour
         {
             if (ObjectiveManager.Instance.AreAllObjectivesComplete())
             {
-                CompleteLevel();
+                RequestVictory();
             }
 
             return;
@@ -163,7 +166,7 @@ public class LevelManager : MonoBehaviour
 
         if (scoreGoalReached || lineGoalReached)
         {
-            CompleteLevel();
+            RequestVictory();
             return;
         }
 
@@ -177,19 +180,36 @@ public class LevelManager : MonoBehaviour
         CheckWinLoss();
     }
 
-    private void CompleteLevel()
+    private void RequestVictory()
     {
-        if (hasFinishedLevel)
+        if (hasFinishedLevel || isVictoryPending || currentLevel == null)
         {
             return;
         }
 
+        isVictoryPending = true;
+        Debug.Log("<color=green>BÖLÜM TAMAMLANDI. Tahta çözülmesinin bitmesi bekleniyor.</color>");
+
+        if (GridManager.Instance != null)
+        {
+            GridManager.Instance.TryFinalizePendingAdventureVictory();
+        }
+    }
+
+    public void TryFinalizePendingVictory(GridManager grid)
+    {
+        if (!isVictoryPending || hasFinishedLevel || currentLevel == null || grid == null || !grid.IsCurrentResolutionSettled())
+        {
+            return;
+        }
+
+        isVictoryPending = false;
         hasFinishedLevel = true;
         Debug.Log("<color=green>BÖLÜM GEÇİLDİ! KAZANDIN!</color>");
 
         if (ProgressManager.Instance != null)
         {
-            ProgressManager.Instance.UnlockNextLevel();
+            ProgressManager.Instance.CompleteAdventureAttempt(adventureAttempt);
         }
 
         // Şimdilik oyunu durduruyoruz, ileride buraya "KAZANDIN" paneli açtıracağız
@@ -228,17 +248,17 @@ public class LevelManager : MonoBehaviour
 public void EvaluateEndOfTurn()
 {
     if (currentLevel == null) return;
-    if (hasFinishedLevel) return;
+    if (hasFinishedLevel || isVictoryPending) return;
 
     if (ObjectiveManager.Instance != null && ObjectiveManager.Instance.IsActive)
     {
         if (ObjectiveManager.Instance.AreAllObjectivesComplete())
         {
-            CompleteLevel();
+            RequestVictory();
             return;
         }
 
-        if (remainingMoves <= 0)
+        if (IsMoveLimitExhausted())
         {
             Debug.Log("<color=red>Hamle Bitti! KAYBETTİN.</color>");
             if (GridManager.Instance != null) GridManager.Instance.TriggerGameOver();
@@ -257,11 +277,13 @@ public void EvaluateEndOfTurn()
     if (currentTargetLines <= 0 || scoreGoalReached) return;
 
     // Kazanmadıysak, tahta durulduysa ve hamlemiz de sıfırlandıysa ŞİMDİ kaybettin.
-    if (remainingMoves <= 0)
+    if (IsMoveLimitExhausted())
     {
         Debug.Log("<color=red>Hamle Bitti! KAYBETTİN.</color>");
         if (GridManager.Instance != null) GridManager.Instance.TriggerGameOver(); 
     }
 }
+
+private bool IsMoveLimitExhausted() => hasMoveLimit && remainingMoves <= 0;
 
 }

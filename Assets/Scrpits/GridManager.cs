@@ -202,9 +202,17 @@ public class GridManager : MonoBehaviour
 
     public Block[,] gridArray;
     public Block blockPrefab;
-    public CollectibleDatabase CollectibleDatabase => collectibleDatabase;
+    // Downloaded Adventure events carry their own collectible definitions and icons.
+    // Classic and local events keep the scene-assigned database unchanged.
+    private CollectibleDatabase adventureCollectibleDatabaseOverride;
+    public CollectibleDatabase CollectibleDatabase => adventureCollectibleDatabaseOverride != null ? adventureCollectibleDatabaseOverride : collectibleDatabase;
+    public LevelData RuntimeLevel { get; private set; }
+    public bool IsInitialized { get; private set; }
+    public bool HasInitializedBoard { get; private set; }
+    private bool startupAttempted;
     public GameState currentState = GameState.IDLE;
     public bool IsBoardBusy =>
+        !IsInitialized ||
         isGameOver ||
         currentState != GameState.IDLE ||
         (SpecialBlockIntroManager.Instance != null && SpecialBlockIntroManager.Instance.IsIntroActive) ||
@@ -213,6 +221,7 @@ public class GridManager : MonoBehaviour
         isSliceResolving ||
         isFireResolving ||
         activeSliceOperations > 0 ||
+        (LevelManager.Instance != null && LevelManager.Instance.IsVictoryPending) ||
         AreBlocksMoving();
     private bool isResolvingNoMove = false;
     private bool isRunningDifficultyPush = false;
@@ -221,6 +230,8 @@ public class GridManager : MonoBehaviour
     private int pendingClassicClearedRowsForPush = 0;
     private bool chainBreakImpactPausePending = false;
     private bool isPushGravityOverlapAnimating = false;
+    private int activeSlowMotionClearEffects = 0;
+    private int activeRowClearResolutions = 0;
     private Coroutine pushGravityOverlapAnimationRoutine;
     private readonly HashSet<Block> pushGravityOverlapAnimatedBlocks = new HashSet<Block>();
     private int activeSliceOperations = 0;
@@ -290,6 +301,9 @@ public struct BlockData
     public bool isFrozen;
     public bool isRock;
     public bool isChained;
+    public bool hasCollectible;
+    public string collectibleId;
+    public Sprite collectibleSprite;
 }
 
 private struct ClassicDifficultyProfile
@@ -308,6 +322,15 @@ private struct ClassicDifficultyProfile
 }
 
     public System.Collections.Generic.List<BlockData> nextRowData = new System.Collections.Generic.List<BlockData>();
+    private AdventureGameplayRng adventureGameplayRng;
+    private bool isBuildingInitialBoard;
+    // A Direct recipe can opt in; zero keeps all historical Adventure packages byte-for-byte equivalent at runtime.
+    private bool openingObstacleSupplyActive;
+    private readonly Dictionary<AdventureObjectiveTarget, int> openingObstacleLimits = new Dictionary<AdventureObjectiveTarget, int>();
+    private readonly Dictionary<AdventureObjectiveTarget, int> openingObstacleCounts = new Dictionary<AdventureObjectiveTarget, int>();
+    private int collectibleAssignmentCursor;
+    private const int InitialCollectiblesPerObjective = 1;
+    private const int MaxCollectiblesPerGeneratedRow = 2;
     private System.Collections.Generic.List<GameObject> previewVisuals = new System.Collections.Generic.List<GameObject>();
     //ÖN İZLEME HEADER BİTİMİ
 
@@ -401,7 +424,9 @@ private int GetClassicScoreMultiplier(int level)
     return 1;
 }
 
-private int GetPerfectClearBonus(int level)
+private const int AdventurePerfectClearBonus = 1000;
+
+private static int GetPerfectClearBonus(int level)
 {
     if (level >= 13)
         return 8000;
@@ -417,12 +442,14 @@ private int GetPerfectClearBonus(int level)
 
     return 1000;
 }
+
+private static int GetPerfectClearBonusForMode(bool isClassicRun, int classicScoreLevel)
+{
+    return isClassicRun ? GetPerfectClearBonus(classicScoreLevel) : AdventurePerfectClearBonus;
+}
   
     void Awake()
     {
-        Application.targetFrameRate = 60;
-        QualitySettings.vSyncCount = 0;
-
         if (Instance == null)
         {
             Instance = this;
@@ -477,6 +504,46 @@ private int GetPerfectClearBonus(int level)
 
 void Start()
     {
+        if (startupAttempted) return;
+        startupAttempted = true;
+        bool isAdventureScene = gameObject.scene.name == "AdventureGameScene";
+        LevelManager levelManager = GetComponent<LevelManager>();
+        if (isAdventureScene)
+        {
+            AdventureEventConfig selectedEvent = ProgressManager.Instance != null ? ProgressManager.Instance.SelectedLocalEvent : null;
+            AdventureAttemptSnapshot selectedAttempt = ProgressManager.Instance != null ? ProgressManager.Instance.CurrentAdventureAttempt : null;
+            adventureCollectibleDatabaseOverride = selectedEvent != null && selectedAttempt != null && selectedAttempt.Identity != null &&
+                                                 selectedEvent.eventId == selectedAttempt.Identity.EventId &&
+                                                 selectedEvent.contentVersion == selectedAttempt.Identity.ContentVersion
+                ? selectedEvent.collectibleDatabase
+                : null;
+            if (levelManager == null)
+            {
+                FailAdventureStartup("LevelManager bulunamadı.");
+                return;
+            }
+            if (!levelManager.TryInitializeAdventure(this, out string error))
+            {
+                FailAdventureStartup(error);
+                return;
+            }
+            RuntimeLevel = levelManager.currentLevel;
+            adventureGameplayRng = ProgressManager.Instance != null
+                ? ProgressManager.Instance.CreateAdventureGameplayRng(levelManager.AdventureAttempt)
+                : null;
+            if (adventureGameplayRng == null)
+            {
+                FailAdventureStartup("Adventure gameplay RNG başlatılamadı.");
+                return;
+            }
+        }
+        else
+        {
+            adventureCollectibleDatabaseOverride = null;
+            RuntimeLevel = null;
+            if (levelManager != null) levelManager.InitializeClassic();
+        }
+
         ResetClassicPushResolutionState();
 
         GenerateBackgroundGrid();
@@ -493,6 +560,7 @@ void Start()
         }
 
         // 2. Başlangıç tahtasını kur (debug spawner varsa onu kullan, yoksa normal akış)
+        PrepareOpeningObstacleSupply();
         bool usedTutorialBoard =
             TutorialBoardOverrideEnabled &&
             firstTimeTutorial != null &&
@@ -509,7 +577,33 @@ void Start()
             SetupInitialBoard(Mathf.Clamp(initialRowCount, 1, height - 2));
         }
 
-        SpawnInitialCollectibles();
+        if (!SpawnInitialCollectibles(out string collectibleError))
+        {
+            FailAdventureStartup(collectibleError);
+            return;
+        }
+        if (RuntimeLevel != null)
+        {
+            if (nextRowData == null || nextRowData.Count == 0)
+                GenerateNextRowData();
+            else
+            {
+                AssignCollectiblesToRowData(nextRowData);
+                UpdatePreviewVisuals();
+            }
+        }
+        HasInitializedBoard = true;
+        if (RuntimeLevel != null)
+        {
+            ObjectiveHUD hud = ObjectiveHUD.EnsureInstance();
+            if (hud == null)
+            {
+                FailAdventureStartup("Objective HUD bulunamadı.");
+                return;
+            }
+            hud.BuildFromObjectiveManager();
+        }
+        IsInitialized = true;
 
         // 3. Durumu IDLE yapalım ki oyuncu dokunabilsin
         currentState = GameState.IDLE;
@@ -521,8 +615,15 @@ void Start()
         if(ScoreManager.Instance != null) ScoreManager.Instance.UpdateScoreUI();
     }
 
+private void FailAdventureStartup(string error)
+{
+    isGameOver = true;
+    Debug.LogError($"[Adventure] Başlangıç durduruldu: {error}", this);
+}
+
 private void Update()
 {
+    if (!IsInitialized) return;
     UpdateBoardDangerAlarmPulse();
 
     if (!CanResolveNoMoveSoftlock())
@@ -603,12 +704,14 @@ private IEnumerator ResolveNoMoveRoutine()
     }
 
     isResolvingNoMove = false;
+    TryFinalizePendingAdventureVictory();
 }
 
 
 // Oyun başlarken tahtayı dolduran yeni ve temiz fonksiyon
 void SetupInitialBoard(int startingRowCount)
     {
+        isBuildingInitialBoard = true;
         for (int y = 0; y < startingRowCount; y++)
         {
             GenerateNextRowData(); 
@@ -619,29 +722,21 @@ void SetupInitialBoard(int startingRowCount)
             }
         }
         RebuildGridMemory();
-        GenerateNextRowData();
+        nextRowData.Clear();
+        isBuildingInitialBoard = false;
     }
 
-private void SpawnInitialCollectibles()
+private bool SpawnInitialCollectibles(out string error)
 {
-    if (ProgressManager.Instance == null ||
-        ProgressManager.Instance.currentSelectedAdventureConfig == null ||
-        collectibleDatabase == null)
-    {
-        return;
-    }
-
-    AdventureLevelConfig config = ProgressManager.Instance.currentSelectedAdventureConfig;
-    if (config.objectives == null || config.objectives.Count == 0)
-    {
-        return;
-    }
+    error = null;
+    if (RuntimeLevel == null || CollectibleDatabase == null) return true;
+    IReadOnlyList<AdventureObjectiveDefinition> objectives = RuntimeLevel.Objectives;
 
     List<Block> availableBlocks = GetCollectibleSpawnCandidates();
 
-    for (int i = 0; i < config.objectives.Count; i++)
+    for (int i = 0; i < objectives.Count; i++)
     {
-        AdventureObjectiveDefinition objective = config.objectives[i];
+        AdventureObjectiveDefinition objective = objectives[i];
         if (objective == null ||
             objective.action != AdventureObjectiveAction.CollectItem ||
             string.IsNullOrWhiteSpace(objective.collectibleId))
@@ -649,17 +744,18 @@ private void SpawnInitialCollectibles()
             continue;
         }
 
-        CollectibleDefinition collectible = collectibleDatabase.GetById(objective.collectibleId);
+        CollectibleDefinition collectible = CollectibleDatabase.GetById(objective.collectibleId);
         if (collectible == null)
         {
-            Debug.LogWarning($"Collectible spawn skipped. ID not found: {objective.collectibleId}");
-            continue;
+            error = $"Collectible spawn failed. ID not found: {objective.collectibleId}";
+            return false;
         }
 
-        int spawnCount = Mathf.Min(Mathf.Max(0, objective.requiredAmount), availableBlocks.Count);
+        int initialTarget = Mathf.Min(Mathf.Max(0, objective.requiredAmount), InitialCollectiblesPerObjective);
+        int spawnCount = Mathf.Min(initialTarget, availableBlocks.Count);
         for (int spawnIndex = 0; spawnIndex < spawnCount; spawnIndex++)
         {
-            int randomIndex = Random.Range(0, availableBlocks.Count);
+            int randomIndex = adventureGameplayRng.NextInt(0, availableBlocks.Count);
             Block targetBlock = availableBlocks[randomIndex];
             availableBlocks.RemoveAt(randomIndex);
 
@@ -669,8 +765,15 @@ private void SpawnInitialCollectibles()
             }
         }
 
+        if (spawnCount < initialTarget)
+        {
+            Debug.LogWarning($"Collectible '{objective.collectibleId}' başlangıç tahtasında {spawnCount} adet ayrıldı; kalan arz sonraki uygun satırlarda üretilecek.");
+        }
+
         Debug.Log($"Spawned collectibles:\n{objective.collectibleId}\nCount:\n{spawnCount}");
     }
+
+    return true;
 }
 
 private List<Block> GetCollectibleSpawnCandidates()
@@ -765,6 +868,9 @@ public Block SpawnConfiguredBlock(BlockData data, int y, bool animateIntoPlace =
     if (data.isRock) newBlock.SetRock(true);
     if (data.isFrozen) newBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
     if (data.isChained) newBlock.SetChained(newBlock.width, GetChainIntactSpriteForLength(data.width), GetChainDamagedSpriteForLength(data.width));
+
+    if (data.hasCollectible && CanSpawnCollectibleOnBlock(newBlock))
+        newBlock.AssignCollectible(data.collectibleId, data.collectibleSprite, false);
 
     activeBlocks.Add(newBlock);
 
@@ -1027,6 +1133,7 @@ void CheckGameOver()
 
 public void TriggerGameOver()
     {
+        if (LevelManager.Instance != null && LevelManager.Instance.IsVictoryPending) return;
         if (isGameOver) return;
         isGameOver = true;
         SetBoardDangerActive(false);
@@ -1126,6 +1233,31 @@ IEnumerator InitialGravityCheck()
     
     ChangeState(GameState.CHECKING);
     yield return StartCoroutine(CheckAndClearRowsRoutine());
+    TryFinalizePendingAdventureVictory();
+}
+
+public bool IsCurrentResolutionSettled()
+{
+    return IsInitialized &&
+        !isGameOver &&
+        currentState == GameState.IDLE &&
+        !isResolvingNoMove &&
+        !isRunningDifficultyPush &&
+        !isSliceResolving &&
+        !isFireResolving &&
+        activeSliceOperations <= 0 &&
+        !isPushGravityOverlapAnimating &&
+        activeSlowMotionClearEffects <= 0 &&
+        activeRowClearResolutions <= 0 &&
+        !AreBlocksMoving();
+}
+
+public void TryFinalizePendingAdventureVictory()
+{
+    if (LevelManager.Instance != null)
+    {
+        LevelManager.Instance.TryFinalizePendingVictory(this);
+    }
 }
 
 public void RebuildGridMemory()
@@ -1158,12 +1290,16 @@ private IEnumerator RebuildAndApplyGravityRoutine()
     RebuildGridMemory();
     yield return StartCoroutine(ApplyGravityRoutine());
     RebuildGridMemory();
+    TryFinalizePendingAdventureVictory();
 }
 
 
 
 public IEnumerator PushBoardUpRoutine()
 {
+    if (LevelManager.Instance != null && LevelManager.Instance.IsVictoryPending)
+        yield break;
+
     if (ShouldUseClassicDifficultyPush())
     {
         yield return StartCoroutine(PushBoardUpByDifficultyRoutine());
@@ -1239,6 +1375,7 @@ public IEnumerator PushBoardUpRoutine()
     
     ChangeState(GameState.CHECKING);
     yield return StartCoroutine(CheckAndClearRowsRoutine());
+    TryFinalizePendingAdventureVictory();
 }
 
 private void ResolveForgeTeleportController()
@@ -1352,6 +1489,10 @@ public void RestartGame()
             ScoreManager.Instance.ResetScoreAndLevel();
 
         ResetClassicRunState();
+    }
+    else if (ProgressManager.Instance != null && LevelManager.Instance != null)
+    {
+        ProgressManager.Instance.RestoreAdventureAttempt(LevelManager.Instance.AdventureAttempt);
     }
     
     // Çalışan tüm Coroutine'leri durdur ki eski referanslara gitmesinler
@@ -2040,6 +2181,9 @@ public IEnumerator ApplyGravityRoutine()
 
 public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chainDepth = 0)
     {
+        activeRowClearResolutions++;
+        try
+        {
         if (isPlayerMove && chainDepth == 0 && IsClassicRun())
         {
             isTrackingClassicPlayerResolution = true;
@@ -2051,13 +2195,32 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
         {
             if (!isGameOver) 
             {
-                int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
-                int perfectClearBonus = GetPerfectClearBonus(level);
+                int classicScoreLevel = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
+                int perfectClearBonus = GetPerfectClearBonusForMode(IsClassicRun(), classicScoreLevel);
 
                 Debug.Log($"<color=yellow>PERFECT CLEAR! +{perfectClearBonus}</color>");
 
                 if (ScoreManager.Instance != null) ScoreManager.Instance.AddScore(perfectClearBonus); 
-                
+
+                // Görsel Şölen: Tahtanın tam ortasında devasa "PERFECT CLEAR!" ve bonus puanı patlat!
+                Vector3 centerPos = new Vector3(3.5f, 5.2f, 0f);
+                Vector3 bonusScorePos = new Vector3(3.5f, 3.8f, 0f);
+
+                if (AdventureScorePresentation.ShouldShowForCurrentRun())
+                {
+                    FloatingText.Spawn(centerPos, "PERFECT CLEAR!", FloatingTextStyle.BonusPurple, 10f, 0.95f);
+                    FloatingText.Spawn(bonusScorePos, $"+{perfectClearBonus}", FloatingTextStyle.ScoreCyan, 8f, 0.95f);
+                }
+
+                // Oyuncunun bu zafer anını görüp hissetmesi için tebrik duraklaması
+                yield return new WaitForSeconds(0.75f);
+
+                if (LevelManager.Instance != null && LevelManager.Instance.IsVictoryPending)
+                {
+                    ChangeState(GameState.IDLE);
+                    yield break;
+                }
+
                 // Oyunu kilitten kurtarmak için otomatik olarak alttan yeni satır ver!
                 yield return StartCoroutine(PushBoardUpRoutine());
             }
@@ -2137,7 +2300,7 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             // =============================
 
             // === YENİ: EKRANDA UÇAN YAZILAR (FLOATING TEXT) ===
-        if (floatingTextPrefab != null)
+        if (AdventureScorePresentation.ShouldShowForCurrentRun() && floatingTextPrefab != null)
         {
             // Yazıyı board'un tam ortasında, patlayan satır hizasında çıkar
             float spawnX = (width - 1) / 2f; 
@@ -2231,11 +2394,22 @@ public IEnumerator CheckAndClearRowsRoutine(bool isPlayerMove = false, int chain
             ChangeState(GameState.IDLE); 
         }
     }
+        finally
+        {
+            activeRowClearResolutions--;
+            if (activeRowClearResolutions == 0)
+            {
+                TryFinalizePendingAdventureVictory();
+            }
+        }
+    }
 
 private IEnumerator SlowMotionClearRoutine(int rowCount)
 {
     if (!enableFreezeFrame)
         yield break;
+
+    activeSlowMotionClearEffects++;
 
     float originalScale = 1.0f;
     float targetScale = rowCount >= 3 ? 0.22f : 0.45f;
@@ -2255,6 +2429,8 @@ private IEnumerator SlowMotionClearRoutine(int rowCount)
     }
 
     Time.timeScale = originalScale;
+    activeSlowMotionClearEffects--;
+    TryFinalizePendingAdventureVictory();
 }
 
 private IEnumerator FreezeFrameRoutine()
@@ -2356,9 +2532,12 @@ bool ClearRow(int y, out string specialResolutionTypes)
 
                     if (!processedChainedBlocks.Contains(b))
                     {
+                        bool wasChained = b.IsChained();
                         if (b.BreakOneChain())
                         {
                             chainBreakImpactPausePending = true;
+                            if (wasChained && !b.IsChained())
+                                ReportObstacleDestroyed(AdventureObjectiveTarget.Chain);
                         }
 
                         processedChainedBlocks.Add(b);
@@ -2398,12 +2577,15 @@ bool ClearRow(int y, out string specialResolutionTypes)
                 b.PlayIceBreakFX();
                 b.TriggerIceBreakFeedback();
                 b.SetFrozen(false);
+                ReportObstacleDestroyed(AdventureObjectiveTarget.Ice);
                 b.SetHighlight(false); // (Rengi ve boyutu normale döndürür)
             }
 
         // 3. Normal blokları patlat ve yok et
         foreach (Block b in blocksToDestroy)
             {
+                if (b.isRock)
+                    ReportObstacleDestroyed(AdventureObjectiveTarget.Rock);
                 float crunchDuration = usedSpecialResolution
                     ? DefaultRowClearCrunchDuration
                     : NormalRowClearCrunchDuration;
@@ -2417,6 +2599,12 @@ bool ClearRow(int y, out string specialResolutionTypes)
         return usedSpecialResolution;
     }
 
+private void ReportObstacleDestroyed(AdventureObjectiveTarget target)
+{
+    if (ObjectiveManager.Instance != null)
+        ObjectiveManager.Instance.ReportObstacleDestroyed(target);
+}
+
 private static void AddSpecialResolutionReason(List<string> reasons, string reason)
 {
     if (!reasons.Contains(reason))
@@ -2425,6 +2613,9 @@ private static void AddSpecialResolutionReason(List<string> reasons, string reas
 
 public bool AreBlocksMoving()
     {
+        if (gridArray == null)
+            return false;
+
         foreach (var b in gridArray) { if (b != null && b.isMoving) return true; }
         return false;
     }
@@ -2941,10 +3132,7 @@ public void GenerateFog()
     if (fogController == null)
         fogController = GetComponent<FogController>() ?? gameObject.AddComponent<FogController>();
 
-    LevelData currentLevel =
-        ProgressManager.Instance != null
-        ? ProgressManager.Instance.currentSelectedLevel
-        : null;
+    LevelData currentLevel = RuntimeLevel;
 
     FogDensity density = FogDensity.None;
     float coveragePercent = 0f;
@@ -3002,16 +3190,126 @@ private int CountBlocksByType(BlockType type)
 
 //---------------------ÖN İZLEME FONKSİYONLARI-----------------------
 
+private void PrepareOpeningObstacleSupply()
+{
+    openingObstacleLimits.Clear();
+    openingObstacleCounts.Clear();
+    openingObstacleSupplyActive = RuntimeLevel != null && RuntimeLevel.openingTargetObstacleLimit > 0;
+    if (!openingObstacleSupplyActive)
+        return;
+
+    IReadOnlyList<AdventureObjectiveDefinition> objectives = RuntimeLevel.Objectives;
+    for (int i = 0; i < objectives.Count; i++)
+    {
+        AdventureObjectiveDefinition objective = objectives[i];
+        if (objective == null || objective.action != AdventureObjectiveAction.DestroyObstacle)
+            continue;
+        if (objective.target != AdventureObjectiveTarget.Ice && objective.target != AdventureObjectiveTarget.Rock && objective.target != AdventureObjectiveTarget.Chain)
+            continue;
+
+        // 5+ targets should not arrive mostly pre-supplied. One example is still guaranteed where a normal block exists.
+        int cap = Mathf.Min(RuntimeLevel.openingTargetObstacleLimit, Mathf.Max(1, objective.requiredAmount / 3));
+        openingObstacleLimits[objective.target] = cap;
+        openingObstacleCounts[objective.target] = 0;
+    }
+
+    openingObstacleSupplyActive = openingObstacleLimits.Count > 0;
+}
+
+private void ApplyOpeningObstacleSupply(List<BlockData> rowData)
+{
+    if (!openingObstacleSupplyActive || rowData == null)
+        return;
+
+    for (int i = 0; i < rowData.Count; i++)
+    {
+        BlockData data = rowData[i];
+        AdventureObjectiveTarget target = GetOpeningObstacleTarget(data);
+        if (target == AdventureObjectiveTarget.None || !openingObstacleLimits.TryGetValue(target, out int limit))
+            continue;
+
+        int count = openingObstacleCounts[target];
+        if (count < limit)
+        {
+            openingObstacleCounts[target] = count + 1;
+            continue;
+        }
+
+        ConvertToOpeningNormal(ref data);
+        rowData[i] = data;
+    }
+
+    // Show each requested mechanic without allowing its whole objective to be pre-supplied.
+    foreach (KeyValuePair<AdventureObjectiveTarget, int> entry in openingObstacleLimits)
+    {
+        if (openingObstacleCounts[entry.Key] > 0)
+            continue;
+
+        for (int i = 0; i < rowData.Count; i++)
+        {
+            BlockData data = rowData[i];
+            if (data.blockType != BlockType.Normal || data.isRock || data.isFrozen || data.isChained || data.hasCollectible)
+                continue;
+
+            ApplyOpeningObstacle(ref data, entry.Key);
+            rowData[i] = data;
+            openingObstacleCounts[entry.Key] = 1;
+            break;
+        }
+    }
+}
+
+private static AdventureObjectiveTarget GetOpeningObstacleTarget(BlockData data)
+{
+    if (data.isRock || data.blockType == BlockType.Rock) return AdventureObjectiveTarget.Rock;
+    if (data.isFrozen || data.blockType == BlockType.Ice) return AdventureObjectiveTarget.Ice;
+    if (data.isChained || data.blockType == BlockType.Chained) return AdventureObjectiveTarget.Chain;
+    return AdventureObjectiveTarget.None;
+}
+
+private void ConvertToOpeningNormal(ref BlockData data)
+{
+    data.blockType = BlockType.Normal;
+    data.isRock = false;
+    data.isFrozen = false;
+    data.isChained = false;
+    Color[] colors = GetAdventureNormalGemColors();
+    data.color = colors.Length > 0 ? colors[0] : Color.white;
+}
+
+private static void ApplyOpeningObstacle(ref BlockData data, AdventureObjectiveTarget target)
+{
+    data.isRock = target == AdventureObjectiveTarget.Rock;
+    data.isFrozen = target == AdventureObjectiveTarget.Ice;
+    data.isChained = target == AdventureObjectiveTarget.Chain;
+    data.blockType = target == AdventureObjectiveTarget.Rock ? BlockType.Rock :
+        target == AdventureObjectiveTarget.Ice ? BlockType.Ice : BlockType.Chained;
+    if (data.isRock)
+        data.color = Color.gray;
+}
+
 public void GenerateNextRowData()
 {
+        if (RuntimeLevel != null)
+        {
+            nextRowData.Clear();
+            AdventureRowGenerationContext context = CreateAdventureRowGenerationContext(RuntimeLevel);
+            nextRowData.AddRange(AdventureRowGenerator.GenerateRowData(context, adventureGameplayRng));
+            ApplyOpeningObstacleSupply(nextRowData);
+            ApplyTargetObstacleSpawnLimits(nextRowData);
+            if (!isBuildingInitialBoard)
+                AssignCollectiblesToRowData(nextRowData);
+            UpdatePreviewVisuals();
+            if (openingObstacleSupplyActive && !isBuildingInitialBoard)
+                openingObstacleSupplyActive = false;
+            return;
+        }
+
         nextRowData.Clear();
         int currentX = 0;
         int blockCountInRow = 0;
         int level = ScoreManager.Instance != null ? ScoreManager.Instance.currentLevel : 1;
-        bool isClassicMode =
-            LevelManager.Instance == null ||
-            !LevelManager.Instance.enabled ||
-            LevelManager.Instance.currentLevel == null;
+        bool isClassicMode = true;
         int currentFireCount = CountBlocksByType(BlockType.Fire);
         int currentSliceCount = CountBlocksByType(BlockType.Slice);
 
@@ -3029,47 +3327,21 @@ public void GenerateNextRowData()
         int customMinBlockSize = 1;
         int customMaxBlockSize = 4;
 
-        // Hangi modda olduğumuzu soruyoruz:
-        if (LevelManager.Instance != null && LevelManager.Instance.enabled && LevelManager.Instance.currentLevel != null)
-        {
-            // MACERA MODU: Verileri özel LevelData dosyasından çek
-            LevelData data = LevelManager.Instance.currentLevel;
-            currentGapChance = data.baseGapChance;
-            
-            currentT4 = 1f - data.largeBlockChance; // Eğer %10 dev blok dediysek eşik 0.90 olur.
-            currentT3 = currentT4 - 0.15f; 
-            currentT2 = currentT3 - 0.25f; 
-            currentFreezeChance = data.frozenBlockChance;
-            currentRockChance = data.rockBlockChance;
-            currentChainedChance = data.chainedBlockChance;
-            useCustomSpawnRules = data.useCustomSpawnRules;
+        // --- KLASİK MOD (Sonsuz) ---
+        float diffFactor = Mathf.Clamp01((level - 1) / 20f);
 
-            if (useCustomSpawnRules)
-            {
-                customMinBlockSize = Mathf.Max(1, data.minBlockSize);
-                customMaxBlockSize = Mathf.Max(customMinBlockSize, data.maxBlockSize);
-                currentFireChance = data.fireBlockChance;
-                currentSliceChance = data.sliceBlockChance;
-            }
-        }
-        else
-        {
-            // --- KLASİK MOD (Sonsuz) ---
-            float diffFactor = Mathf.Clamp01((level - 1) / 20f);
+        currentGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor);
+        currentT4 = Mathf.Lerp(0.96f, 0.70f, diffFactor);
+        currentT3 = Mathf.Lerp(0.85f, 0.40f, diffFactor);
+        currentT2 = Mathf.Lerp(0.60f, 0.15f, diffFactor);
 
-            currentGapChance = Mathf.Lerp(0.4f, 0.1f, diffFactor);
-            currentT4 = Mathf.Lerp(0.96f, 0.70f, diffFactor); 
-            currentT3 = Mathf.Lerp(0.85f, 0.40f, diffFactor); 
-            currentT2 = Mathf.Lerp(0.60f, 0.15f, diffFactor);
+        ClassicDifficultyProfile profile = GetClassicDifficultyProfile(level);
 
-            ClassicDifficultyProfile profile = GetClassicDifficultyProfile(level);
-
-            currentRockChance = profile.rockChance;
-            currentFreezeChance = profile.frozenChance;
-            currentChainedChance = profile.chainedChance;
-            currentFireChance = profile.fireChance;
-            currentSliceChance = profile.sliceChance;
-        }
+        currentRockChance = profile.rockChance;
+        currentFreezeChance = profile.frozenChance;
+        currentChainedChance = profile.chainedChance;
+        currentFireChance = profile.fireChance;
+        currentSliceChance = profile.sliceChance;
 
         // --- ŞİMDİ BLOKLARI ÜRET ---
         while (currentX < width)
@@ -3234,6 +3506,170 @@ public void GenerateNextRowData()
         UpdatePreviewVisuals();
 }
 
+private void ApplyTargetObstacleSpawnLimits(List<BlockData> rowData)
+{
+    if (RuntimeLevel == null || ObjectiveManager.Instance == null || !ObjectiveManager.Instance.IsActive ||
+        (RuntimeLevel.targetObstaclePerRowLimit <= 0 && RuntimeLevel.targetObstacleActiveBoardLimit <= 0))
+        return;
+
+    IReadOnlyList<ObjectiveRuntimeState> states = ObjectiveManager.Instance.GetObjectives();
+    HashSet<AdventureObjectiveTarget> incompleteTargets = new HashSet<AdventureObjectiveTarget>();
+    for (int i = 0; i < states.Count; i++)
+    {
+        ObjectiveRuntimeState state = states[i];
+        AdventureObjectiveDefinition definition = state != null ? state.definition : null;
+        if (state == null || definition == null || state.IsComplete)
+            continue;
+
+        if (definition.action == AdventureObjectiveAction.DestroyObstacle &&
+            (definition.target == AdventureObjectiveTarget.Rock ||
+             definition.target == AdventureObjectiveTarget.Ice ||
+             definition.target == AdventureObjectiveTarget.Chain))
+        {
+            incompleteTargets.Add(definition.target);
+        }
+        else if (definition.action == AdventureObjectiveAction.BreakChain && definition.target == AdventureObjectiveTarget.Chain)
+        {
+            incompleteTargets.Add(AdventureObjectiveTarget.Chain);
+        }
+    }
+
+    if (incompleteTargets.Count == 0)
+        return;
+
+    Dictionary<AdventureObjectiveTarget, int> activeBoardCounts = new Dictionary<AdventureObjectiveTarget, int>();
+    foreach (AdventureObjectiveTarget target in incompleteTargets)
+        activeBoardCounts[target] = 0;
+
+    for (int i = 0; i < activeBlocks.Count; i++)
+    {
+        Block block = activeBlocks[i];
+        AdventureObjectiveTarget target = GetTargetObstacleTarget(block);
+        if (block != null && incompleteTargets.Contains(target))
+            activeBoardCounts[target]++;
+    }
+
+    Color[] colors = GetAdventureNormalGemColors();
+    Color normalFallbackColor = colors.Length > 0 ? colors[0] : Color.white;
+    AdventureTargetObstacleSpawnLimiter.Apply(
+        rowData,
+        incompleteTargets,
+        activeBoardCounts,
+        RuntimeLevel.targetObstaclePerRowLimit,
+        RuntimeLevel.targetObstacleActiveBoardLimit,
+        normalFallbackColor);
+}
+
+private static AdventureObjectiveTarget GetTargetObstacleTarget(Block block)
+{
+    if (block == null)
+        return AdventureObjectiveTarget.None;
+    if (block.isRock || block.blockType == BlockType.Rock)
+        return AdventureObjectiveTarget.Rock;
+    if (block.isFrozen || block.blockType == BlockType.Ice)
+        return AdventureObjectiveTarget.Ice;
+    if (block.isChained || block.blockType == BlockType.Chained)
+        return AdventureObjectiveTarget.Chain;
+    return AdventureObjectiveTarget.None;
+}
+
+private void AssignCollectiblesToRowData(List<BlockData> rowData)
+{
+    if (RuntimeLevel == null || rowData == null || rowData.Count == 0 ||
+        ObjectiveManager.Instance == null || !ObjectiveManager.Instance.IsActive)
+        return;
+
+    IReadOnlyList<ObjectiveRuntimeState> states = ObjectiveManager.Instance.GetObjectives();
+    List<int> collectibleStateIndices = new List<int>();
+    for (int i = 0; i < states.Count; i++)
+    {
+        ObjectiveRuntimeState state = states[i];
+        if (state != null && state.definition != null &&
+            state.definition.action == AdventureObjectiveAction.CollectItem && !state.IsComplete)
+        {
+            collectibleStateIndices.Add(i);
+        }
+    }
+
+    if (collectibleStateIndices.Count == 0)
+        return;
+
+    int assignments = 0;
+    int start = collectibleAssignmentCursor % collectibleStateIndices.Count;
+    for (int offset = 0; offset < collectibleStateIndices.Count && assignments < MaxCollectiblesPerGeneratedRow; offset++)
+    {
+        int stateIndex = collectibleStateIndices[(start + offset) % collectibleStateIndices.Count];
+        ObjectiveRuntimeState state = states[stateIndex];
+        string collectibleId = state.definition.collectibleId;
+        CollectibleDefinition collectible = CollectibleDatabase != null ? CollectibleDatabase.GetById(collectibleId) : null;
+        if (collectible == null)
+            continue;
+
+        int alreadySupplied = CountAssignedCollectiblesOnBoard(collectibleId);
+        int remaining = state.requiredAmount - state.currentAmount - alreadySupplied;
+        if (remaining <= 0)
+            continue;
+
+        List<int> candidates = new List<int>();
+        for (int rowIndex = 0; rowIndex < rowData.Count; rowIndex++)
+        {
+            if (CanSpawnCollectibleOnBlockData(rowData[rowIndex]))
+                candidates.Add(rowIndex);
+        }
+
+        if (candidates.Count == 0)
+            continue;
+
+        int selectedCandidate = candidates[adventureGameplayRng.NextInt(0, candidates.Count)];
+        BlockData assigned = rowData[selectedCandidate];
+        assigned.hasCollectible = true;
+        assigned.collectibleId = collectibleId;
+        assigned.collectibleSprite = collectible.icon;
+        rowData[selectedCandidate] = assigned;
+        assignments++;
+        collectibleAssignmentCursor = (stateIndex + 1) % states.Count;
+    }
+}
+
+private int CountAssignedCollectiblesOnBoard(string collectibleId)
+{
+    int count = 0;
+    for (int i = 0; i < activeBlocks.Count; i++)
+    {
+        Block block = activeBlocks[i];
+        if (block != null && block.HasCollectible() && block.GetCollectibleId() == collectibleId)
+            count++;
+    }
+    return count;
+}
+
+private bool CanSpawnCollectibleOnBlockData(BlockData data)
+{
+    return data.blockType == BlockType.Normal && !data.isRock && !data.isFrozen &&
+           !data.isChained && !data.hasCollectible;
+}
+
+public AdventureRowGenerationContext CreateAdventureRowGenerationContext(LevelData level)
+{
+    return new AdventureRowGenerationContext(
+        width,
+        level,
+        GetAdventureNormalGemColors(),
+        Mathf.Clamp(initialRowCount, 1, height - 2));
+}
+
+private Color[] GetAdventureNormalGemColors()
+{
+    if (normalGems == null || normalGems.Length == 0)
+        return System.Array.Empty<Color>();
+
+    Color[] colors = new Color[normalGems.Length];
+    for (int i = 0; i < normalGems.Length; i++)
+        colors[i] = normalGems[i].particleColor;
+
+    return colors;
+}
+
 private int RollCustomBlockWidth(int minBlockSize, int maxBlockSize, int availableCells)
 {
     int minSize = Mathf.Max(1, minBlockSize);
@@ -3325,6 +3761,8 @@ private GameObject BuildDetailedBlockPreview(BlockData data, Vector3 spawnPos)
 
     if (data.isFrozen) previewBlock.SetFrozen(true, GetIceSpriteForLength(data.width));
     if (data.isChained) previewBlock.SetChained(previewBlock.width, GetChainIntactSpriteForLength(data.width), GetChainDamagedSpriteForLength(data.width));
+    if (data.hasCollectible)
+        previewBlock.AssignCollectible(data.collectibleId, data.collectibleSprite, false);
     previewBlock.ApplyPreviewRendererSorting(PreviewSortingOrder);
     previewBlock.transform.localScale = new Vector3(previewVisualScale, previewVisualScale, 1f);
 
@@ -3407,6 +3845,16 @@ public void DestroyBlocksByColor(Color targetColor)
             if (block.isFrozen)
             {
                 block.SetFrozen(false);
+                ReportObstacleDestroyed(AdventureObjectiveTarget.Ice);
+                continue;
+            }
+
+            if (block.IsChained())
+            {
+                bool wasChained = block.IsChained();
+                block.BreakOneChain();
+                if (wasChained && !block.IsChained())
+                    ReportObstacleDestroyed(AdventureObjectiveTarget.Chain);
                 continue;
             }
 
@@ -3445,6 +3893,7 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
             if (block.isFrozen)
             {
                 block.SetFrozen(false);
+                ReportObstacleDestroyed(AdventureObjectiveTarget.Ice);
                 continue;
             }
 
@@ -3509,7 +3958,18 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
         if (block == null || block.isBeingDestroyed)
             continue;
 
-        SafeDestroyBlock(block);
+        // [Kafes / Zincir Kontrolü] Eğer blok kafesliyse doğrudan patlatılmaz, 1 kademe kafesi kırılır!
+        if (block.IsChained())
+        {
+            bool wasChained = block.IsChained();
+            block.BreakOneChain();
+            if (wasChained && !block.IsChained())
+                ReportObstacleDestroyed(AdventureObjectiveTarget.Chain);
+        }
+        else
+        {
+            SafeDestroyBlock(block);
+        }
 
         // Preserve a non-zero wave cadence after removing the old per-target arc wait.
         yield return new WaitForSeconds(fireWaveDelayBetweenBlocks);
@@ -3537,6 +3997,7 @@ private IEnumerator DestroyBlocksByColorWaveRoutine(Color targetColor)
     isFireResolving = false;
 
             yield return StartCoroutine(CheckAndClearRowsRoutine(false, 0));
+    TryFinalizePendingAdventureVictory();
 }
 
 public void TriggerSlice(Block sliceBlock)
@@ -3625,22 +4086,31 @@ private IEnumerator SliceBlockRoutineInternal(Block target)
 
     Color color = target.blockColor;
     Sprite sprite = target.GetComponent<SpriteRenderer>().sprite;
+    bool hadCollectible = target.TryDetachCollectible(out string detachedCollectibleId, out Sprite detachedCollectibleSprite);
 
-    Block leftBlock = CreateSplitBlockAndReturn(originalX, y, leftWidth, color, sprite);
+    Block leftBlock = CreateSplitBlockAndReturn(originalX, y, leftWidth, color, sprite,
+        hadCollectible ? detachedCollectibleId : null,
+        hadCollectible ? detachedCollectibleSprite : null);
     Block rightBlock = CreateSplitBlockAndReturn(originalX + leftWidth, y, rightWidth, color, sprite);
+
+    if (hadCollectible && leftBlock == null && rightBlock != null)
+        rightBlock.AssignCollectible(detachedCollectibleId, detachedCollectibleSprite, false);
+
+    bool leftMoveComplete = leftBlock == null;
+    bool rightMoveComplete = rightBlock == null;
 
     if (leftBlock != null)
     {
         Vector3 finalPos = leftBlock.transform.position;
         leftBlock.transform.position = finalPos + new Vector3(-sliceSplitOffset, 0f, 0f);
-        StartCoroutine(MoveBlockToPosition(leftBlock.transform, finalPos, sliceSplitMoveDuration));
+        StartCoroutine(MoveBlockToPosition(leftBlock.transform, finalPos, sliceSplitMoveDuration, () => leftMoveComplete = true));
     }
 
     if (rightBlock != null)
     {
         Vector3 finalPos = rightBlock.transform.position;
         rightBlock.transform.position = finalPos + new Vector3(sliceSplitOffset, 0f, 0f);
-        StartCoroutine(MoveBlockToPosition(rightBlock.transform, finalPos, sliceSplitMoveDuration));
+        StartCoroutine(MoveBlockToPosition(rightBlock.transform, finalPos, sliceSplitMoveDuration, () => rightMoveComplete = true));
     }
 
     SpriteRenderer targetSr = target.GetComponent<SpriteRenderer>();
@@ -3649,6 +4119,7 @@ private IEnumerator SliceBlockRoutineInternal(Block target)
 
     SpawnSliceCutFx(target.transform.position);
     yield return new WaitForSeconds(sliceResolveDelay);
+    yield return new WaitUntil(() => leftMoveComplete && rightMoveComplete);
     SafeDestroyBlock(target, null, false);
 
     RebuildGridMemory();
@@ -3664,6 +4135,7 @@ private IEnumerator SliceResolveDelayRoutine()
     }
 
     isSliceResolving = false;
+    TryFinalizePendingAdventureVictory();
 }
 
 private void FinishSliceOperation()
@@ -3770,9 +4242,17 @@ private IEnumerator SlicePostSplitSettleRoutine()
     yield return StartCoroutine(RebuildAndApplyGravityRoutine());
 
     isSliceResolving = false;
+    TryFinalizePendingAdventureVictory();
 }
 
-private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color color, Sprite sprite)
+private Block CreateSplitBlockAndReturn(
+    int x,
+    int y,
+    int widthValue,
+    Color color,
+    Sprite sprite,
+    string collectibleId = null,
+    Sprite collectibleSprite = null)
 {
     if (widthValue <= 0)
         return null;
@@ -3789,6 +4269,9 @@ private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color colo
     newBlock.y = y;
     newBlock.blockColor = color;
     newBlock.blockType = BlockType.Normal;
+
+    if (!string.IsNullOrWhiteSpace(collectibleId))
+        newBlock.AssignCollectible(collectibleId, collectibleSprite, false);
 
     SpriteRenderer sr = newBlock.GetComponent<SpriteRenderer>();
 
@@ -3814,31 +4297,38 @@ private Block CreateSplitBlockAndReturn(int x, int y, int widthValue, Color colo
     return newBlock;
 }
 
-private IEnumerator MoveBlockToPosition(Transform target, Vector3 finalPosition, float duration)
+private IEnumerator MoveBlockToPosition(Transform target, Vector3 finalPosition, float duration, System.Action onComplete = null)
 {
-    if (target == null)
-        yield break;
-
-    Vector3 startPosition = target.position;
-    float timer = 0f;
-
-    while (timer < duration)
+    try
     {
         if (target == null)
             yield break;
 
-        timer += Time.deltaTime;
-        float t = Mathf.Clamp01(timer / duration);
+        Vector3 startPosition = target.position;
+        float timer = 0f;
 
-        t = t * t * (3f - 2f * t);
+        while (timer < duration)
+        {
+            if (target == null)
+                yield break;
 
-        target.position = Vector3.Lerp(startPosition, finalPosition, t);
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / duration);
 
-        yield return null;
+            t = t * t * (3f - 2f * t);
+
+            target.position = Vector3.Lerp(startPosition, finalPosition, t);
+
+            yield return null;
+        }
+
+        if (target != null)
+            target.position = finalPosition;
     }
-
-    if (target != null)
-        target.position = finalPosition;
+    finally
+    {
+        onComplete?.Invoke();
+    }
 }
 
 void CreateSplitBlock(int x, int y, int widthValue, Color color, Sprite sprite)

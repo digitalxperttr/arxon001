@@ -56,7 +56,7 @@ public class FloatingText : MonoBehaviour
     /// Evrensel Statik Çağırma: Oyunun herhangi bir yerinden tek satırda çağrılabilir.
     /// Örn: FloatingText.Spawn(pos, "+72", FloatingTextStyle.ScoreCyan);
     /// </summary>
-    public static FloatingText Spawn(Vector3 worldPos, string text, FloatingTextStyle style = FloatingTextStyle.ScoreCyan, float size = 6f)
+    public static FloatingText Spawn(Vector3 worldPos, string text, FloatingTextStyle style = FloatingTextStyle.ScoreCyan, float size = 6f, float customHangDuration = -1f)
     {
         FloatingText prefab = s_defaultPrefab;
         if (prefab == null && GridManager.Instance != null)
@@ -76,14 +76,14 @@ public class FloatingText : MonoBehaviour
         }
 
         FloatingText instance = Instantiate(prefab, worldPos, Quaternion.identity);
-        instance.SetStyle(text, style, size);
+        instance.SetStyle(text, style, size, customHangDuration);
         return instance;
     }
 
     /// <summary>
     /// Belirtilen hazır görsel stili uygular ve yaylanan (punch/pop) animasyonu başlatır.
     /// </summary>
-    public void SetStyle(string text, FloatingTextStyle style, float size = 6f)
+    public void SetStyle(string text, FloatingTextStyle style, float size = 6f, float customHangDuration = -1f)
     {
         EnsureComponents();
         if (textMesh == null) return;
@@ -106,7 +106,8 @@ public class FloatingText : MonoBehaviour
         if (animRoutine != null)
             StopCoroutine(animRoutine);
 
-        animRoutine = StartCoroutine(JuicePopRoutine());
+        float hang = customHangDuration > 0f ? customHangDuration : hangDuration;
+        animRoutine = StartCoroutine(JuicePopRoutine(hang));
     }
 
     /// <summary>
@@ -145,8 +146,9 @@ public class FloatingText : MonoBehaviour
         }
     }
 
-    private IEnumerator JuicePopRoutine()
+    private IEnumerator JuicePopRoutine(float currentHangDuration = -1f)
     {
+        float actualHang = currentHangDuration > 0f ? currentHangDuration : hangDuration;
         Vector3 startPos = transform.position;
         Vector3 baseScale = Vector3.one;
         transform.localScale = Vector3.zero;
@@ -179,10 +181,10 @@ public class FloatingText : MonoBehaviour
         elapsed = 0f;
         Vector3 hangStartPos = transform.position;
         Vector3 hangEndPos = hangStartPos + new Vector3(0f, 0.15f, 0f);
-        while (elapsed < hangDuration)
+        while (elapsed < actualHang)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / hangDuration);
+            float t = Mathf.Clamp01(elapsed / actualHang);
             transform.position = Vector3.Lerp(hangStartPos, hangEndPos, t);
             yield return null;
         }

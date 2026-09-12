@@ -12,9 +12,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f76d7ea8bc4c4f139da57caa8fbec1e, type: 3}
   m_Name: L03
   m_EditorClassIdentifier: Assembly-CSharp::AdventureLevelConfig
+  levelId: event-001-s03
+  eventId: event-001
+  contentVersion: 1
+  displayedLevelNumber: 3
   levelNumber: 3
   displayName: Adventure Level
   designerNotes: Medium / Relaxed / ReachScore / None
+  authoringMode: 1
+  directRecipe:
+    hasMoveLimit: 0
+    moveLimit: 30
+    gapChance: 0.36
+    minBlockWidth: 1
+    maxBlockWidth: 4
+    useCustomWidthRules: 0
+    largeBlockChance: 0.12
+    rock:
+      enabled: 0
+      chance: 0.2
+    chain:
+      enabled: 0
+      chance: 0.02
+    ice:
+      enabled: 0
+      chance: 0.1
+    fire:
+      enabled: 1
+      chance: 0.07
+    slice:
+      enabled: 1
+      chance: 0.07
+    fogDensity: 0
+    fogCoveragePercent: 0
+    fogStartingRow: -1
   difficulty: 1
   pressure: 0
   objective: 1
@@ -23,10 +54,16 @@ MonoBehaviour:
   fogDensity: 0
   fogCoveragePercent: 0
   objectives:
-  - action: 0
-    target: 2
-    requiredAmount: 15
-    collectibleId: 
+  - action: 2
+    target: 3
+    requiredAmount: 4
+    collectibleId: CN_LIME_01
+    displayLabel: 
+    displayIcon: {fileID: 0}
+  - action: 2
+    target: 3
+    requiredAmount: 4
+    collectibleId: CN_CYAN_01
     displayLabel: 
     displayIcon: {fileID: 0}
   targetLines: 0

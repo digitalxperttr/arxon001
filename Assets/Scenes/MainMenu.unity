@@ -1064,6 +1064,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameInitializer
   managersPrefab: {fileID: 2477317932445722410, guid: 525042ac46e7741639ca1449e4d95b96, type: 3}
+  defaultLocalEvent: {fileID: 11400000, guid: fb41cc02845d749e88706d0c4cb19734, type: 2}
 --- !u!4 &1248157514
 Transform:
   m_ObjectHideFlags: 0

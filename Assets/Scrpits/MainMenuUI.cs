@@ -30,6 +30,8 @@ public class MainMenuUI : MonoBehaviour
 
         SetSettingsVisible(false);
         ApplySavedSettings();
+        Canvas menuCanvas = GetComponent<Canvas>();
+        AdventureRemoteEventCard.Ensure(menuCanvas, mainMenuBestScoreText != null ? mainMenuBestScoreText.font : null);
     }
 
     public void StartClassicMode()

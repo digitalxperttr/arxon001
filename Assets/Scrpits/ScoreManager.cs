@@ -128,6 +128,7 @@ public class ScoreManager : MonoBehaviour
     {
         ClearClassicHudReferences();
         shouldUseClassicHud = scene.name == "GameScene";
+        bool isAdventureAttempt = scene.name == "AdventureGameScene";
 
         if (shouldUseClassicHud)
         {
@@ -166,6 +167,10 @@ public class ScoreManager : MonoBehaviour
         
         currentScore = 0;
         currentLevel = GetLevelForScore(currentScore);
+        if (isAdventureAttempt)
+        {
+            ResetCombo();
+        }
         UpdateScoreUI();
     }
         

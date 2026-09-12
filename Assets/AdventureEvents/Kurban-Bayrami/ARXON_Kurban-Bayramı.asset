@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13a9eeb6b85fa43bc88c6c31dddf08db, type: 3}
+  m_Name: "ARXON_Kurban-Bayram\u0131"
+  m_EditorClassIdentifier: Assembly-CSharp::AdventureEventConfig
+  eventId: "kurban-bayram\u0131"
+  contentVersion: 1.0.0
+  eventName: "Kurban Bayram\u0131"
+  eventTheme: Local
+  eventDescription: 
+  mapBackgroundVisual: {fileID: 21300000, guid: 0e1048f4ccc2a4d1bb05428b82570b93, type: 3}
+  gameplayBackgroundVisual: {fileID: 21300000, guid: 73ab399f50be9477cb3da4171425c39d, type: 3}
+  plannedStartDate: 
+  plannedEndDate: 
+  levelCount: 50
+  startingDifficulty: 0
+  endingDifficulty: 2
+  featuredTheme: 0
+  featuredMechanic: 0
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rewardMetadata:
+    rewardId: 
+    rewardDisplayName: 
+    rewardDescription: 
+  levelConfigs:
+  - {fileID: 11400000, guid: b1a443941df6048eba6f58e7d9fe901d, type: 2}
+  - {fileID: 11400000, guid: db7e70e756ce44a3e8b64e020ac9d097, type: 2}
+  - {fileID: 11400000, guid: 0871827e5215d4fafb09a2ce37e7cc63, type: 2}
+  - {fileID: 11400000, guid: 45df9cc117cdc4a11a4a3ade1098ed5b, type: 2}
+  - {fileID: 11400000, guid: 29d38afb4d2a842e4aa637b5378924b3, type: 2}
+  - {fileID: 11400000, guid: f9095652540f940bd9b3d5660b363757, type: 2}
+  - {fileID: 11400000, guid: 258496248df23461da5673ff52acd993, type: 2}
+  - {fileID: 11400000, guid: d46354af5f8d648ca9ee8a3251ff6762, type: 2}
+  - {fileID: 11400000, guid: 9461f7ea7f44d482da52228572a84fec, type: 2}
+  - {fileID: 11400000, guid: 30f3e9dfd0dee44409c28a8ddf43bf34, type: 2}
+  - {fileID: 11400000, guid: ab37e28ea6872477087b525e93bb69df, type: 2}
+  - {fileID: 11400000, guid: 542785399115f4fb2b6f72c5188213a6, type: 2}
+  - {fileID: 11400000, guid: 4bf9d5eee5b7248da966cd515de116f1, type: 2}
+  - {fileID: 11400000, guid: 2eded6babfd56414c88474f0f8516921, type: 2}
+  - {fileID: 11400000, guid: 630b923b614b040669648bee5a5d51cf, type: 2}
+  - {fileID: 11400000, guid: bb6d543ac66074670bf58854bfa57c24, type: 2}
+  - {fileID: 11400000, guid: becf5a34cd89f4a8a8cf61302f8529c0, type: 2}
+  - {fileID: 11400000, guid: 956ddfeeda4324549bfc01f5ac8e4b6b, type: 2}
+  - {fileID: 11400000, guid: cd195d470d07f4040a23c31e1c5f39e8, type: 2}
+  - {fileID: 11400000, guid: c8c14e8bfafb64d04b6169544d312b80, type: 2}
+  - {fileID: 11400000, guid: 7742bc9324a4247ebacc46abaa75e1fc, type: 2}
+  - {fileID: 11400000, guid: 7d746ee29fe6840acacf0cb399065ae8, type: 2}
+  - {fileID: 11400000, guid: a8d97c21c49e6435b986d863f5d72640, type: 2}
+  - {fileID: 11400000, guid: ee2b59fc3ce0b4cd18075cc885519e7f, type: 2}
+  - {fileID: 11400000, guid: d50bc2c2a8dc14ce1bf51cbf348e2396, type: 2}
+  - {fileID: 11400000, guid: cccdde65a52df461d9525d1d3c200aeb, type: 2}
+  - {fileID: 11400000, guid: 2d90424a3390a4108a6f817cb16a57ab, type: 2}
+  - {fileID: 11400000, guid: e06612420e7424313b3af138f8a4071f, type: 2}
+  - {fileID: 11400000, guid: 6dc7ee37bced94f478a7e0d1e9e18739, type: 2}
+  - {fileID: 11400000, guid: 928e4399708394da8b86e9d4e5a51a68, type: 2}
+  - {fileID: 11400000, guid: 3352a082c6ef749f6b371a714b3c8f3c, type: 2}
+  - {fileID: 11400000, guid: f3449dcccb8954bf9811fb1d738a7569, type: 2}
+  - {fileID: 11400000, guid: d05443e37651841a8acfef09b27f2a46, type: 2}
+  - {fileID: 11400000, guid: 70dfa7973cba34977bd4d15dc963f1ac, type: 2}
+  - {fileID: 11400000, guid: 6825f55192a934e7fbccd435162a4990, type: 2}
+  - {fileID: 11400000, guid: 3c079c39475484c878de87c68cfc2348, type: 2}
+  - {fileID: 11400000, guid: aad66e711bfd44c51891e41380b2d04d, type: 2}
+  - {fileID: 11400000, guid: bd829db067fa5445484d35cf72352f41, type: 2}
+  - {fileID: 11400000, guid: 3e016fb78f03b4cda8754238f2b21311, type: 2}
+  - {fileID: 11400000, guid: 55ebf7aa444e24a179bef43b074f22ac, type: 2}
+  - {fileID: 11400000, guid: 13d8170c686c64700af62d851d096701, type: 2}
+  - {fileID: 11400000, guid: 88bd508054cd04491a66e96e4eada62a, type: 2}
+  - {fileID: 11400000, guid: f278563c2d2dd4908b33c5e66765b432, type: 2}
+  - {fileID: 11400000, guid: 8e1fe67ca02d34f729311589bdc40716, type: 2}
+  - {fileID: 11400000, guid: beb926973314a47d89b8b48fee4da979, type: 2}
+  - {fileID: 11400000, guid: 6578236e7f55341fb8856aaaacebbc78, type: 2}
+  - {fileID: 11400000, guid: fa2131a210c4040aeab072ed72b74cf7, type: 2}
+  - {fileID: 11400000, guid: c51a01f057481497c8dc1244387c377e, type: 2}
+  - {fileID: 11400000, guid: ad12bce66e0204802b517b10652662c5, type: 2}
+  - {fileID: 11400000, guid: 2e8b08b18c76d494bbbd9a357fa4c96f, type: 2}
+  generationSettings:
+    seed: 1427591196
+    generatorVersion: local-direct-50-v4-target-obstacle-supply
+    defaultLevelCount: 50
+    defaultTargetObstaclePerRowLimit: 2
+    defaultTargetObstacleActiveBoardLimit: 2
+  collectibleDatabase: {fileID: 11400000, guid: b43b0f27c76524129b7b0deea6f36b9f, type: 2}

@@ -61,7 +61,8 @@ Chain is a two-hit obstacle. Fire and Slice are bonus blocks.
 - **No 3-Piece Hand**: ARXON does not have a 3-piece hand mechanic. Spawning is row-push based.
 - **Classic Mode Level Progression**:
   - Exclusively SCORE-BASED, not row-cleared based.
-  - Unlimited level progression beyond Level 10 (`postThresholdBaseGap = 1200`, `postThresholdGapIncrease = 200`).
+  - Unlimited level progression beyond Level 10 (`postThresholdBaseGap = 12000`, `postThresholdGapIncrease = 2000`).
+  - Full scoring and progression specification is documented in [`Docs/AI/ARXON_SCORE_AND_LEVEL_SYSTEM_GUIDE.md`](file:///Users/bayramsanli/Desktop/unity%20projects/arxon001/Docs/AI/ARXON_SCORE_AND_LEVEL_SYSTEM_GUIDE.md).
 - **Dynamic Push / Difficulty Scaling**:
   - Push roll hierarchy: Triple -> Double -> Single row.
   - Cleared-row based minimum push:

@@ -5029,7 +5029,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Level
+  m_text: "B\xF6l\xFCm"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3c1a5489c90fb4e969a30469559b1340, type: 2}
   m_sharedMaterial: {fileID: 5505472568567288273, guid: 3c1a5489c90fb4e969a30469559b1340, type: 2}
@@ -5121,7 +5121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 961ca6c14b1544d78781a936da94e486, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  localizationKey: level_title
+  localizationKey: 
 --- !u!1 &910000030
 GameObject:
   m_ObjectHideFlags: 0
@@ -5294,9 +5294,9 @@ RectTransform:
   - {fileID: 910001041}
   m_Father: {fileID: 910000001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 100, y: -41}
   m_SizeDelta: {x: 200, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &910001002
@@ -5774,9 +5774,9 @@ RectTransform:
   - {fileID: 910002041}
   m_Father: {fileID: 910000001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 316, y: -41}
   m_SizeDelta: {x: 200, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &910002002
@@ -6254,9 +6254,9 @@ RectTransform:
   - {fileID: 910003041}
   m_Father: {fileID: 910000001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 532, y: -41}
   m_SizeDelta: {x: 200, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &910003002
@@ -6815,6 +6815,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0dec94232eb74dffba16fb6ccf92742, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameSceneUI
+  adventureGameplayBackground: {fileID: 307746398}
 --- !u!1 &1019168841
 GameObject:
   m_ObjectHideFlags: 0

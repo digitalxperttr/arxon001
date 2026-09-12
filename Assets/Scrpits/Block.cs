@@ -700,10 +700,30 @@ public bool TryCollectCollectible()
     if (ObjectiveManager.Instance != null)
     {
         ObjectiveManager.Instance.ReportCollectibleCollected(collectedId, 1);
+        if (LevelManager.Instance != null && LevelManager.Instance.enabled)
+        {
+            LevelManager.Instance.EvaluateObjectiveCompletion();
+        }
     }
 
     ClearCollectible(false);
     Debug.Log($"Collected collectible: {collectedId}");
+    return true;
+}
+
+public bool TryDetachCollectible(out string detachedId, out Sprite detachedSprite)
+{
+    detachedId = collectibleId;
+    detachedSprite = collectibleVisualRenderer != null ? collectibleVisualRenderer.sprite : null;
+    if (!hasCollectible || string.IsNullOrWhiteSpace(detachedId))
+    {
+        detachedId = null;
+        detachedSprite = null;
+        return false;
+    }
+
+    ClearCollectible(false);
+    collectibleCollected = false;
     return true;
 }
 
@@ -4039,5 +4059,3 @@ internal class DebrisChunkFader : MonoBehaviour
         }
     }
 }
-
-

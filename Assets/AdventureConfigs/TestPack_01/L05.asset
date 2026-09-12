@@ -12,9 +12,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f76d7ea8bc4c4f139da57caa8fbec1e, type: 3}
   m_Name: L05
   m_EditorClassIdentifier: Assembly-CSharp::AdventureLevelConfig
+  levelId: 
+  eventId: default-adventure
+  contentVersion: 1
+  displayedLevelNumber: 5
   levelNumber: 5
   displayName: Adventure Level
   designerNotes: Hard / TightMoves / ClearRows / Mixed
+  authoringMode: 0
+  directRecipe:
+    hasMoveLimit: 1
+    moveLimit: 30
+    gapChance: 0.38
+    minBlockWidth: 1
+    maxBlockWidth: 4
+    useCustomWidthRules: 0
+    largeBlockChance: 0.09
+    rock:
+      enabled: 0
+      chance: 0
+    chain:
+      enabled: 0
+      chance: 0
+    ice:
+      enabled: 0
+      chance: 0
+    fire:
+      enabled: 0
+      chance: 0
+    slice:
+      enabled: 0
+      chance: 0
+    fogDensity: 0
+    fogCoveragePercent: 0
+    fogStartingRow: -1
   difficulty: 1
   pressure: 1
   objective: 1
@@ -22,6 +53,7 @@ MonoBehaviour:
   specialMechanicFocus: 0
   fogDensity: 1
   fogCoveragePercent: 1
+  objectives: []
   targetLines: 0
   targetScore: 800
   targetObstacleCount: 0

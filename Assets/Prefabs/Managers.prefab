@@ -64,17 +64,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   comboCount: 0
-  scoreLevelThresholds:
-  - 0
-  - 1000
-  - 2500
-  - 4500
-  - 7000
-  - 10500
-  - 15000
-  - 20500
-  - 27000
-  - 35000
+  scoreLevelThresholds: 00000000e8030000c409000094110000581b000004290000983a00001450000078690000b8880000
   postThresholdBaseGap: 12000
   postThresholdGapIncrease: 2000
   currentLevel: 1
@@ -116,6 +106,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8b61c4c8899be405ba85bbfbb7a1212a, type: 2}
   - {fileID: 11400000, guid: 608f579f821e54674a8dd19b405ff9f2, type: 2}
   - {fileID: 11400000, guid: 02ed03dd34b8047828b42b4f2943c967, type: 2}
+  selectedLocalEvent: {fileID: 11400000, guid: 0f62d05ed7b5e4a2092e16c86a003c43, type: 2}
 --- !u!114 &5088125559721086149
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public static class AdventureLevelGenerator
@@ -6,13 +7,16 @@ public static class AdventureLevelGenerator
 
     public static LevelData GenerateRuntimeLevel(AdventureLevelConfig config)
     {
-        if (config == null)
+        if (!ValidateConfig(config, out string error))
+        {
+            Debug.LogError($"[Adventure] {error}", config);
             return null;
+        }
 
         LevelData runtimeLevel = ScriptableObject.CreateInstance<LevelData>();
         runtimeLevel.hideFlags = HideFlags.DontSave;
         runtimeLevel.name = string.IsNullOrWhiteSpace(config.displayName)
-            ? $"GeneratedAdventureLevel_{config.levelNumber}"
+            ? $"GeneratedAdventureLevel_{config.GetStageNumber()}"
             : config.displayName;
 
         ApplyConfig(config, runtimeLevel);
@@ -24,36 +28,281 @@ public static class AdventureLevelGenerator
         if (config == null || target == null)
             return;
 
-        target.levelNumber = Mathf.Max(1, config.levelNumber);
+        if (!ValidateConfig(config, out string error))
+        {
+            Debug.LogError($"[Adventure] {error}", config);
+            return;
+        }
+
+        target.levelNumber = config.GetStageNumber();
         target.objectiveType = config.objective;
+        target.specialMechanicFocus = config.authoringMode == AdventureStageAuthoringMode.LegacyMacroAuthoring
+            ? config.specialMechanicFocus
+            : SpecialMechanicFocus.None;
         target.targetObstacleCount = Mathf.Max(0, config.targetObstacleCount);
         target.targetComboCount = Mathf.Max(0, config.targetComboCount);
         target.isEndless = config.isEndless;
+        target.hasMoveLimit = true;
 
-        LevelProfile profile = BuildBaseProfile(config.difficulty);
-        ApplyPressure(ref profile, config.pressure, config.pressureOffset);
-        ApplyObstacleTheme(ref profile, config.obstacleTheme);
-        ApplySpecialFocus(ref profile, config.specialMechanicFocus);
-        ApplyFogAuthoring(config, ref profile);
-        ApplyObjective(config, target, ref profile);
+        if (config.authoringMode == AdventureStageAuthoringMode.DirectRecipeAuthoring)
+        {
+            ApplyDirectRecipe(config.directRecipe, target);
+            ApplyDirectObjectives(config, target);
+        }
+        else
+        {
+            LevelProfile profile = BuildBaseProfile(config.difficulty);
+            ApplyPressure(ref profile, config.pressure, config.pressureOffset);
+            ApplyObstacleTheme(ref profile, config.obstacleTheme);
+            ApplySpecialFocus(ref profile, config.specialMechanicFocus);
+            ApplyFogAuthoring(config, ref profile);
+            ApplyObjective(config, target, ref profile);
 
-        target.moveLimit = Mathf.Max(1, profile.moveLimit + config.moveOffset);
-        target.baseGapChance = Mathf.Clamp01(profile.baseGapChance);
-        target.largeBlockChance = Mathf.Clamp01(profile.largeBlockChance);
-        target.frozenBlockChance = Mathf.Clamp01(profile.frozenBlockChance);
-        target.rockBlockChance = Mathf.Clamp01(profile.rockBlockChance);
-        target.chainedBlockChance = Mathf.Clamp01(profile.chainedBlockChance);
-        target.useCustomSpawnRules = profile.useCustomSpawnRules;
-        target.minBlockSize = Mathf.Clamp(profile.minBlockSize, 1, 4);
-        target.maxBlockSize = Mathf.Clamp(Mathf.Max(target.minBlockSize, profile.maxBlockSize), 1, 4);
-        target.sliceBlockChance = Mathf.Clamp01(profile.sliceBlockChance);
-        target.fireBlockChance = Mathf.Clamp01(profile.fireBlockChance);
-        target.fogDensity = profile.fogDensity;
-        target.fogCoveragePercent = Mathf.Clamp01(profile.fogCoveragePercent);
-        target.fogStartingRow = profile.fogStartingRow;
+            target.moveLimit = Mathf.Max(1, profile.moveLimit + config.moveOffset);
+            target.baseGapChance = Mathf.Clamp01(profile.baseGapChance);
+            target.largeBlockChance = Mathf.Clamp01(profile.largeBlockChance);
+            target.frozenBlockChance = Mathf.Clamp01(profile.frozenBlockChance);
+            target.rockBlockChance = Mathf.Clamp01(profile.rockBlockChance);
+            target.chainedBlockChance = Mathf.Clamp01(profile.chainedBlockChance);
+            target.useCustomSpawnRules = profile.useCustomSpawnRules;
+            target.minBlockSize = Mathf.Clamp(profile.minBlockSize, 1, 4);
+            target.maxBlockSize = Mathf.Clamp(Mathf.Max(target.minBlockSize, profile.maxBlockSize), 1, 4);
+            target.sliceBlockChance = Mathf.Clamp01(profile.sliceBlockChance);
+            target.fireBlockChance = Mathf.Clamp01(profile.fireBlockChance);
+            target.fogDensity = profile.fogDensity;
+            target.fogCoveragePercent = Mathf.Clamp01(profile.fogCoveragePercent);
+            target.fogStartingRow = profile.fogStartingRow;
 
-        ApplyOverrides(config, target);
+            ApplyOverrides(config, target);
+        }
+        target.CopyRuntimeObjectives(config.HasObjectiveV2() ? config.objectives : BuildLegacyObjectives(target));
         LogGeneratedLevel(config, target);
+    }
+
+    public static bool ValidateConfig(AdventureLevelConfig config, out string error)
+    {
+        error = null;
+        if (config == null) error = "Adventure bölüm config'i bulunamadı.";
+        else if (config.isEndless) error = "Adventure bölümü sonlu olmalı; isEndless desteklenmiyor.";
+        else if (config.authoringMode == AdventureStageAuthoringMode.DirectRecipeAuthoring)
+        {
+            if (!config.HasObjectiveV2()) error = "Direct Stage authoring requires at least one V2 objective.";
+            else if (config.objectives.Count > 3) error = "Adventure supports at most 3 objectives.";
+            else if (!ValidateDirectRecipe(config.directRecipe, out error)) return false;
+            else return LevelData.ValidateObjectives(config.objectives, out error);
+        }
+        else if (config.HasObjectiveV2()) return LevelData.ValidateObjectives(config.objectives, out error);
+        else if (config.objective != ObjectiveType.ClearRows &&
+                 config.objective != ObjectiveType.ReachScore &&
+                 config.objective != ObjectiveType.DestroyObstacles)
+            error = $"Legacy hedef {config.objective} desteklenmiyor; satır hedefine dönüştürülmeyecek.";
+        return error == null;
+    }
+
+    public static bool BakeLegacyMacroAuthoringIntoDirectRecipe(AdventureLevelConfig config, out string error)
+    {
+        error = null;
+        if (config == null)
+        {
+            error = "Adventure Stage config is missing.";
+            return false;
+        }
+
+        if (config.authoringMode == AdventureStageAuthoringMode.DirectRecipeAuthoring)
+            return ValidateConfig(config, out error);
+
+        LevelData resolvedLegacyLevel = GenerateRuntimeLevel(config);
+        if (resolvedLegacyLevel == null)
+        {
+            error = "Legacy Stage recipe could not be resolved.";
+            return false;
+        }
+
+        if (config.directRecipe == null)
+            config.directRecipe = new AdventureStageRecipe();
+
+        config.directRecipe.CopyFrom(resolvedLegacyLevel);
+        if (!config.HasObjectiveV2())
+        {
+            config.objectives = CopyObjectives(resolvedLegacyLevel.Objectives);
+        }
+
+        config.authoringMode = AdventureStageAuthoringMode.DirectRecipeAuthoring;
+        AppendLegacySourceNote(config, resolvedLegacyLevel);
+        return ValidateConfig(config, out error);
+    }
+
+    public static bool RevertDirectRecipeAuthoringToLegacyMacroAuthoring(AdventureLevelConfig config, out string error)
+    {
+        error = null;
+        if (config == null)
+        {
+            error = "Adventure Stage config is missing.";
+            return false;
+        }
+
+        config.authoringMode = AdventureStageAuthoringMode.LegacyMacroAuthoring;
+        return true;
+    }
+
+    private static List<AdventureObjectiveDefinition> CopyObjectives(IReadOnlyList<AdventureObjectiveDefinition> source)
+    {
+        List<AdventureObjectiveDefinition> copy = new List<AdventureObjectiveDefinition>(source.Count);
+        for (int i = 0; i < source.Count; i++)
+        {
+            AdventureObjectiveDefinition objective = source[i];
+            copy.Add(new AdventureObjectiveDefinition
+            {
+                action = objective.action,
+                target = objective.target,
+                requiredAmount = objective.requiredAmount,
+                collectibleId = objective.collectibleId,
+                displayLabel = objective.displayLabel,
+                displayIcon = objective.displayIcon
+            });
+        }
+
+        return copy;
+    }
+
+    private static bool ValidateDirectRecipe(AdventureStageRecipe recipe, out string error)
+    {
+        error = null;
+        if (recipe == null) error = "Direct Stage recipe is missing.";
+        else if ((recipe.hasMoveLimit && recipe.moveLimit < 1) || recipe.openingTargetObstacleLimit < 0 ||
+                 recipe.targetObstaclePerRowLimit < 0 || recipe.targetObstacleActiveBoardLimit < 0 ||
+                 recipe.minBlockWidth < 1 || recipe.maxBlockWidth > 4 || recipe.minBlockWidth > recipe.maxBlockWidth)
+            error = "Direct Stage recipe has an invalid move limit or block-width range.";
+        else if (!IsChance(recipe.gapChance) || !IsChance(recipe.largeBlockChance) ||
+                 !IsSpawnSettingValid(recipe.rock) || !IsSpawnSettingValid(recipe.chain) || !IsSpawnSettingValid(recipe.ice) ||
+                 !IsSpawnSettingValid(recipe.fire) || !IsSpawnSettingValid(recipe.slice) ||
+                 !IsChance(recipe.fogCoveragePercent) || !System.Enum.IsDefined(typeof(FogDensity), recipe.fogDensity))
+            error = "Direct Stage recipe has an invalid chance, fog, or spawn setting.";
+        return error == null;
+    }
+
+    private static bool IsSpawnSettingValid(AdventureStageSpawnSetting setting) =>
+        setting != null && IsChance(setting.chance);
+
+    private static bool IsChance(float value) => !float.IsNaN(value) && value >= 0f && value <= 1f;
+
+    private static void ApplyDirectRecipe(AdventureStageRecipe recipe, LevelData target)
+    {
+        target.hasMoveLimit = recipe.hasMoveLimit;
+        target.moveLimit = recipe.hasMoveLimit ? Mathf.Max(1, recipe.moveLimit) : 0;
+        target.baseGapChance = Mathf.Clamp01(recipe.gapChance);
+        target.largeBlockChance = Mathf.Clamp01(recipe.largeBlockChance);
+        target.openingTargetObstacleLimit = Mathf.Max(0, recipe.openingTargetObstacleLimit);
+        target.targetObstaclePerRowLimit = Mathf.Max(0, recipe.targetObstaclePerRowLimit);
+        target.targetObstacleActiveBoardLimit = Mathf.Max(0, recipe.targetObstacleActiveBoardLimit);
+        target.minBlockSize = Mathf.Clamp(recipe.minBlockWidth, 1, 4);
+        target.maxBlockSize = Mathf.Clamp(Mathf.Max(target.minBlockSize, recipe.maxBlockWidth), 1, 4);
+        target.rockBlockChance = GetEffectiveChance(recipe.rock);
+        target.chainedBlockChance = GetEffectiveChance(recipe.chain);
+        target.frozenBlockChance = GetEffectiveChance(recipe.ice);
+        target.fireBlockChance = GetEffectiveChance(recipe.fire);
+        target.sliceBlockChance = GetEffectiveChance(recipe.slice);
+        target.useCustomSpawnRules = recipe.useCustomWidthRules || recipe.fire.enabled || recipe.slice.enabled;
+        target.fogDensity = recipe.fogDensity;
+        target.fogCoveragePercent = Mathf.Clamp01(recipe.fogCoveragePercent);
+        target.fogStartingRow = recipe.fogStartingRow;
+    }
+
+    private static void AppendLegacySourceNote(AdventureLevelConfig config, LevelData resolvedLegacyLevel)
+    {
+        string summary =
+            "Legacy Source:\n" +
+            $"Difficulty={config.difficulty}\n" +
+            $"Pressure={config.pressure}\n" +
+            $"Obstacle={config.obstacleTheme}\n" +
+            $"Focus={config.specialMechanicFocus}";
+
+        if (config.moveOffset != 0) summary += $"\nMoveOffset={config.moveOffset}";
+        if (config.pressureOffset != 0) summary += $"\nPressureOffset={config.pressureOffset}";
+        if (config.useHandcraftedOverrides) summary += "\nHandcraftedOverrides=Enabled";
+        if ((config.specialMechanicFocus == SpecialMechanicFocus.Fire || config.specialMechanicFocus == SpecialMechanicFocus.Slice) &&
+            !resolvedLegacyLevel.useCustomSpawnRules)
+        {
+            summary += "\nEffectiveSupport=Disabled (legacy custom spawn rules were off)";
+        }
+
+        if (config.designerNotes != null && config.designerNotes.Contains(summary))
+            return;
+
+        config.designerNotes = string.IsNullOrWhiteSpace(config.designerNotes)
+            ? summary
+            : config.designerNotes.TrimEnd() + "\n\n" + summary;
+    }
+
+    private static float GetEffectiveChance(AdventureStageSpawnSetting setting) =>
+        setting != null && setting.enabled ? Mathf.Clamp01(setting.chance) : 0f;
+
+    private static void ApplyDirectObjectives(AdventureLevelConfig config, LevelData target)
+    {
+        ResetLegacyTargets(target);
+        AdventureObjectiveDefinition fallbackObjective = GetFirstRuntimeCompatibleObjective(config);
+        if (fallbackObjective == null)
+        {
+            target.objectiveType = ObjectiveType.ClearRows;
+            target.targetLines = UnsupportedObjectiveFallbackLines;
+            return;
+        }
+
+        int requiredAmount = Mathf.Max(1, fallbackObjective.requiredAmount);
+        if (fallbackObjective.action == AdventureObjectiveAction.ReachScore)
+        {
+            target.objectiveType = ObjectiveType.ReachScore;
+            target.targetScore = requiredAmount;
+            target.targetLines = UnsupportedObjectiveFallbackLines;
+        }
+        else
+        {
+            target.objectiveType = ObjectiveType.ClearRows;
+            target.targetLines = requiredAmount;
+        }
+    }
+
+    private static AdventureObjectiveDefinition[] BuildLegacyObjectives(LevelData level)
+    {
+        if (level.objectiveType == ObjectiveType.DestroyObstacles)
+        {
+            return new[] { new AdventureObjectiveDefinition
+            {
+                action = AdventureObjectiveAction.DestroyObstacle,
+                target = AdventureObjectiveTarget.AnyObstacle,
+                requiredAmount = Mathf.Max(1, level.targetObstacleCount)
+            }};
+        }
+
+        bool score = level.objectiveType == ObjectiveType.ReachScore;
+        return new[] { new AdventureObjectiveDefinition
+        {
+            action = score ? AdventureObjectiveAction.ReachScore : AdventureObjectiveAction.ClearRows,
+            target = score ? AdventureObjectiveTarget.Score : AdventureObjectiveTarget.Rows,
+            requiredAmount = score ? level.targetScore : level.targetLines
+        }};
+    }
+
+    public static LevelData CopyLegacyRuntimeLevel(LevelData source)
+    {
+        if (source == null) return null;
+        if (source.objectiveType != ObjectiveType.ClearRows &&
+            source.objectiveType != ObjectiveType.ReachScore &&
+            source.objectiveType != ObjectiveType.DestroyObstacles)
+        {
+            Debug.LogError($"[Adventure] Legacy hedef {source.objectiveType} desteklenmiyor.", source);
+            return null;
+        }
+        AdventureObjectiveDefinition[] definitions = BuildLegacyObjectives(source);
+        if (!LevelData.ValidateObjectives(definitions, out string error))
+        {
+            Debug.LogError($"[Adventure] {error}", source);
+            return null;
+        }
+        LevelData runtime = Object.Instantiate(source);
+        runtime.hideFlags = HideFlags.DontSave;
+        runtime.CopyRuntimeObjectives(definitions);
+        return runtime;
     }
 
     private static void ApplyObjective(AdventureLevelConfig config, LevelData target, ref LevelProfile profile)
@@ -96,6 +345,7 @@ public static class AdventureLevelGenerator
             case ObjectiveType.DestroyObstacles:
                 target.targetScore = 0;
                 target.targetLines = config.targetLines > 0 ? config.targetLines : defaultLines;
+                target.targetObstacleCount = config.targetObstacleCount > 0 ? config.targetObstacleCount : defaultLines;
                 profile.rockBlockChance += 0.04f;
                 profile.frozenBlockChance += 0.04f;
                 profile.chainedBlockChance += 0.04f;
@@ -210,8 +460,6 @@ public static class AdventureLevelGenerator
             return;
 
         AdventureLevelOverrides overrides = config.handcraftedOverrides;
-        bool shouldEnableCustomSpawnRules = false;
-
         if (overrides.overrideMoveLimit) target.moveLimit = Mathf.Max(1, overrides.moveLimit);
         if (overrides.overrideBaseGapChance) target.baseGapChance = Mathf.Clamp01(overrides.baseGapChance);
         if (overrides.overrideLargeBlockChance) target.largeBlockChance = Mathf.Clamp01(overrides.largeBlockChance);
@@ -222,29 +470,23 @@ public static class AdventureLevelGenerator
         if (overrides.overrideMinBlockSize)
         {
             target.minBlockSize = Mathf.Clamp(overrides.minBlockSize, 1, 4);
-            shouldEnableCustomSpawnRules = true;
         }
         if (overrides.overrideMaxBlockSize)
         {
             target.maxBlockSize = Mathf.Clamp(Mathf.Max(target.minBlockSize, overrides.maxBlockSize), 1, 4);
-            shouldEnableCustomSpawnRules = true;
         }
         if (overrides.overrideSliceChance)
         {
             target.sliceBlockChance = Mathf.Clamp01(overrides.sliceBlockChance);
-            shouldEnableCustomSpawnRules |= target.sliceBlockChance > 0f;
         }
         if (overrides.overrideFireChance)
         {
             target.fireBlockChance = Mathf.Clamp01(overrides.fireBlockChance);
-            shouldEnableCustomSpawnRules |= target.fireBlockChance > 0f;
         }
         if (overrides.overrideFogDensity) target.fogDensity = overrides.fogDensity;
         if (overrides.overrideFogCoveragePercent) target.fogCoveragePercent = Mathf.Clamp01(overrides.fogCoveragePercent);
         if (overrides.overrideFogStartingRow) target.fogStartingRow = overrides.fogStartingRow;
 
-        if (!target.useCustomSpawnRules && shouldEnableCustomSpawnRules)
-            target.useCustomSpawnRules = true;
     }
 
     private static LevelProfile BuildBaseProfile(DifficultyTier difficulty)
@@ -375,11 +617,9 @@ public static class AdventureLevelGenerator
         {
             case SpecialMechanicFocus.Fire:
                 profile.fireBlockChance += 0.05f;
-                profile.useCustomSpawnRules = true;
                 break;
             case SpecialMechanicFocus.Slice:
                 profile.sliceBlockChance += 0.05f;
-                profile.useCustomSpawnRules = true;
                 break;
             case SpecialMechanicFocus.Fog:
                 if (profile.fogDensity == FogDensity.None)
